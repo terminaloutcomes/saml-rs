@@ -6,4 +6,24 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[bin]]
+name = "samlrs"
+path = "src/cli.rs"
+
 [dependencies]
+
+log = "0.4"
+base64 = "0.13"
+# web things
+tide = "0.16"
+# for inflating AuthN requests
+inflate = "0.4.5"
+
+xmlparser = "0.13.3"
+serde = "1.0"
+serde-xml-rs = "0.3.1"
+serde_derive = "1.0"
+
+# certificate things
+reqwest = "0.11"
+
