@@ -15,6 +15,7 @@ use inflate::inflate_bytes;
 use std::str::from_utf8;
 
 pub mod metadata;
+pub mod response;
 pub mod test_samples;
 pub mod tide_helpers;
 
