@@ -49,6 +49,48 @@
 <span id="46">46</span>
 <span id="47">47</span>
 <span id="48">48</span>
+<span id="49">49</span>
+<span id="50">50</span>
+<span id="51">51</span>
+<span id="52">52</span>
+<span id="53">53</span>
+<span id="54">54</span>
+<span id="55">55</span>
+<span id="56">56</span>
+<span id="57">57</span>
+<span id="58">58</span>
+<span id="59">59</span>
+<span id="60">60</span>
+<span id="61">61</span>
+<span id="62">62</span>
+<span id="63">63</span>
+<span id="64">64</span>
+<span id="65">65</span>
+<span id="66">66</span>
+<span id="67">67</span>
+<span id="68">68</span>
+<span id="69">69</span>
+<span id="70">70</span>
+<span id="71">71</span>
+<span id="72">72</span>
+<span id="73">73</span>
+<span id="74">74</span>
+<span id="75">75</span>
+<span id="76">76</span>
+<span id="77">77</span>
+<span id="78">78</span>
+<span id="79">79</span>
+<span id="80">80</span>
+<span id="81">81</span>
+<span id="82">82</span>
+<span id="83">83</span>
+<span id="84">84</span>
+<span id="85">85</span>
+<span id="86">86</span>
+<span id="87">87</span>
+<span id="88">88</span>
+<span id="89">89</span>
+<span id="90">90</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">/// Random samples of XML I&#39;ve found around the place</span>
 
@@ -98,6 +140,48 @@ Version=&quot;2.0&quot;
     &lt;saml:AuthnContextClassRef&gt;urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport&lt;/saml:AuthnContextClassRef&gt;
   &lt;/samlp:RequestedAuthnContext&gt;
 &lt;/samlp:AuthnRequest&gt;&quot;#</span>;
+
+
+<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">dead_code</span>)]</span>
+<span class="doccomment">/// Example SAML unsigned response with unsigned assertion - ezymode</span>
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">TEST_SAML_UNSIGNED_RESPONSE_UNSIGNED_ASSERTION</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">r#&quot;&lt;samlp:Response xmlns:samlp=&quot;urn:oasis:names:tc:SAML:2.0:protocol&quot; xmlns:saml=&quot;urn:oasis:names:tc:SAML:2.0:assertion&quot; ID=&quot;_8e8dc5f69a98cc4c1ff3427e5ce34606fd672f91e6&quot; Version=&quot;2.0&quot; IssueInstant=&quot;2014-07-17T01:01:48Z&quot; Destination=&quot;http://sp.example.com/demo1/index.php?acs&quot;
+InResponseTo=&quot;ONELOGIN_4fee3b046395c4e751011e97f8900b5273d56685&quot;&gt;
+  &lt;saml:Issuer&gt;http://idp.example.com/metadata.php&lt;/saml:Issuer&gt;
+  &lt;samlp:Status&gt;
+    &lt;samlp:StatusCode Value=&quot;urn:oasis:names:tc:SAML:2.0:status:Success &quot;/&gt;
+  &lt;/samlp:Status&gt;
+  &lt;saml:Assertion xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xmlns:xs=&quot;http://www.w3.org/2001/XMLSchema&quot; ID=&quot;_d71a3a8e9fcc45c9e9d248ef7049393fc8f04e5f75&quot; Version=&quot;2.0&quot; IssueInstant=&quot;2014-07-17T01:01:48Z&quot;&gt;
+  &lt;saml:Issuer&gt;http://idp.example.com/metadata.php&lt;/saml:Issuer&gt;
+  &lt;saml:Subject&gt;
+    &lt;saml:NameID SPNameQualifier=&quot;http://sp.example.com/demo1/metadata.php&quot; Format=&quot;urn:oasis:names:tc:SAML:2.0:nameid-format:transient&quot;&gt;_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7&lt;/saml:NameID&gt;
+    &lt;saml:SubjectConfirmation Method=&quot;urn:oasis:names:tc:SAML:2.0:cm:bearer&quot;&gt;
+      &lt;saml:SubjectConfirmationData NotOnOrAfter=&quot;2024-01-18T06:21:48Z&quot; Recipient=&quot;http://sp.example.com/demo1/index.php?acs&quot; InResponseTo=&quot;ONELOGIN_4fee3b046395c4e751011e97f8900b5273d56685&quot; /&gt;
+    &lt;/saml:SubjectConfirmation&gt;
+  &lt;/saml:Subject&gt;
+  &lt;saml:Conditions NotBefore=&quot;2014-07-17T01:01:18Z&quot; NotOnOrAfter=&quot;2024-01-18T06:21:48Z&quot;&gt;
+    &lt;saml:AudienceRestriction&gt;
+      &lt;saml:Audience&gt;http://sp.example.com/demo1/metadata.php&lt;/saml:Audience&gt;
+    &lt;/saml:AudienceRestriction&gt;
+  &lt;/saml:Conditions&gt;
+  &lt;saml:AuthnStatement AuthnInstant=&quot;2014-07-17T01:01:48Z&quot; SessionNotOnOrAfter=&quot;2024-07-17T09:01:48Z&quot; SessionIndex=&quot;_be9967abd904ddcae3c0eb4189adbe3f71e327cf93&quot;&gt;
+    &lt;saml:AuthnContext&gt;
+      &lt;saml:AuthnContextClassRef&gt;urn:oasis:names:tc:SAML:2.0:ac:classes:Password&lt;/saml:AuthnContextClassRef&gt;
+    &lt;/saml:AuthnContext&gt;
+  &lt;/saml:AuthnStatement&gt;
+  &lt;saml:AttributeStatement&gt;
+    &lt;saml:Attribute Name=&quot;uid&quot; NameFormat=&quot;urn:oasis:names:tc:SAML:2.0:attrname-format:basic&quot;&gt;
+      &lt;saml:AttributeValue xsi:type=&quot;xs:string&quot;&gt;test&lt;/saml:AttributeValue&gt;
+    &lt;/saml:Attribute&gt;
+    &lt;saml:Attribute Name=&quot;mail&quot; NameFormat=&quot;urn:oasis:names:tc:SAML:2.0:attrname-format:basic&quot;&gt;
+      &lt;saml:AttributeValue xsi:type=&quot;xs:string&quot;&gt;test@example.com&lt;/saml:AttributeValue&gt;
+    &lt;/saml:Attribute&gt;
+    &lt;saml:Attribute Name=&quot;eduPersonAffiliation&quot; NameFormat=&quot;urn:oasis:names:tc:SAML:2.0:attrname-format:basic&quot;&gt;
+      &lt;saml:AttributeValue xsi:type=&quot;xs:string&quot;&gt;users&lt;/saml:AttributeValue&gt;
+      &lt;saml:AttributeValue xsi:type=&quot;xs:string&quot;&gt;examplerole1&lt;/saml:AttributeValue&gt;
+    &lt;/saml:Attribute&gt;
+  &lt;/saml:AttributeStatement&gt;
+&lt;/saml:Assertion&gt;
+&lt;/samlp:Response&gt;&quot;#</span>;
 </pre></div>
 </section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="saml_rs" data-search-index-js="../../search-index.js" data-search-js="../../search.js"></div>
     <script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script></body></html>
