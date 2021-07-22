@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["generate_metadata_xml","Generates the XML For a metadata file"]],"struct":[["SamlMetadata","Stores the required data for generating a SAML metadata XML file"]]});

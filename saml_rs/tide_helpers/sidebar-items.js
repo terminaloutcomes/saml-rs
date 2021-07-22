@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["tide_metadata_response","Responds with the metadata XML file in a 200-status response with the right content-type"]],"struct":[["SAMLRedirectQuery",""]]});
