@@ -209,26 +209,6 @@
 <span id="206">206</span>
 <span id="207">207</span>
 <span id="208">208</span>
-<span id="209">209</span>
-<span id="210">210</span>
-<span id="211">211</span>
-<span id="212">212</span>
-<span id="213">213</span>
-<span id="214">214</span>
-<span id="215">215</span>
-<span id="216">216</span>
-<span id="217">217</span>
-<span id="218">218</span>
-<span id="219">219</span>
-<span id="220">220</span>
-<span id="221">221</span>
-<span id="222">222</span>
-<span id="223">223</span>
-<span id="224">224</span>
-<span id="225">225</span>
-<span id="226">226</span>
-<span id="227">227</span>
-<span id="228">228</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="comment">// use std::fs::File;</span>
 <span class="comment">// use std::io::Write as IoWrite;</span>
@@ -305,7 +285,11 @@
     <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
 }
 
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_response</span>(<span class="ident">issuer</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> {
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ResponseElements</span> {
+    <span class="kw">pub</span> <span class="ident">issuer</span>: <span class="ident">String</span>,
+}
+
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_response</span>(<span class="ident">data</span>: <span class="ident">ResponseElements</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> {
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buffer</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">writer</span> <span class="op">=</span> <span class="ident">EmitterConfig::new</span>()
         .<span class="ident">perform_indent</span>(<span class="bool-val">true</span>)
@@ -328,7 +312,7 @@
     , <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
 
     <span class="comment">// issuer</span>
-    <span class="ident">add_issuer</span>(<span class="kw-2">&amp;</span><span class="ident">issuer</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
+    <span class="ident">add_issuer</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>.<span class="ident">issuer</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
 
     <span class="comment">// status</span>
     <span class="ident">add_status</span>(<span class="string">&quot;Success&quot;</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
@@ -343,7 +327,7 @@
     .<span class="ident">into</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
 
     <span class="comment">// do the issuer inside the assertion</span>
-    <span class="ident">add_issuer</span>(<span class="kw-2">&amp;</span><span class="ident">issuer</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
+    <span class="ident">add_issuer</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>.<span class="ident">issuer</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
 
     <span class="comment">// start subject statement</span>
     <span class="ident">write_event</span>(<span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Subject&quot;</span>)).<span class="ident">into</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
@@ -421,24 +405,6 @@
                                         <span class="string">&quot;examplerole1&quot;</span>
                                         ].<span class="ident">to_vec</span>()), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
 
-    <span class="comment">// write_event(XmlEvent::start_element((&quot;saml&quot;, &quot;Attribute&quot;))</span>
-    <span class="comment">//     .attr(&quot;Name&quot;,&quot;eduPersonAffiliation&quot;)</span>
-    <span class="comment">//     .attr(&quot;NameFormat&quot;,&quot;urn:oasis:names:tc:SAML:2.0:attrname-format:basic&quot;)</span>
-    <span class="comment">//     .into(), &amp;mut writer);</span>
-    <span class="comment">//     write_event(XmlEvent::start_element((&quot;saml&quot;, &quot;AttributeValue&quot;))</span>
-    <span class="comment">//         .attr(&quot;xsi:type&quot;,&quot;xs:string&quot;)</span>
-    <span class="comment">//         .into(), &amp;mut writer);</span>
-    <span class="comment">//         write_event(XmlEvent::characters(&quot;users&quot;), &amp;mut writer);</span>
-    <span class="comment">//     write_event(XmlEvent::end_element().into(), &amp;mut writer);</span>
-    <span class="comment">//     write_event(XmlEvent::start_element((&quot;saml&quot;, &quot;AttributeValue&quot;))</span>
-    <span class="comment">//         .attr(&quot;xsi:type&quot;,&quot;xs:string&quot;)</span>
-    <span class="comment">//         .into(), &amp;mut writer);</span>
-    <span class="comment">//         write_event(XmlEvent::characters(&quot;examplerole1&quot;), &amp;mut writer);</span>
-    <span class="comment">//     write_event(XmlEvent::end_element().into(), &amp;mut writer);</span>
-    <span class="comment">// write_event(XmlEvent::end_element().into(), &amp;mut writer);</span>
-
-
-
     <span class="comment">// end attribute statement</span>
     <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
 
@@ -449,13 +415,7 @@
     <span class="comment">// end the response</span>
     <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
 
-    <span class="comment">// write_event(XmlEvent::characters(&amp;issuer), &amp;mut writer);</span>
-    <span class="comment">/*
-    &lt;samlp:Status&gt;
-  &lt;samlp:StatusCode Value=&quot;urn:oasis:names:tc:SAML:2.0:status:Success&quot;/&gt;
-&lt;/samlp:Status&gt;*/</span>
-
-    <span class="comment">// finally we return the thing</span>
+    <span class="comment">// finally we return the response</span>
     <span class="ident">buffer</span>
 }
 </pre></div>

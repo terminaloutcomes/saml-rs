@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["create_response",""]]});
+initSidebarItems({"fn":[["create_response",""]],"struct":[["ResponseElements",""]]});
