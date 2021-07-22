@@ -28,11 +28,11 @@ jobs:
         run: echo '<meta http-equiv=refresh content=0;url=saml_rs/index.html>' > target/doc/index.html
 
       - name: pip install
-        run: python3 -m pip install --user ghp-import  && ghp-import -n target/doc
+        run: python3 -m pip install --user ghp-import  && ghp-import -p -n target/doc
 
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.ref == 'refs/heads/main' }}
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./public
+      # - name: Deploy
+      #   uses: peaceiris/actions-gh-pages@v3
+      #   if: ${{ github.ref == 'refs/heads/main' }}
+      #   with:
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+      #     publish_dir: ./public
