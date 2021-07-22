@@ -2,7 +2,7 @@
 //!
 //! My main aim at the moment is to provide IdP capabilities for the [Kanidm](https://github.com/kanidm/kanidm) project.
 //!
-//! If you want to help - please log PRs/Issues against [terminaloutcomes/saml-rs](https://github.com/terminaloutcomes/saml-rs).
+//! If you would like to help - please log PRs/Issues against [terminaloutcomes/saml-rs](https://github.com/terminaloutcomes/saml-rs).
 
 #[macro_use]
 extern crate log;
@@ -16,23 +16,23 @@ use std::str::from_utf8;
 
 pub mod metadata;
 pub mod test_samples;
-pub mod tide_helper;
+pub mod tide_helpers;
 
 /// Stores the values one would expect in an AuthN Request
 #[derive(Debug, Default, Serialize)]
 pub struct SamlAuthnRequest {
     #[serde(rename = "ID")]
-    request_id: String,
+    pub request_id: String,
     #[serde(rename = "IssueInstant")]
-    issue_instant: String,
+    pub issue_instant: String,
     #[serde(rename = "AssertionConsumerServiceURL")]
-    consumer_service_url: String,
+    pub consumer_service_url: String,
     // this is a nested element inside a <saml:Issuer xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">
-    issuer: String,
+    pub issuer: String,
     #[serde(rename = "Version")]
-    version: String,
+    pub version: String,
     #[serde(rename = "Destination")]
-    destination: String,
+    pub destination: String,
 }
 
 impl SamlAuthnRequest {
@@ -81,7 +81,7 @@ pub fn decode_authn_request_base64_encoded(req: String) -> Result<String, &'stat
     let base64_decoded_samlrequest: Vec<u8> = match base64::decode(req) {
         Ok(val) => {
             debug!("Succcesfully Base64 Decoded the SAMLRequest");
-            val.to_owned()
+            val
         }
         Err(err) => {
             error!(
@@ -272,128 +272,3 @@ fn _get_private_key() {
 // This corresponds to i2d_RSAPrivateKey.
 // */
 // }
-
-#[cfg(test)]
-mod tests {
-    use crate as saml_rs;
-
-    #[test]
-    /// tests saml_rs::metadata::SamlMetadata::new()
-    fn metadata_new_set_foo_example_com() {
-        let test_metadata =
-            saml_rs::metadata::SamlMetadata::new("foo.example.com", None, None, None, None, None);
-
-        assert_eq!(test_metadata.hostname, String::from("foo.example.com"));
-        assert_eq!(
-            test_metadata.baseurl,
-            String::from("https://foo.example.com/SAML")
-        );
-        assert_eq!(
-            test_metadata.entity_id,
-            String::from("https://foo.example.com/SAML/idp")
-        );
-        assert_eq!(
-            test_metadata.logout_url(),
-            String::from("https://foo.example.com/SAML/Logout")
-        );
-        assert_eq!(
-            test_metadata.redirect_url(),
-            String::from("https://foo.example.com/SAML/Redirect")
-        );
-        assert_eq!(
-            test_metadata.post_url(),
-            String::from("https://foo.example.com/SAML/POST")
-        );
-
-        let test_metadata = saml_rs::metadata::SamlMetadata::new(
-            "foo.example.com",
-            None,
-            None,
-            Some("/fooooooo".to_string()),
-            None,
-            None,
-        );
-        assert_eq!(
-            test_metadata.logout_url(),
-            String::from("https://foo.example.com/SAML/fooooooo")
-        );
-    }
-    #[test]
-    /// tests saml_rs::metadata::SamlMetadata::from_hostname()
-    fn metadata_from_hostname_foo_example_com() {
-        use crate as saml_rs;
-
-        let test_metadata = saml_rs::metadata::SamlMetadata::from_hostname("foo.example.com");
-
-        assert_eq!(test_metadata.hostname, String::from("foo.example.com"));
-        assert_eq!(
-            test_metadata.baseurl,
-            String::from("https://foo.example.com/SAML")
-        );
-        assert_eq!(
-            test_metadata.entity_id,
-            String::from("https://foo.example.com/SAML/idp")
-        );
-        assert_eq!(
-            test_metadata.logout_url(),
-            String::from("https://foo.example.com/SAML/Logout")
-        );
-        assert_eq!(
-            test_metadata.redirect_url(),
-            String::from("https://foo.example.com/SAML/Redirect")
-        );
-        assert_eq!(
-            test_metadata.post_url(),
-            String::from("https://foo.example.com/SAML/POST")
-        );
-
-        let test_metadata = saml_rs::metadata::SamlMetadata::from_hostname("foo.example.com");
-        assert_ne!(test_metadata.hostname, String::from("zot.example.com"));
-    }
-
-    #[test]
-    fn test_parse_saml_xml_authn_request() {
-        let test_parse =
-            saml_rs::parse_authn_request(saml_rs::test_samples::TEST_AUTHN_REQUEST_EXAMPLE_COM);
-        let result = match test_parse {
-            Ok(value) => value,
-            Err(error) => {
-                panic!("Failed to parse test sample, this seems bad: {}", error);
-            }
-        };
-
-        let expected_result = saml_rs::SamlAuthnRequest {
-            request_id: String::from("_6c1cd5d32c2df1bab98f58a144f9b971"),
-            issuer: String::from("https://samltest.id/saml/sp"),
-            issue_instant: String::from("2021-07-19T12:06:25Z"),
-            consumer_service_url: String::from("https://samltest.id/Shibboleth.sso/SAML2/POST"),
-            version: String::from("2.0"),
-            destination: String::from("https://example.com/v1/SAML/Redirect"),
-        };
-        assert_eq!(
-            result.request_id,
-            String::from("_6c1cd5d32c2df1bab98f58a144f9b971")
-        );
-        assert_eq!(result.request_id, expected_result.request_id);
-        assert_eq!(result.issuer, expected_result.issuer);
-        assert_eq!(result.issue_instant, expected_result.issue_instant);
-        assert_eq!(
-            result.consumer_service_url,
-            expected_result.consumer_service_url
-        );
-        assert_eq!(result.version, expected_result.version);
-    }
-
-    /// tests parsing saml_rs::test_samples::TEST_AUTHN_REQUEST_EXAMPLE_COM_BASE64_DEFLATED
-    #[test]
-    #[should_panic]
-    fn test_parse_test_parse_saml_base64_authn_request() {
-        // TODO: This is silly and should be fixed
-        match saml_rs::parse_authn_request(
-            saml_rs::test_samples::TEST_AUTHN_REQUEST_EXAMPLE_COM_BASE64_DEFLATED,
-        ) {
-            Ok(_) => panic!(),
-            Err(_) => assert_eq!(1, 1),
-        }
-    }
-}

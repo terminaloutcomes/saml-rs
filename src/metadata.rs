@@ -1,5 +1,8 @@
+//! Handy for the XML metadata part of SAML
+
 use serde::Serialize;
 
+/// Stores the required data for generating a SAML metadata XML file
 #[derive(Debug, Serialize)]
 pub struct SamlMetadata {
     pub hostname: String,
@@ -8,8 +11,11 @@ pub struct SamlMetadata {
     /// Every SAML system entity has an entity ID, a globally-unique identifier used in software configurations, relying-party databases, and client-side cookies. On the wire, every SAML protocol message contains the entity ID of the issuer
     #[serde(rename = "entityID")]
     pub entity_id: String,
+    /// Appended to the baseurl when using the [SamlMetadata::logout_url] function
     pub logout_suffix: String,
+    /// Appended to the baseurl when using the [SamlMetadata::redirect_url] function
     pub redirect_suffix: String,
+    /// Appended to the baseurl when using the [SamlMetadata::post_url] function
     pub post_suffix: String,
 }
 
@@ -53,7 +59,7 @@ impl SamlMetadata {
     }
 }
 
-/// Generates the XML For a metadata thing
+/// Generates the XML For a metadata file
 ///
 /// Current response data is based on the data returned from  https://samltest.id/saml/idp
 pub fn generate_metadata_xml(metadata: SamlMetadata) -> String {
