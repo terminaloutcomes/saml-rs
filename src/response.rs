@@ -73,7 +73,11 @@ fn add_status<W: Write>(status: &str, writer: &mut EventWriter<W>) {
     write_event(XmlEvent::end_element().into(), writer);
 }
 
-pub fn create_response(issuer: String) -> Vec<u8> {
+pub struct ResponseElements {
+    pub issuer: String,
+}
+
+pub fn create_response(data: ResponseElements) -> Vec<u8> {
     let mut buffer = Vec::new();
     let mut writer = EmitterConfig::new()
         .perform_indent(true)
@@ -96,7 +100,7 @@ pub fn create_response(issuer: String) -> Vec<u8> {
     , &mut writer);
 
     // issuer
-    add_issuer(&issuer, &mut writer);
+    add_issuer(&data.issuer, &mut writer);
 
     // status
     add_status("Success", &mut writer);
@@ -111,7 +115,7 @@ pub fn create_response(issuer: String) -> Vec<u8> {
     .into(), &mut writer);
 
     // do the issuer inside the assertion
-    add_issuer(&issuer, &mut writer);
+    add_issuer(&data.issuer, &mut writer);
 
     // start subject statement
     write_event(XmlEvent::start_element(("saml", "Subject")).into(), &mut writer);
@@ -189,24 +193,6 @@ pub fn create_response(issuer: String) -> Vec<u8> {
                                         "examplerole1"
                                         ].to_vec()), &mut writer);
 
-    // write_event(XmlEvent::start_element(("saml", "Attribute"))
-    //     .attr("Name","eduPersonAffiliation")
-    //     .attr("NameFormat","urn:oasis:names:tc:SAML:2.0:attrname-format:basic")
-    //     .into(), &mut writer);
-    //     write_event(XmlEvent::start_element(("saml", "AttributeValue"))
-    //         .attr("xsi:type","xs:string")
-    //         .into(), &mut writer);
-    //         write_event(XmlEvent::characters("users"), &mut writer);
-    //     write_event(XmlEvent::end_element().into(), &mut writer);
-    //     write_event(XmlEvent::start_element(("saml", "AttributeValue"))
-    //         .attr("xsi:type","xs:string")
-    //         .into(), &mut writer);
-    //         write_event(XmlEvent::characters("examplerole1"), &mut writer);
-    //     write_event(XmlEvent::end_element().into(), &mut writer);
-    // write_event(XmlEvent::end_element().into(), &mut writer);
-
-
-
     // end attribute statement
     write_event(XmlEvent::end_element().into(), &mut writer);
 
@@ -217,12 +203,6 @@ pub fn create_response(issuer: String) -> Vec<u8> {
     // end the response
     write_event(XmlEvent::end_element().into(), &mut writer);
 
-    // write_event(XmlEvent::characters(&issuer), &mut writer);
-    /*
-    <samlp:Status>
-  <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/>
-</samlp:Status>*/
-
-    // finally we return the thing
+    // finally we return the response
     buffer
 }
