@@ -28,7 +28,7 @@ jobs:
         run: echo '<meta http-equiv=refresh content=0;url=saml_rs/index.html>' > target/doc/index.html
 
       - name: pip install
-        run: python3 -m pip install --user ghp-import  && ghp-import -p -n target/doc
+        run: python3 -m pip install --user ghp-import  && ghp-import -p -f -n target/doc
 
       # - name: Deploy
       #   uses: peaceiris/actions-gh-pages@v3
