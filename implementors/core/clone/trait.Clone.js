@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["saml_rs"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html\" title=\"trait core::clone::Clone\">Clone</a> for <a class=\"struct\" href=\"saml_rs/response/struct.ResponseAttribute.html\" title=\"struct saml_rs::response::ResponseAttribute\">ResponseAttribute</a>","synthetic":false,"types":["saml_rs::response::ResponseAttribute"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

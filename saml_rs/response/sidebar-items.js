@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["create_response",""]],"struct":[["ResponseElements",""]]});
+initSidebarItems({"fn":[["create_response",""]],"struct":[["ResponseAttribute",""],["ResponseElements","Stores all the required elements of a SAML response… maybe?"]]});
