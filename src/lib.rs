@@ -18,6 +18,7 @@ pub mod metadata;
 pub mod response;
 pub mod test_samples;
 pub mod tide_helpers;
+mod xmlutils;
 
 /// Stores the values one would expect in an AuthN Request
 #[derive(Debug, Default, Serialize)]

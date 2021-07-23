@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use saml_rs;
+    // use saml_rs;
     use saml_rs::metadata::SamlMetadata;
 
     #[test]

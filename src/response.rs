@@ -1,41 +1,62 @@
-// use std::fs::File;
-// use std::io::Write as IoWrite;
-// use std::io::{self, Write};
+//! Want to build a SAML response? Here's your module. 🥳
+
+
+use serde::Serialize;
+
 use std::io::Write;
 
 use xml::writer::{EventWriter, EmitterConfig, XmlEvent, /*Result*/};
 // use xml::attribute::Attribute;
 // use xml::name::Name;
 
-fn write_event<W: Write>(event: XmlEvent, writer:  &mut EventWriter<W>) -> String {
-    match writer.write(event) {
-        Ok(val) => format!("{:?}",val),
-        Err(err) => format!("{:?}", err)
-    }
+use crate::xmlutils::write_event;
+
+
+#[derive(Debug, Default, Serialize)]
+/// Stores all the required elements of a SAML response... maybe?
+pub struct ResponseElements {
+    #[serde(rename = "Issuer")]
+    pub issuer: String,
+    #[serde(rename = "ID")]
+    pub id: String,
+    #[serde(rename = "IssueInstant")]
+    pub issue_instant: String,
+    #[serde(rename = "InResponseTo")]
+    pub request_id: String,
+
+    #[serde(rename = "Attributes")]
+    pub attributes: Vec<ResponseAttribute>,
+    #[serde(rename = "Destination")]
+    pub destination: String,
 }
 
-fn add_issuer<W: Write>(issuer: &str, writer: &mut EventWriter<W>) {
-    write_event(XmlEvent::start_element(("saml", "Issuer")).into(), writer);
-    write_event(XmlEvent::characters(&issuer), writer);
-    write_event(XmlEvent::end_element().into(), writer);
-}
 
 // let mut animals: [&str; 2] = ["bird", "frog"];
-
-struct ResponseAttribute {
+#[derive(Debug,Default,Serialize,Clone)]
+pub struct ResponseAttribute {
     name: String,
     nameformat: String,
-    values: Vec<&'static str>,
+    values: Vec<String>,
 }
 
 impl ResponseAttribute {
-    fn basic(name: &str, values: Vec<&'static str>) -> Self {
+    pub fn basic(name: &str, values: Vec<String>) -> ResponseAttribute {
         ResponseAttribute {
             name: name.to_string(),
             nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic".to_string(),
             values,
         }
     }
+}
+
+
+
+
+/// Adds the issuer statement to a response
+fn add_issuer<W: Write>(issuer: &str, writer: &mut EventWriter<W>) {
+    write_event(XmlEvent::start_element(("saml", "Issuer")).into(), writer);
+    write_event(XmlEvent::characters(&issuer), writer);
+    write_event(XmlEvent::end_element().into(), writer);
 }
 
 /// add an attribute to the statement
@@ -48,7 +69,7 @@ fn add_attribute<W: Write>(attr: ResponseAttribute, writer: &mut EventWriter<W>)
         write_event(XmlEvent::start_element(("saml", "AttributeValue"))
             .attr("xsi:type","xs:string")
             .into(), writer);
-        write_event(XmlEvent::characters(value), writer);
+        write_event(XmlEvent::characters(value.as_str()), writer);
         write_event(XmlEvent::end_element().into(), writer);
     };
     // write_event(XmlEvent::end_element().into(), writer);
@@ -59,7 +80,7 @@ write_event(XmlEvent::end_element().into(), writer);
 ///
 /// Using the command thusly: `add_status("Success", &mut writer);` Will add this:
 ///
-/// ```
+/// ```html
 /// <samlp:Status>
 ///   <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/>
 /// </samlp:Status>
@@ -73,9 +94,6 @@ fn add_status<W: Write>(status: &str, writer: &mut EventWriter<W>) {
     write_event(XmlEvent::end_element().into(), writer);
 }
 
-pub struct ResponseElements {
-    pub issuer: String,
-}
 
 pub fn create_response(data: ResponseElements) -> Vec<u8> {
     let mut buffer = Vec::new();
@@ -91,11 +109,11 @@ pub fn create_response(data: ResponseElements) -> Vec<u8> {
     write_event(XmlEvent::start_element(("samlp", "Response"))
     .attr("xmlns:samlp", "urn:oasis:names:tc:SAML:2.0:protocol")
     .attr("xmlns:saml", "urn:oasis:names:tc:SAML:2.0:assertion")
-    .attr("ID", "_8e8dc5f69a98cc4c1ff3427e5ce34606fd672f91e6")
+    .attr("ID", &data.id)
     .attr("Version", "2.0")
     .attr("IssueInstant", "2014-07-17T01:01:48Z")
-    .attr("Destination", "http://sp.example.com/demo1/index.php?acs")
-    .attr("InResponseTo", "ONELOGIN_4fee3b046395c4e751011e97f8900b5273d56685")
+    .attr("Destination", &data.destination)
+    .attr("InResponseTo", &data.request_id)
     .into()
     , &mut writer);
 
@@ -138,7 +156,7 @@ pub fn create_response(data: ResponseElements) -> Vec<u8> {
             write_event(XmlEvent::start_element(("saml", "SubjectConfirmationData"))
                 .attr("NotOnOrAfter","2024-01-18T06:21:48Z")
                 .attr("Recipient","http://sp.example.com/demo1/index.php?acs")
-                .attr("InResponseTo","ONELOGIN_4fee3b046395c4e751011e97f8900b5273d56685")
+                .attr("InResponseTo",&data.request_id)
                 .into(), &mut writer);
 
             //end subjectconfirmationdata
@@ -184,14 +202,11 @@ pub fn create_response(data: ResponseElements) -> Vec<u8> {
 
 
 
+    for attribute in data.attributes {
+        add_attribute(attribute, &mut writer);
+        // add_attribute(ResponseAttribute::basic("uid", ["test"].to_vec()), &mut writer);
+    }
 
-    add_attribute(ResponseAttribute::basic("uid", ["test"].to_vec()), &mut writer);
-    add_attribute(ResponseAttribute::basic("mail", ["test@example.com"].to_vec()), &mut writer);
-    add_attribute(ResponseAttribute::basic("eduPersonAffiliation",
-                                        [
-                                        "users",
-                                        "examplerole1"
-                                        ].to_vec()), &mut writer);
 
     // end attribute statement
     write_event(XmlEvent::end_element().into(), &mut writer);
