@@ -22,7 +22,7 @@ jobs:
           override: true
 
       - name: Run cargo doc
-        run: cargo doc --no-deps
+        run: cargo doc --no-deps --workspace --document-private-items
 
       - name: Make base index file
         run: echo '<meta http-equiv=refresh content=0;url=saml_rs/index.html>' > target/doc/index.html

@@ -19,11 +19,9 @@ use tide::{Request, Response};
 use tide_rustls::TlsListener;
 
 use serde::Deserialize as serde_deserialize;
-use serde_json::from_reader;
 use std::fs::File;
-use std::io::BufReader;
 use std::io::ErrorKind;
-use std::path::Path;
+
 
 #[derive(serde_deserialize, Debug)]
 struct ServerConfig {
@@ -42,40 +40,41 @@ impl ServerConfig {
             tls_key_path: None,
         }
     }
-}
 
-fn load_server_config<P: AsRef<Path>>(path: P) -> ServerConfig {
-    match File::open(path) {
-        Ok(value) => {
-            let reader = BufReader::new(value);
-            match from_reader(reader) {
-                Ok(config) => config,
-                Err(error) => {
-                    log::error!("Failed to parse config file: {:?}", error);
-                    ServerConfig::default()
-                }
-            }
-        }
-        Err(error) => {
-            log::error!("Failed to open config file: {:?}", error);
-            ServerConfig::default()
+    /// Pass this a filename (with or without extension) and it'll choose from JSON/YAML/TOML etc and also check
+    /// environment variables starting with SAML_
+    pub fn from_filename_and_env(path: String) -> Self {
+        let mut settings = config::Config::default();
+        settings
+            .merge(config::File::with_name(&path)).unwrap()
+            .merge(config::Environment::with_prefix("SAML")).unwrap();
+
+        eprintln!("{:?}",settings);
+        Self {
+            public_hostname: settings.get("public_hostname").unwrap_or(ServerConfig::default().public_hostname),
+            bind_address: settings.get("bind_address").unwrap_or(ServerConfig::default().bind_address),
+            tls_cert_path: settings.get("tls_cert_path").unwrap_or(None),
+            tls_key_path: settings.get("tls_key_path").unwrap_or(None),
         }
     }
 }
+
 
 #[derive(Clone, Debug)]
 pub struct AppState {
     pub hostname: String,
 }
 
+
 #[async_std::main]
 /// Spins up a test server
 ///
 /// This uses HTTPS if you specify `TIDE_CERT_PATH` and `TIDE_KEY_PATH` environment variables.
 async fn main() -> tide::Result<()> {
+
     let config_path: String = shellexpand::tilde("~/.config/saml_test_server.json").into_owned();
 
-    let server_config = load_server_config(config_path);
+    let server_config = ServerConfig::from_filename_and_env(config_path);
 
     let app_state = AppState {
         hostname: server_config.public_hostname,
@@ -125,7 +124,6 @@ async fn main() -> tide::Result<()> {
     saml_process.at("/Redirect").get(saml_redirect_get);
     // TODO: SAML Artifact
     saml_process.at("/Artifact").get(do_nothing);
-    // app.at("/orders/shoes").post(order_shoes);
     let _app = match &server_config.tls_cert_path {
         Some(value) => {
             let tls_cert: String = shellexpand::tilde(value).into_owned();
@@ -153,7 +151,6 @@ async fn main() -> tide::Result<()> {
                     std::process::exit(1);
                 }
             }
-            // let tls_key: String = value.to_string();
             app.listen(
                 TlsListener::build()
                     .addrs(format!("{}:443", server_config.bind_address))
@@ -170,10 +167,6 @@ async fn main() -> tide::Result<()> {
     Ok(())
 }
 
-// async fn order_shoes(mut req: Request<()>) -> tide::Result {
-//     let Animal { name, legs } = req.body_json().await?;
-//     Ok(format!("Hello, {}! I've put in an order for {} shoes", name, legs).into())
-// }
 
 /// Provides a GET response for the metadata URL
 async fn saml_metadata_get(req: Request<AppState>) -> tide::Result {
@@ -188,8 +181,11 @@ async fn saml_metadata_get(req: Request<AppState>) -> tide::Result {
     .into())
 }
 
+/// Placeholder function for development purposes, just returns a "Doing nothing" 200 response.
 async fn do_nothing(mut _req: Request<AppState>) -> tide::Result {
-    Ok("Doing nothing!".into())
+    let mut res = tide::Response::new(200);
+    res.set_body("Doing nothing");
+    Ok(res)
 }
 
 /// Handles a POST binding
