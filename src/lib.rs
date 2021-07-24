@@ -9,6 +9,7 @@ extern crate log;
 
 // use xmlparser;
 use serde::Serialize;
+use std::fmt;
 use xmlparser::{StrSpan, Token};
 
 use inflate::inflate_bytes;
@@ -17,7 +18,8 @@ use std::str::from_utf8;
 pub mod metadata;
 pub mod response;
 pub mod test_samples;
-pub mod tide_helpers;
+// #[cfg(feature = "enable_tide")]
+// pub mod tide_helpers;
 mod xmlutils;
 
 /// Stores the values one would expect in an AuthN Request
@@ -79,18 +81,34 @@ impl SamlAuthnRequestParser {
     }
 }
 
-pub fn decode_authn_request_base64_encoded(req: String) -> Result<String, &'static str> {
+pub struct AuthnDecodeError {
+    pub message: String,
+}
+
+impl AuthnDecodeError {
+    pub fn new(message: String) -> AuthnDecodeError {
+        AuthnDecodeError { message }
+    }
+}
+
+// A unique format for dubugging output
+impl fmt::Debug for AuthnDecodeError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "AuthnDecodeError {{ message: {} }}", self.message)
+    }
+}
+
+pub fn decode_authn_request_base64_encoded(req: String) -> Result<String, AuthnDecodeError> {
     let base64_decoded_samlrequest: Vec<u8> = match base64::decode(req) {
         Ok(val) => {
             debug!("Succcesfully Base64 Decoded the SAMLRequest");
             val
         }
         Err(err) => {
-            error!(
+            return Err(AuthnDecodeError::new(format!(
                 "Failed to base64 decode SAMLRequest in saml_redirect_get {:?}",
                 err
-            );
-            return Err("Failed to base64 decode input data");
+            )));
         }
     };
     // here we try and use libflate to deflate the base64-decoded bytes because compression is used
@@ -100,7 +118,15 @@ pub fn decode_authn_request_base64_encoded(req: String) -> Result<String, &'stat
         Err(_) => base64_decoded_samlrequest,
     };
     // Vec<u8> -> String
-    Ok(from_utf8(&inflated_result).unwrap_err().to_string())
+    debug!("about to return from decode_authn_request_base64_encoded");
+
+    match from_utf8(&inflated_result) {
+        Ok(value) => Ok(value.to_string()),
+        _ => Err(AuthnDecodeError::new(format!(
+            "Failed to utf-8 encode the result: {:?}",
+            inflated_result
+        ))),
+    }
 }
 
 /// Used inside SamlAuthnRequestParser to help parse the AuthN request
@@ -238,7 +264,7 @@ fn _get_private_key() {
 
 // fn get_public_cert_base64(cert_path: std::string::String) -> Result<Certificate, ()> {
 //     let mut buf = Vec::new();
-//     let file = match File::open("/Users/yaleman/Nextcloud/dotfiles/letsencrypt/live/m1.housenet.yaleman.org/fullchain.pem") {
+//     let file = match File::open("certpath") {
 //         Ok(file) => file,
 //         Err(_) => Err
 //     }

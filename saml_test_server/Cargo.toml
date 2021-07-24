@@ -1,24 +1,18 @@
 [package]
-name = "saml-rs"
+name = "saml_test_server"
 version = "0.1.0"
 authors = ["James Hodgkinson <james@terminaloutcomes.com>"]
 edition = "2018"
 
-
-
-
 [[bin]]
-name = "samlrs"
-path = "src/cli.rs"
+name = "saml_test_server"
+path = "saml_test_server.rs"
 
 
-[workspace]
-
-members = [
-    "saml_test_server"
-]
 
 [dependencies]
+
+saml-rs = { path = "../" }
 
 log = "0.4"
 base64 = "0.13"
@@ -37,6 +31,7 @@ xmlparser = "0.13.3"
 serde = "1.0"
 serde-xml-rs = "0.3.1"
 serde_derive = "1.0"
+serde_json = "1.0"
 
 # certificate things
 reqwest = "0.11"
@@ -48,5 +43,8 @@ difference = "2.0.0"
 chrono = "0.4.19"
 
 
-# web things
-tide = { version="0.16" }
+tide = { version="0.16"}
+tide-rustls = "0.3.0"
+async-std = { version = "1.6.0", features = ["attributes"] }
+
+shellexpand = "2.0"
