@@ -303,6 +303,17 @@
 <span id="300">300</span>
 <span id="301">301</span>
 <span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! A library for doing SAML things, terribly, in rust.</span>
 <span class="doccomment">//!</span>
@@ -327,6 +338,7 @@
 <span class="comment">// #[cfg(feature = &quot;enable_tide&quot;)]</span>
 <span class="comment">// pub mod tide_helpers;</span>
 <span class="kw">mod</span> <span class="ident">xmlutils</span>;
+<span class="kw">use</span> <span class="ident">serde::Deserialize</span>;
 
 <span class="doccomment">/// Stores the values one would expect in an AuthN Request</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Default</span>, <span class="ident">Serialize</span>)]</span>
@@ -402,6 +414,16 @@
     <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt::Formatter</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">fmt::Result</span> {
         <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;AuthnDecodeError {{ message: {} }}&quot;</span>, <span class="self">self</span>.<span class="ident">message</span>)
     }
+}
+
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Deserialize</span>)]</span>
+<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">non_snake_case</span>)]</span>
+<span class="doccomment">/// Used in the SAML Redirect GET request to pull out the query values</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Snake case is needed to allow the fields to be pulled out correctly</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SamlQuery</span> {
+    <span class="kw">pub</span> <span class="ident">SAMLRequest</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+    <span class="kw">pub</span> <span class="ident">RelayState</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
 }
 
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">decode_authn_request_base64_encoded</span>(<span class="ident">req</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">AuthnDecodeError</span><span class="op">&gt;</span> {
