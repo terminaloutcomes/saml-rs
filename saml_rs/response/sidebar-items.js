@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["create_response",""]],"struct":[["ResponseAttribute",""],["ResponseElements","Stores all the required elements of a SAML response… maybe?"]]});
+initSidebarItems({"fn":[["create_response",""]],"struct":[["AuthNStatement","An Authentication Statement for returning inside an assertion"],["ResponseAttribute",""],["ResponseElements","Stores all the required elements of a SAML response… maybe?"]]});
