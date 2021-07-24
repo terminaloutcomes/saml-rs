@@ -4,14 +4,6 @@ version = "0.1.0"
 authors = ["James Hodgkinson <james@terminaloutcomes.com>"]
 edition = "2018"
 
-
-
-
-[[bin]]
-name = "samlrs"
-path = "src/cli.rs"
-
-
 [workspace]
 
 members = [
