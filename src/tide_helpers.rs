@@ -4,7 +4,6 @@
 use crate::metadata::{generate_metadata_xml, SamlMetadata};
 // use crate::{decode_authn_request_base64_encoded, parse_authn_request, SamlAuthnRequest};
 use tide;
-use tide::prelude::Deserialize;
 
 /// Responds with the metadata XML file in a 200-status response with the right content-type
 pub fn tide_metadata_response(metadata: SamlMetadata) -> tide::Response {
@@ -16,11 +15,3 @@ pub fn tide_metadata_response(metadata: SamlMetadata) -> tide::Response {
     res
 }
 
-#[derive(Deserialize)]
-#[allow(non_snake_case)]
-#[allow(dead_code)]
-pub struct SAMLRedirectQuery {
-    /// Used in the SAML Redirect GET request to pull out the query values
-    pub SAMLRequest: String,
-    pub RelayState: String,
-}

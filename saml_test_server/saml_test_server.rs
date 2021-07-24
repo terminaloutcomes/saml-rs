@@ -11,9 +11,9 @@
 
 // use saml_rs::AuthnDecodeError;
 use saml_rs::metadata::{generate_metadata_xml, SamlMetadata};
+use saml_rs::SamlQuery;
 
 use tide::log;
-use tide::prelude::Deserialize;
 use tide::utils::{After, Before};
 use tide::{Request, Response};
 use tide_rustls::TlsListener;
@@ -120,7 +120,7 @@ async fn main() -> tide::Result<()> {
     // TODO: SAML idp, used the entityID
     saml_process.at("/idp").post(do_nothing);
     // TODO: SAML POST
-    saml_process.at("/POST").post(do_nothing);
+    saml_process.at("/POST").post(saml_post_binding);
     // TODO: SAML Redirect
     saml_process.at("/Redirect").get(saml_redirect_get);
     // TODO: SAML Artifact
@@ -170,15 +170,6 @@ async fn main() -> tide::Result<()> {
     Ok(())
 }
 
-#[derive(Deserialize)]
-#[allow(non_snake_case)]
-#[allow(dead_code)]
-pub struct SAMLRedirectQuery {
-    /// Used in the SAML Redirect GET request to pull out the query values
-    pub SAMLRequest: Option<String>,
-    pub RelayState: Option<String>,
-}
-
 // async fn order_shoes(mut req: Request<()>) -> tide::Result {
 //     let Animal { name, legs } = req.body_json().await?;
 //     Ok(format!("Hello, {}! I've put in an order for {} shoes", name, legs).into())
@@ -201,7 +192,20 @@ async fn do_nothing(mut _req: Request<AppState>) -> tide::Result {
     Ok("Doing nothing!".into())
 }
 
-///
+/// Handles a POST binding
+/// ```html
+/// <form method="post" action="https://idp.example.org/SAML2/SSO/POST" ...>
+///     <input type="hidden" name="SAMLRequest" value="''request''" />
+///     ... other input parameter....
+/// </form>
+/// ```
+pub async fn saml_post_binding(req: tide::Request<AppState>) -> tide::Result {
+    let mut res = tide::Response::new(200);
+    res.set_body(format!("SAMLRequest: {:?}", req));
+
+    Ok(res)
+}
+
 /// SAML requests or responses transmitted via HTTP Redirect have a SAMLRequest or SAMLResponse query string parameter, respectively. Before it's sent, the message is deflated (without header and checksum), base64-encoded, and URL-encoded, in that order. Upon receipt, the process is reversed to recover the original message.
 pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     let mut res = tide::Response::new(200);
@@ -218,7 +222,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     //         // tide::Error::from_str(tide::StatusCode::BadRequest, "Missing Referer header")
     //     // })?;
 
-    let query: SAMLRedirectQuery = match req.query() {
+    let query: SamlQuery = match req.query() {
         Ok(val) => val,
         Err(e) => {
             log::error!("Missing SAMLRequest request in saml_redirect_get {:?}", e);

@@ -21,6 +21,7 @@ pub mod test_samples;
 // #[cfg(feature = "enable_tide")]
 // pub mod tide_helpers;
 mod xmlutils;
+use serde::Deserialize;
 
 /// Stores the values one would expect in an AuthN Request
 #[derive(Debug, Default, Serialize)]
@@ -96,6 +97,16 @@ impl fmt::Debug for AuthnDecodeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "AuthnDecodeError {{ message: {} }}", self.message)
     }
+}
+
+#[derive(Deserialize)]
+#[allow(non_snake_case)]
+/// Used in the SAML Redirect GET request to pull out the query values
+///
+/// Snake case is needed to allow the fields to be pulled out correctly
+pub struct SamlQuery {
+    pub SAMLRequest: Option<String>,
+    pub RelayState: Option<String>,
 }
 
 pub fn decode_authn_request_base64_encoded(req: String) -> Result<String, AuthnDecodeError> {
