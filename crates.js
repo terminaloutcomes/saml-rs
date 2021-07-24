@@ -1,1 +1,1 @@
-window.ALL_CRATES = ["saml_rs","samlrs"];
+window.ALL_CRATES = ["saml_rs"];
