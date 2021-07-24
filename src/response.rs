@@ -49,6 +49,27 @@ impl ResponseAttribute {
     }
 }
 
+#[derive(Debug,Default,Serialize)]
+/// An Authentication Statement for returning inside an assertion
+pub struct AuthNStatement {
+//     <saml:AuthnStatement
+//     AuthnInstant="2004-12-05T09:22:00Z"
+//     SessionIndex="b07b804c-7c29-ea16-7300-4f3d6f7928ac">
+//     <saml:AuthnContext>
+//       <saml:AuthnContextClassRef>
+//         urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport
+//       </saml:AuthnContextClassRef>
+//     </saml:AuthnContext>
+//   </saml:AuthnStatement>
+    #[serde(rename = "AuthnInstant")]
+    instant: String,
+    #[serde(rename = "SessionIndex")]
+    session: String,
+    #[serde(rename = "AuthnContextClassRef")]
+    // TODO: do we need to respond with multiple context class refs?
+    classref: String,
+
+}
 
 
 
