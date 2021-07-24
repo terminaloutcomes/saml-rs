@@ -1,38 +1,37 @@
 //! Want to build a SAML response? Here's your module. 🥳
 
-
+use chrono::{DateTime, SecondsFormat, Utc};
 use serde::Serialize;
 
 use std::io::Write;
 
-use xml::writer::{EventWriter, EmitterConfig, XmlEvent, /*Result*/};
-// use xml::attribute::Attribute;
-// use xml::name::Name;
-
 use crate::xmlutils::write_event;
+use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
-
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug)]
 /// Stores all the required elements of a SAML response... maybe?
 pub struct ResponseElements {
-    #[serde(rename = "Issuer")]
+    // #[serde(rename = "Issuer")]
     pub issuer: String,
-    #[serde(rename = "ID")]
-    pub id: String,
-    #[serde(rename = "IssueInstant")]
-    pub issue_instant: String,
-    #[serde(rename = "InResponseTo")]
+    // #[serde(rename = "ID")]
+    pub response_id: String,
+    // #[serde(rename = "IssueInstant")]
+    pub issue_instant: DateTime<Utc>,
+    // #[serde(rename = "InResponseTo")]
     pub request_id: String,
 
-    #[serde(rename = "Attributes")]
+    // #[serde(rename = "Attributes")]
     pub attributes: Vec<ResponseAttribute>,
-    #[serde(rename = "Destination")]
+    // #[serde(rename = "Destination")]
     pub destination: String,
+
+    pub authnstatement: AuthNStatement,
+
+    pub assertion_id: String,
 }
 
-
 // let mut animals: [&str; 2] = ["bird", "frog"];
-#[derive(Debug,Default,Serialize,Clone)]
+#[derive(Debug, Default, Serialize, Clone)]
 pub struct ResponseAttribute {
     name: String,
     nameformat: String,
@@ -49,29 +48,91 @@ impl ResponseAttribute {
     }
 }
 
-#[derive(Debug,Default,Serialize)]
+#[derive(Debug)]
 /// An Authentication Statement for returning inside an assertion
+///
+/// The expiry's optional
 pub struct AuthNStatement {
-//     <saml:AuthnStatement
-//     AuthnInstant="2004-12-05T09:22:00Z"
-//     SessionIndex="b07b804c-7c29-ea16-7300-4f3d6f7928ac">
-//     <saml:AuthnContext>
-//       <saml:AuthnContextClassRef>
-//         urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport
-//       </saml:AuthnContextClassRef>
-//     </saml:AuthnContext>
-//   </saml:AuthnStatement>
-    #[serde(rename = "AuthnInstant")]
-    instant: String,
-    #[serde(rename = "SessionIndex")]
-    session: String,
-    #[serde(rename = "AuthnContextClassRef")]
+    pub instant: DateTime<Utc>,
+    pub session_index: String,
     // TODO: do we need to respond with multiple context class refs?
-    classref: String,
-
+    pub classref: String,
+    pub expiry: Option<DateTime<Utc>>,
 }
 
+impl AuthNStatement {
+    #[allow(clippy::inherent_to_string)]
+    /// Formats it all pretty-like, in XML
+    pub fn to_string(&self) -> String {
+        // TODO: change this to a display thing, or remove it?
+        let expiry: String = match self.expiry {
+            Some(value) => format!(" SessionNotOnOrAfter=\"{}\"", value),
+            _ => "".to_string(),
+        };
+        format!(
+            r#"<saml:AuthnStatement
+    AuthnInstant="{}"
+    SessionIndex="{}"{}>
+  <saml:AuthnContext>
+    <saml:AuthnContextClassRef>{}</saml:AuthnContextClassRef>
+  </saml:AuthnContext>
+</saml:AuthnStatement>"#,
+            self.instant, self.session_index, expiry, self.classref
+        )
+    }
 
+    /// Used elsewhere in the API to add it to the Response XML
+    pub fn add_to_xmlevent<W: Write>(&self, writer: &mut EventWriter<W>) {
+        // start authn statement
+        let _ = match self.expiry {
+            Some(expiry) => write_event(
+                XmlEvent::start_element(("saml", "AuthnStatement"))
+                    .attr(
+                        "AuthnInstant",
+                        &self.instant.to_rfc3339_opts(SecondsFormat::Secs, true),
+                    )
+                    .attr(
+                        "SessionNotOnOrAfter",
+                        &expiry.to_rfc3339_opts(SecondsFormat::Secs, true),
+                    )
+                    .attr("SessionIndex", self.session_index.as_str())
+                    .into(),
+                writer,
+            ),
+            None => write_event(
+                XmlEvent::start_element(("saml", "AuthnStatement"))
+                    .attr(
+                        "AuthnInstant",
+                        &self.instant.to_rfc3339_opts(SecondsFormat::Secs, true),
+                    )
+                    .attr("SessionIndex", self.session_index.as_str())
+                    .into(),
+                writer,
+            ),
+        };
+
+        write_event(
+            XmlEvent::start_element(("saml", "AuthnContext")).into(),
+            writer,
+        );
+        write_event(
+            XmlEvent::start_element(("saml", "AuthnContextClassRef")).into(),
+            writer,
+        );
+        write_event(XmlEvent::characters(self.classref.as_str()), writer);
+        write_event(XmlEvent::end_element().into(), writer);
+        write_event(XmlEvent::end_element().into(), writer);
+
+        // end authn statement
+        write_event(XmlEvent::end_element().into(), writer);
+
+        // start attribute statement
+        write_event(
+            XmlEvent::start_element(("saml", "AttributeStatement")).into(),
+            writer,
+        );
+    }
+}
 
 /// Adds the issuer statement to a response
 fn add_issuer<W: Write>(issuer: &str, writer: &mut EventWriter<W>) {
@@ -82,19 +143,25 @@ fn add_issuer<W: Write>(issuer: &str, writer: &mut EventWriter<W>) {
 
 /// add an attribute to the statement
 fn add_attribute<W: Write>(attr: ResponseAttribute, writer: &mut EventWriter<W>) {
-    write_event(XmlEvent::start_element(("saml", "Attribute"))
-        .attr("Name",attr.name.as_str())
-        .attr("NameFormat",attr.nameformat.as_str())
-        .into(), writer);
+    write_event(
+        XmlEvent::start_element(("saml", "Attribute"))
+            .attr("Name", attr.name.as_str())
+            .attr("NameFormat", attr.nameformat.as_str())
+            .into(),
+        writer,
+    );
     for value in attr.values {
-        write_event(XmlEvent::start_element(("saml", "AttributeValue"))
-            .attr("xsi:type","xs:string")
-            .into(), writer);
+        write_event(
+            XmlEvent::start_element(("saml", "AttributeValue"))
+                .attr("xsi:type", "xs:string")
+                .into(),
+            writer,
+        );
         write_event(XmlEvent::characters(value.as_str()), writer);
         write_event(XmlEvent::end_element().into(), writer);
-    };
+    }
     // write_event(XmlEvent::end_element().into(), writer);
-write_event(XmlEvent::end_element().into(), writer);
+    write_event(XmlEvent::end_element().into(), writer);
 }
 
 /// Adds a set of status tags to a response
@@ -108,13 +175,18 @@ write_event(XmlEvent::end_element().into(), writer);
 /// ```
 fn add_status<W: Write>(status: &str, writer: &mut EventWriter<W>) {
     write_event(XmlEvent::start_element(("samlp", "Status")).into(), writer);
-    write_event(XmlEvent::start_element(("samlp", "StatusCode"))
-    .attr("Value", format!("urn:oasis:names:tc:SAML:2.0:status:{}", status).as_str())
-    .into(), writer);
+    write_event(
+        XmlEvent::start_element(("samlp", "StatusCode"))
+            .attr(
+                "Value",
+                format!("urn:oasis:names:tc:SAML:2.0:status:{}", status).as_str(),
+            )
+            .into(),
+        writer,
+    );
     write_event(XmlEvent::end_element().into(), writer);
     write_event(XmlEvent::end_element().into(), writer);
 }
-
 
 pub fn create_response(data: ResponseElements) -> Vec<u8> {
     let mut buffer = Vec::new();
@@ -127,16 +199,23 @@ pub fn create_response(data: ResponseElements) -> Vec<u8> {
     // let event: XmlEvent = XmlEvent::start_element(("p", "some-name")).into();
 
     // start of the response
-    write_event(XmlEvent::start_element(("samlp", "Response"))
-    .attr("xmlns:samlp", "urn:oasis:names:tc:SAML:2.0:protocol")
-    .attr("xmlns:saml", "urn:oasis:names:tc:SAML:2.0:assertion")
-    .attr("ID", &data.id)
-    .attr("Version", "2.0")
-    .attr("IssueInstant", "2014-07-17T01:01:48Z")
-    .attr("Destination", &data.destination)
-    .attr("InResponseTo", &data.request_id)
-    .into()
-    , &mut writer);
+    write_event(
+        XmlEvent::start_element(("samlp", "Response"))
+            .attr("xmlns:samlp", "urn:oasis:names:tc:SAML:2.0:protocol")
+            .attr("xmlns:saml", "urn:oasis:names:tc:SAML:2.0:assertion")
+            .attr("ID", &data.response_id)
+            .attr("Version", "2.0")
+            .attr(
+                "IssueInstant",
+                &data
+                    .issue_instant
+                    .to_rfc3339_opts(SecondsFormat::Secs, true),
+            )
+            .attr("Destination", &data.destination)
+            .attr("InResponseTo", &data.request_id)
+            .into(),
+        &mut writer,
+    );
 
     // issuer
     add_issuer(&data.issuer, &mut writer);
@@ -145,93 +224,117 @@ pub fn create_response(data: ResponseElements) -> Vec<u8> {
     add_status("Success", &mut writer);
 
     // start the assertion
-    write_event(XmlEvent::start_element(("saml", "Assertion"))
-    .attr("xmlns:xsi","http://www.w3.org/2001/XMLSchema-instance")
-    .attr("xmlns:xs","http://www.w3.org/2001/XMLSchema")
-    .attr("ID","_d71a3a8e9fcc45c9e9d248ef7049393fc8f04e5f75")
-    .attr("Version", "2.0")
-    .attr("IssueInstant","2014-07-17T01:01:48Z")
-    .into(), &mut writer);
+    write_event(
+        XmlEvent::start_element(("saml", "Assertion"))
+            .attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
+            .attr("xmlns:xs", "http://www.w3.org/2001/XMLSchema")
+            .attr("ID", &data.assertion_id)
+            .attr("Version", "2.0")
+            .attr(
+                "IssueInstant",
+                &data
+                    .issue_instant
+                    .to_rfc3339_opts(SecondsFormat::Secs, true),
+            )
+            .into(),
+        &mut writer,
+    );
 
     // do the issuer inside the assertion
     add_issuer(&data.issuer, &mut writer);
 
     // start subject statement
-    write_event(XmlEvent::start_element(("saml", "Subject")).into(), &mut writer);
+    write_event(
+        XmlEvent::start_element(("saml", "Subject")).into(),
+        &mut writer,
+    );
     // start nameid statement
-    write_event(XmlEvent::start_element(("saml", "NameID"))
-        .attr("SPNameQualifier","http://sp.example.com/demo1/metadata.php")
-        .attr("Format","urn:oasis:names:tc:SAML:2.0:nameid-format:transient")
-        .into(), &mut writer);
+    write_event(
+        XmlEvent::start_element(("saml", "NameID"))
+            .attr(
+                "SPNameQualifier",
+                "http://sp.example.com/demo1/metadata.php",
+            )
+            .attr(
+                "Format",
+                "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+            )
+            .into(),
+        &mut writer,
+    );
 
-        write_event(XmlEvent::characters("_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7"), &mut writer);
-        // end nameid statement
-        write_event(XmlEvent::end_element().into(), &mut writer);
+    write_event(
+        XmlEvent::characters("_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7"),
+        &mut writer,
+    );
+    // end nameid statement
+    write_event(XmlEvent::end_element().into(), &mut writer);
 
-        //start subjectconfirmation
-        write_event(XmlEvent::start_element(("saml", "SubjectConfirmation"))
-        .attr("Method","urn:oasis:names:tc:SAML:2.0:cm:bearer")
-        .into(), &mut writer);
+    //start subjectconfirmation
+    write_event(
+        XmlEvent::start_element(("saml", "SubjectConfirmation"))
+            .attr("Method", "urn:oasis:names:tc:SAML:2.0:cm:bearer")
+            .into(),
+        &mut writer,
+    );
 
-            //start subjectconfirmationdata
-            write_event(XmlEvent::start_element(("saml", "SubjectConfirmationData"))
-                .attr("NotOnOrAfter","2024-01-18T06:21:48Z")
-                .attr("Recipient","http://sp.example.com/demo1/index.php?acs")
-                .attr("InResponseTo",&data.request_id)
-                .into(), &mut writer);
+    //start subjectconfirmationdata
+    write_event(
+        XmlEvent::start_element(("saml", "SubjectConfirmationData"))
+            .attr("NotOnOrAfter", "2024-01-18T06:21:48Z")
+            .attr("Recipient", "http://sp.example.com/demo1/index.php?acs")
+            .attr("InResponseTo", &data.request_id)
+            .into(),
+        &mut writer,
+    );
 
-            //end subjectconfirmationdata
-            write_event(XmlEvent::end_element().into(), &mut writer);
-        //end subjectconfirmation
-        write_event(XmlEvent::end_element().into(), &mut writer);
+    //end subjectconfirmationdata
+    write_event(XmlEvent::end_element().into(), &mut writer);
+    //end subjectconfirmation
+    write_event(XmlEvent::end_element().into(), &mut writer);
 
     write_event(XmlEvent::end_element().into(), &mut writer);
     // end subject statement
 
     // start conditions statement
-    write_event(XmlEvent::start_element(("saml", "Conditions"))
-    .attr("NotBefore","2014-07-17T01:01:18Z")
-    .attr("NotOnOrAfter","2024-01-18T06:21:48Z")
-    .into(), &mut writer);
+    write_event(
+        XmlEvent::start_element(("saml", "Conditions"))
+            // TODO: conditions_not_before
+            .attr("NotBefore", "2014-07-17T01:01:18Z")
+            // TODO: conditions_not_after
+            .attr("NotOnOrAfter", "2024-01-18T06:21:48Z")
+            .into(),
+        &mut writer,
+    );
 
-        write_event(XmlEvent::start_element(("saml", "AudienceRestriction")).into(), &mut writer);
-            write_event(XmlEvent::start_element(("saml", "Audience")).into(), &mut writer);
-            write_event(XmlEvent::characters("http://sp.example.com/demo1/metadata.php"), &mut writer);
-            write_event(XmlEvent::end_element().into(), &mut writer);
-            write_event(XmlEvent::end_element().into(), &mut writer);
-            // end conditions statement
-            write_event(XmlEvent::end_element().into(), &mut writer);
-
-    // start authn statement
-    write_event(XmlEvent::start_element(("saml", "AuthnStatement"))
-        .attr("AuthnInstant","2014-07-17T01:01:48Z")
-        .attr("SessionNotOnOrAfter","2024-07-17T09:01:48Z")
-        .attr("SessionIndex","_be9967abd904ddcae3c0eb4189adbe3f71e327cf93")
-        .into(), &mut writer);
-
-        write_event(XmlEvent::start_element(("saml", "AuthnContext")).into(), &mut writer);
-            write_event(XmlEvent::start_element(("saml", "AuthnContextClassRef")).into(), &mut writer);
-                write_event(XmlEvent::characters("urn:oasis:names:tc:SAML:2.0:ac:classes:Password"), &mut writer);
-            write_event(XmlEvent::end_element().into(), &mut writer);
-        write_event(XmlEvent::end_element().into(), &mut writer);
-
-    // end authn statement
+    write_event(
+        XmlEvent::start_element(("saml", "AudienceRestriction")).into(),
+        &mut writer,
+    );
+    write_event(
+        XmlEvent::start_element(("saml", "Audience")).into(),
+        &mut writer,
+    );
+    write_event(
+        XmlEvent::characters("http://sp.example.com/demo1/metadata.php"),
+        &mut writer,
+    );
+    write_event(XmlEvent::end_element().into(), &mut writer);
+    write_event(XmlEvent::end_element().into(), &mut writer);
+    // end conditions statement
     write_event(XmlEvent::end_element().into(), &mut writer);
 
-    // start attribute statement
-    write_event(XmlEvent::start_element(("saml", "AttributeStatement")).into(), &mut writer);
+    // To do an expiry in an hour, do this
+    // let session_expiry = Utc::now().checked_add_signed(Duration::seconds(3600));
 
-
+    data.authnstatement.add_to_xmlevent(&mut writer);
 
     for attribute in data.attributes {
         add_attribute(attribute, &mut writer);
-        // add_attribute(ResponseAttribute::basic("uid", ["test"].to_vec()), &mut writer);
     }
-
 
     // end attribute statement
     write_event(XmlEvent::end_element().into(), &mut writer);
-
 
     // end the assertion
     write_event(XmlEvent::end_element().into(), &mut writer);
