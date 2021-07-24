@@ -5,7 +5,9 @@
 //! ```json
 //! {
 //! "bind_address" : "0.0.0.0",
-//! "hostname" : "example.com"
+//! "hostname" : "example.com",
+//! "tls_cert_path" : "~/certs/fullchain.pem",
+//! "tls_key_path" : "~/certs/privkey.pem",
 //! }
 //!
 
@@ -72,7 +74,7 @@ pub struct AppState {
 /// This uses HTTPS if you specify `TIDE_CERT_PATH` and `TIDE_KEY_PATH` environment variables.
 async fn main() -> tide::Result<()> {
 
-    let config_path: String = shellexpand::tilde("~/.config/saml_test_server.json").into_owned();
+    let config_path: String = shellexpand::tilde("~/.config/saml_test_server").into_owned();
 
     let server_config = ServerConfig::from_filename_and_env(config_path);
 
