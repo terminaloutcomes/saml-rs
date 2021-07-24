@@ -1,3 +1,4 @@
 (function() {var implementors = {};
 implementors["saml_rs"] = [{"text":"impl&lt;'de&gt; <a class=\"trait\" href=\"https://docs.rs/serde/1.0.126/serde/de/trait.Deserialize.html\" title=\"trait serde::de::Deserialize\">Deserialize</a>&lt;'de&gt; for <a class=\"struct\" href=\"saml_rs/struct.SamlQuery.html\" title=\"struct saml_rs::SamlQuery\">SamlQuery</a>","synthetic":false,"types":["saml_rs::SamlQuery"]}];
+implementors["saml_test_server"] = [{"text":"impl&lt;'de&gt; <a class=\"trait\" href=\"https://docs.rs/serde/1.0.126/serde/de/trait.Deserialize.html\" title=\"trait serde::de::Deserialize\">Deserialize</a>&lt;'de&gt; for <a class=\"struct\" href=\"saml_test_server/struct.ServerConfig.html\" title=\"struct saml_test_server::ServerConfig\">ServerConfig</a>","synthetic":false,"types":["saml_test_server::ServerConfig"]}];
 if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
