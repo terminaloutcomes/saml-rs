@@ -314,12 +314,40 @@
 <span id="311">311</span>
 <span id="312">312</span>
 <span id="313">313</span>
+<span id="314">314</span>
+<span id="315">315</span>
+<span id="316">316</span>
+<span id="317">317</span>
+<span id="318">318</span>
+<span id="319">319</span>
+<span id="320">320</span>
+<span id="321">321</span>
+<span id="322">322</span>
+<span id="323">323</span>
+<span id="324">324</span>
+<span id="325">325</span>
+<span id="326">326</span>
+<span id="327">327</span>
+<span id="328">328</span>
+<span id="329">329</span>
+<span id="330">330</span>
+<span id="331">331</span>
+<span id="332">332</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! A library for doing SAML things, terribly, in rust.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! My main aim at the moment is to provide IdP capabilities for the [Kanidm](https://github.com/kanidm/kanidm) project.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! If you would like to help - please log PRs/Issues against [terminaloutcomes/saml-rs](https://github.com/terminaloutcomes/saml-rs).</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! Testing tools:</span>
+<span class="doccomment">//! * Idp/SP online tester - &lt;https://samltest.id/&gt;</span>
+<span class="doccomment">//! * Parser for requests and responses: &lt;https://samltool.io&gt;</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! I use `#![deny(unsafe_code)]` to ensure it&#39;s safe.</span>
+<span class="doccomment">//!</span>
+
+<span class="attribute">#![<span class="ident">deny</span>(<span class="ident">unsafe_code</span>)]</span>
 
 <span class="attribute">#[<span class="ident">macro_use</span>]</span>
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">log</span>;
@@ -346,6 +374,7 @@
     <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;ID&quot;</span>)]</span>
     <span class="kw">pub</span> <span class="ident">request_id</span>: <span class="ident">String</span>,
     <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;IssueInstant&quot;</span>)]</span>
+    <span class="comment">// TODO: change this to a datetime</span>
     <span class="kw">pub</span> <span class="ident">issue_instant</span>: <span class="ident">String</span>,
     <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;AssertionConsumerServiceURL&quot;</span>)]</span>
     <span class="kw">pub</span> <span class="ident">consumer_service_url</span>: <span class="ident">String</span>,
@@ -355,18 +384,25 @@
     <span class="kw">pub</span> <span class="ident">version</span>: <span class="ident">String</span>,
     <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;Destination&quot;</span>)]</span>
     <span class="kw">pub</span> <span class="ident">destination</span>: <span class="ident">String</span>,
+
+
 }
+
 
 <span class="kw">impl</span> <span class="ident">SamlAuthnRequest</span> {
     <span class="doccomment">/// Allows one to turn a [SamlAuthnRequestParser] into a Request object</span>
+    <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::or_fun_call</span>)]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">parser</span>: <span class="ident">SamlAuthnRequestParser</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="ident">SamlAuthnRequest</span> {
             <span class="ident">request_id</span>: <span class="ident">parser</span>.<span class="ident">request_id</span>.<span class="ident">unwrap</span>(),
-            <span class="ident">issue_instant</span>: <span class="ident">parser</span>.<span class="ident">issue_instant</span>.<span class="ident">unwrap</span>(),
-            <span class="ident">consumer_service_url</span>: <span class="ident">parser</span>.<span class="ident">consumer_service_url</span>.<span class="ident">unwrap</span>(),
+            <span class="comment">// TODO: make a default response for this at the current time</span>
+            <span class="ident">issue_instant</span>: <span class="ident">parser</span>.<span class="ident">issue_instant</span>.<span class="ident">unwrap_or</span>(<span class="ident">String::from</span>(<span class="string">&quot;unset&quot;</span>)),
+            <span class="comment">// TODO: make a default response for this at the current time</span>
+            <span class="ident">consumer_service_url</span>: <span class="ident">parser</span>.<span class="ident">consumer_service_url</span>.<span class="ident">unwrap_or</span>(<span class="ident">String::from</span>(<span class="string">&quot;unset&quot;</span>)),
             <span class="ident">issuer</span>: <span class="ident">parser</span>.<span class="ident">issuer</span>.<span class="ident">unwrap</span>(),
             <span class="ident">version</span>: <span class="ident">parser</span>.<span class="ident">version</span>,
-            <span class="ident">destination</span>: <span class="ident">parser</span>.<span class="ident">destination</span>.<span class="ident">unwrap</span>(),
+            <span class="comment">// TODO: make a default response for this at the current time</span>
+            <span class="ident">destination</span>: <span class="ident">parser</span>.<span class="ident">destination</span>.<span class="ident">unwrap_or</span>(<span class="ident">String::from</span>(<span class="string">&quot;unset&quot;</span>)),
         }
     }
 }
@@ -382,6 +418,8 @@
     <span class="kw">pub</span> <span class="ident">version</span>: <span class="ident">String</span>,
     <span class="kw">pub</span> <span class="ident">issuer_state</span>: <span class="ident">i8</span>,
     <span class="kw">pub</span> <span class="ident">destination</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+
+    <span class="comment">// need to ull this     &lt;samlp:NameIDPolicy AllowCreate=&quot;true&quot; Format=&quot;urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress&quot;/&gt;</span>
 }
 
 <span class="kw">impl</span> <span class="ident">SamlAuthnRequestParser</span> {
