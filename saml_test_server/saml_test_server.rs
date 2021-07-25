@@ -26,7 +26,6 @@ use serde::Deserialize as serde_deserialize;
 use std::fs::File;
 use std::io::ErrorKind;
 
-
 #[derive(serde_deserialize, Debug)]
 struct ServerConfig {
     pub bind_address: String,
@@ -50,32 +49,35 @@ impl ServerConfig {
     pub fn from_filename_and_env(path: String) -> Self {
         let mut settings = config::Config::default();
         settings
-            .merge(config::File::with_name(&path)).unwrap()
-            .merge(config::Environment::with_prefix("SAML")).unwrap();
+            .merge(config::File::with_name(&path))
+            .unwrap()
+            .merge(config::Environment::with_prefix("SAML"))
+            .unwrap();
 
-        eprintln!("{:?}",settings);
+        eprintln!("{:?}", settings);
         Self {
-            public_hostname: settings.get("public_hostname").unwrap_or(ServerConfig::default().public_hostname),
-            bind_address: settings.get("bind_address").unwrap_or(ServerConfig::default().bind_address),
+            public_hostname: settings
+                .get("public_hostname")
+                .unwrap_or(ServerConfig::default().public_hostname),
+            bind_address: settings
+                .get("bind_address")
+                .unwrap_or(ServerConfig::default().bind_address),
             tls_cert_path: settings.get("tls_cert_path").unwrap_or(None),
             tls_key_path: settings.get("tls_key_path").unwrap_or(None),
         }
     }
 }
 
-
 #[derive(Clone, Debug)]
 pub struct AppState {
     pub hostname: String,
 }
-
 
 #[async_std::main]
 /// Spins up a test server
 ///
 /// This uses HTTPS if you specify `TIDE_CERT_PATH` and `TIDE_KEY_PATH` environment variables.
 async fn main() -> tide::Result<()> {
-
     let config_path: String = shellexpand::tilde("~/.config/saml_test_server").into_owned();
 
     let server_config = ServerConfig::from_filename_and_env(config_path);
@@ -85,7 +87,6 @@ async fn main() -> tide::Result<()> {
     };
 
     let mut app = tide::with_state(app_state);
-
 
     tide::log::with_level(tide::log::LevelFilter::Debug);
 
@@ -142,7 +143,6 @@ async fn main() -> tide::Result<()> {
     // TODO: SAML Artifact
     saml_process.at("/Artifact").get(do_nothing);
 
-
     let _app = match &server_config.tls_cert_path {
         Some(value) => {
             let tls_cert: String = shellexpand::tilde(value).into_owned();
@@ -185,7 +185,6 @@ async fn main() -> tide::Result<()> {
     };
     Ok(())
 }
-
 
 /// Provides a GET response for the metadata URL
 async fn saml_metadata_get(req: Request<AppState>) -> tide::Result {

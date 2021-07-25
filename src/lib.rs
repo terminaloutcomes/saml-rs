@@ -48,10 +48,7 @@ pub struct SamlAuthnRequest {
     pub version: String,
     #[serde(rename = "Destination")]
     pub destination: String,
-
-
 }
-
 
 impl SamlAuthnRequest {
     /// Allows one to turn a [SamlAuthnRequestParser] into a Request object
@@ -82,7 +79,6 @@ pub struct SamlAuthnRequestParser {
     pub version: String,
     pub issuer_state: i8,
     pub destination: Option<String>,
-
     // need to ull this     <samlp:NameIDPolicy AllowCreate="true" Format="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"/>
 }
 
