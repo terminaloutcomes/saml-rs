@@ -297,7 +297,6 @@
 <span id="294">294</span>
 <span id="295">295</span>
 <span id="296">296</span>
-<span id="297">297</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! A test server for running as a SAML IdP</span>
 <span class="doccomment">//!</span>
@@ -327,7 +326,6 @@
 <span class="kw">use</span> <span class="ident">std::fs::File</span>;
 <span class="kw">use</span> <span class="ident">std::io::ErrorKind</span>;
 
-
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">serde_deserialize</span>, <span class="ident">Debug</span>)]</span>
 <span class="kw">struct</span> <span class="ident">ServerConfig</span> {
     <span class="kw">pub</span> <span class="ident">bind_address</span>: <span class="ident">String</span>,
@@ -351,32 +349,35 @@
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_filename_and_env</span>(<span class="ident">path</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">settings</span> <span class="op">=</span> <span class="ident">config::Config::default</span>();
         <span class="ident">settings</span>
-            .<span class="ident">merge</span>(<span class="ident">config::File::with_name</span>(<span class="kw-2">&amp;</span><span class="ident">path</span>)).<span class="ident">unwrap</span>()
-            .<span class="ident">merge</span>(<span class="ident">config::Environment::with_prefix</span>(<span class="string">&quot;SAML&quot;</span>)).<span class="ident">unwrap</span>();
+            .<span class="ident">merge</span>(<span class="ident">config::File::with_name</span>(<span class="kw-2">&amp;</span><span class="ident">path</span>))
+            .<span class="ident">unwrap</span>()
+            .<span class="ident">merge</span>(<span class="ident">config::Environment::with_prefix</span>(<span class="string">&quot;SAML&quot;</span>))
+            .<span class="ident">unwrap</span>();
 
-        <span class="macro">eprintln!</span>(<span class="string">&quot;{:?}&quot;</span>,<span class="ident">settings</span>);
+        <span class="macro">eprintln!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="ident">settings</span>);
         <span class="self">Self</span> {
-            <span class="ident">public_hostname</span>: <span class="ident">settings</span>.<span class="ident">get</span>(<span class="string">&quot;public_hostname&quot;</span>).<span class="ident">unwrap_or</span>(<span class="ident">ServerConfig::default</span>().<span class="ident">public_hostname</span>),
-            <span class="ident">bind_address</span>: <span class="ident">settings</span>.<span class="ident">get</span>(<span class="string">&quot;bind_address&quot;</span>).<span class="ident">unwrap_or</span>(<span class="ident">ServerConfig::default</span>().<span class="ident">bind_address</span>),
+            <span class="ident">public_hostname</span>: <span class="ident">settings</span>
+                .<span class="ident">get</span>(<span class="string">&quot;public_hostname&quot;</span>)
+                .<span class="ident">unwrap_or</span>(<span class="ident">ServerConfig::default</span>().<span class="ident">public_hostname</span>),
+            <span class="ident">bind_address</span>: <span class="ident">settings</span>
+                .<span class="ident">get</span>(<span class="string">&quot;bind_address&quot;</span>)
+                .<span class="ident">unwrap_or</span>(<span class="ident">ServerConfig::default</span>().<span class="ident">bind_address</span>),
             <span class="ident">tls_cert_path</span>: <span class="ident">settings</span>.<span class="ident">get</span>(<span class="string">&quot;tls_cert_path&quot;</span>).<span class="ident">unwrap_or</span>(<span class="prelude-val">None</span>),
             <span class="ident">tls_key_path</span>: <span class="ident">settings</span>.<span class="ident">get</span>(<span class="string">&quot;tls_key_path&quot;</span>).<span class="ident">unwrap_or</span>(<span class="prelude-val">None</span>),
         }
     }
 }
 
-
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">AppState</span> {
     <span class="kw">pub</span> <span class="ident">hostname</span>: <span class="ident">String</span>,
 }
-
 
 <span class="attribute">#[<span class="ident">async_std::main</span>]</span>
 <span class="doccomment">/// Spins up a test server</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// This uses HTTPS if you specify `TIDE_CERT_PATH` and `TIDE_KEY_PATH` environment variables.</span>
 <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">main</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">tide::Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
-
     <span class="kw">let</span> <span class="ident">config_path</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">shellexpand::tilde</span>(<span class="string">&quot;~/.config/saml_test_server&quot;</span>).<span class="ident">into_owned</span>();
 
     <span class="kw">let</span> <span class="ident">server_config</span> <span class="op">=</span> <span class="ident">ServerConfig::from_filename_and_env</span>(<span class="ident">config_path</span>);
@@ -386,7 +387,6 @@
     };
 
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">app</span> <span class="op">=</span> <span class="ident">tide::with_state</span>(<span class="ident">app_state</span>);
-
 
     <span class="ident">tide::log::with_level</span>(<span class="ident">tide::log::LevelFilter::Debug</span>);
 
@@ -443,7 +443,6 @@
     <span class="comment">// TODO: SAML Artifact</span>
     <span class="ident">saml_process</span>.<span class="ident">at</span>(<span class="string">&quot;/Artifact&quot;</span>).<span class="ident">get</span>(<span class="ident">do_nothing</span>);
 
-
     <span class="kw">let</span> <span class="ident">_app</span> <span class="op">=</span> <span class="kw">match</span> <span class="kw-2">&amp;</span><span class="ident">server_config</span>.<span class="ident">tls_cert_path</span> {
         <span class="prelude-val">Some</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> {
             <span class="kw">let</span> <span class="ident">tls_cert</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">shellexpand::tilde</span>(<span class="ident">value</span>).<span class="ident">into_owned</span>();
@@ -486,7 +485,6 @@
     };
     <span class="prelude-val">Ok</span>(())
 }
-
 
 <span class="doccomment">/// Provides a GET response for the metadata URL</span>
 <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">saml_metadata_get</span>(<span class="ident">req</span>: <span class="ident">Request</span><span class="op">&lt;</span><span class="ident">AppState</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">tide::Result</span> {

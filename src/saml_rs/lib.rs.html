@@ -329,10 +329,6 @@
 <span id="326">326</span>
 <span id="327">327</span>
 <span id="328">328</span>
-<span id="329">329</span>
-<span id="330">330</span>
-<span id="331">331</span>
-<span id="332">332</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! A library for doing SAML things, terribly, in rust.</span>
 <span class="doccomment">//!</span>
@@ -384,10 +380,7 @@
     <span class="kw">pub</span> <span class="ident">version</span>: <span class="ident">String</span>,
     <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;Destination&quot;</span>)]</span>
     <span class="kw">pub</span> <span class="ident">destination</span>: <span class="ident">String</span>,
-
-
 }
-
 
 <span class="kw">impl</span> <span class="ident">SamlAuthnRequest</span> {
     <span class="doccomment">/// Allows one to turn a [SamlAuthnRequestParser] into a Request object</span>
@@ -418,7 +411,6 @@
     <span class="kw">pub</span> <span class="ident">version</span>: <span class="ident">String</span>,
     <span class="kw">pub</span> <span class="ident">issuer_state</span>: <span class="ident">i8</span>,
     <span class="kw">pub</span> <span class="ident">destination</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-
     <span class="comment">// need to ull this     &lt;samlp:NameIDPolicy AllowCreate=&quot;true&quot; Format=&quot;urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress&quot;/&gt;</span>
 }
 
