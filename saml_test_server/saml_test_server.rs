@@ -11,6 +11,8 @@
 //! }
 //!
 
+#![deny(unsafe_code)]
+
 // use saml_rs::AuthnDecodeError;
 use saml_rs::metadata::{generate_metadata_xml, SamlMetadata};
 use saml_rs::SamlQuery;
@@ -84,12 +86,24 @@ async fn main() -> tide::Result<()> {
 
     let mut app = tide::with_state(app_state);
 
-    // app.with(tide::log::LogMiddleware::new());
 
     tide::log::with_level(tide::log::LevelFilter::Debug);
+
+    // driftwood adds simple Apache-Style logs
+    app.with(driftwood::ApacheCombinedLogger);
+
     app.with(Before(|request: Request<AppState>| async move {
         // request.set_ext(Instant::now());
-        log::debug!("{:?}", request);
+
+        // if you want to log all the things use this
+        // log::debug!("{:?}", request);
+
+        // my very terrible way of doing logs
+        // log::debug!("client={:?} url={} method={} length={}",
+        //     request.remote().unwrap_or("-"),
+        //     request.url(),
+        //     request.method(),
+        //     request.len().unwrap_or(0));
         request
     }));
 
@@ -108,7 +122,8 @@ async fn main() -> tide::Result<()> {
                 res.set_body(msg);
             }
             _ => {
-                log::debug!("{:?}", res)
+                #[allow(clippy::no_effect)]
+                ();
             }
         }
         Ok(res)
@@ -126,6 +141,8 @@ async fn main() -> tide::Result<()> {
     saml_process.at("/Redirect").get(saml_redirect_get);
     // TODO: SAML Artifact
     saml_process.at("/Artifact").get(do_nothing);
+
+
     let _app = match &server_config.tls_cert_path {
         Some(value) => {
             let tls_cert: String = shellexpand::tilde(value).into_owned();

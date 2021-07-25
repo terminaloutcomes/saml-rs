@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<samlp:AuthnRequest ID="example.com.4.3A67C6D7-191E-41FF-8B57-4049ADF6A8B6" Version="2.0" IssueInstant="2021-07-25T03:48:32Z" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol">
+    <saml:Issuer xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">
+        example.com
+    </saml:Issuer>
+    <samlp:NameIDPolicy AllowCreate="true" Format="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"/>
+</samlp:AuthnRequest>

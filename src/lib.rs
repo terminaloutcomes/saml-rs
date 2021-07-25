@@ -3,6 +3,15 @@
 //! My main aim at the moment is to provide IdP capabilities for the [Kanidm](https://github.com/kanidm/kanidm) project.
 //!
 //! If you would like to help - please log PRs/Issues against [terminaloutcomes/saml-rs](https://github.com/terminaloutcomes/saml-rs).
+//!
+//! Testing tools:
+//! * Idp/SP online tester - <https://samltest.id/>
+//! * Parser for requests and responses: <https://samltool.io>
+//!
+//! I use `#![deny(unsafe_code)]` to ensure it's safe.
+//!
+
+#![deny(unsafe_code)]
 
 #[macro_use]
 extern crate log;
@@ -29,6 +38,7 @@ pub struct SamlAuthnRequest {
     #[serde(rename = "ID")]
     pub request_id: String,
     #[serde(rename = "IssueInstant")]
+    // TODO: change this to a datetime
     pub issue_instant: String,
     #[serde(rename = "AssertionConsumerServiceURL")]
     pub consumer_service_url: String,
@@ -38,18 +48,25 @@ pub struct SamlAuthnRequest {
     pub version: String,
     #[serde(rename = "Destination")]
     pub destination: String,
+
+
 }
+
 
 impl SamlAuthnRequest {
     /// Allows one to turn a [SamlAuthnRequestParser] into a Request object
+    #[allow(clippy::or_fun_call)]
     pub fn from(parser: SamlAuthnRequestParser) -> Self {
         SamlAuthnRequest {
             request_id: parser.request_id.unwrap(),
-            issue_instant: parser.issue_instant.unwrap(),
-            consumer_service_url: parser.consumer_service_url.unwrap(),
+            // TODO: make a default response for this at the current time
+            issue_instant: parser.issue_instant.unwrap_or(String::from("unset")),
+            // TODO: make a default response for this at the current time
+            consumer_service_url: parser.consumer_service_url.unwrap_or(String::from("unset")),
             issuer: parser.issuer.unwrap(),
             version: parser.version,
-            destination: parser.destination.unwrap(),
+            // TODO: make a default response for this at the current time
+            destination: parser.destination.unwrap_or(String::from("unset")),
         }
     }
 }
@@ -65,6 +82,8 @@ pub struct SamlAuthnRequestParser {
     pub version: String,
     pub issuer_state: i8,
     pub destination: Option<String>,
+
+    // need to ull this     <samlp:NameIDPolicy AllowCreate="true" Format="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"/>
 }
 
 impl SamlAuthnRequestParser {

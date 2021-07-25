@@ -1,1 +1,1 @@
-cargo doc --no-deps --document-private-items $*
+cargo doc --no-deps --workspace --document-private-items $*
