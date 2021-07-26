@@ -2,14 +2,47 @@
 //!
 //! My main aim at the moment is to provide IdP capabilities for the [Kanidm](https://github.com/kanidm/kanidm) project.
 //!
+//! `#![deny(unsafe_code)]` is used everywhere to avoid unsafe code tricks. This is why we're using rust, after all! 🦀
+//! //!
 //! If you would like to help - please log PRs/Issues against [terminaloutcomes/saml-rs](https://github.com/terminaloutcomes/saml-rs).
 //!
-//! Testing tools:
+//! There's a test application [saml_test_server](../saml_test_server/index.html) based on [tide](https://docs.rs/tide/) to allow one to test functionality.
+//!
+//! # Current progress:
+//!
+//! - Compiles, most of the time
+//! - `saml_test_server` runs on HTTP and HTTPS, parses Redirect requests as-needed.
+//!
+//! # Next steps:
+//! - Parse and handle SP XML data so we can store a representation of it and match them up later
+//! - Support the SAML 2.0 Web Browser SSO (SP Redirect Bind/ IdP POST Response) flow
+//!
+//!
+//! # SAML 2.0 Web Browser SSO (SP Redirect Bind/ IdP POST Response) flow
+//!
+//! 1. User attempts to access the SP resource (eg https://example.com/application)
+//! 2. User is HTTP 302 redirected to the IdP (that's us!)
+//!    - The URL is provided in the SAML2.0 metadata from the IdP
+//!    - There should be two query parameters, [SAMLRequest](SamlQuery::SAMLRequest) and [RelayState](SamlQuery::RelayState) details about them are available in [SamlQuery]
+//! 3. The SSO Service validates the request and responds with a document containing an XHTML form:
+//!
+//!       NOTE: POSTed assertions MUST be signed
+//!
+//! ```html
+//! <form method="post" action="https://example.com/SAML2/SSO/POST" ...>
+//!   <input type="hidden" name="SAMLResponse" value="response" />
+//!   <input type="hidden" name="RelayState" value="token" />
+//! etc etc...
+//! <input type="submit" value="Submit" />
+//! </form>
+//! ```
+//!
+//!
+//! # Testing tools:
+//!
 //! * Idp/SP online tester - <https://samltest.id/>
 //! * Parser for requests and responses: <https://samltool.io>
-//!
-//! I use `#![deny(unsafe_code)]` to ensure it's safe.
-//!
+
 
 #![deny(unsafe_code)]
 
@@ -26,6 +59,7 @@ use std::str::from_utf8;
 
 pub mod metadata;
 pub mod response;
+pub mod sp;
 pub mod test_samples;
 // #[cfg(feature = "enable_tide")]
 // pub mod tide_helpers;
@@ -120,15 +154,17 @@ impl fmt::Debug for AuthnDecodeError {
 ///
 /// Snake case is needed to allow the fields to be pulled out correctly
 pub struct SamlQuery {
+    /// The value of the SAMLRequest parameter is a deflated, base64-encoded and URL-encoded value of an `<samlp:[AuthnRequest]>` element. The SAMLRequest *may* be signed using the SP signing key.
     pub SAMLRequest: Option<String>,
+    /// The RelayState token is an opaque reference to state information maintained at the service provider.
     pub RelayState: Option<String>,
 }
 
 pub fn decode_authn_request_base64_encoded(req: String) -> Result<String, AuthnDecodeError> {
     let base64_decoded_samlrequest: Vec<u8> = match base64::decode(req) {
-        Ok(val) => {
+        Ok(value) => {
             debug!("Succcesfully Base64 Decoded the SAMLRequest");
-            val
+            value
         }
         Err(err) => {
             return Err(AuthnDecodeError::new(format!(
@@ -139,7 +175,11 @@ pub fn decode_authn_request_base64_encoded(req: String) -> Result<String, AuthnD
     };
     // here we try and use libflate to deflate the base64-decoded bytes because compression is used
     let inflated_result = match inflate_bytes(&base64_decoded_samlrequest) {
-        Ok(value) => value,
+        Ok(value) => {
+            debug!("Successfully inflated the base64-decoded bytes");
+            debug!("{:?}", from_utf8(&value).unwrap_or("Couldn't utf-8 decode this mess"));
+            value
+        }
         // if it fails, it's probably fine to return the bare bytes as they're already a string?
         Err(_) => base64_decoded_samlrequest,
     };

@@ -17,4 +17,7 @@ WXHOVGV6A/pivvOskOCOOG94wce0sSyiUjV6zxNqWQj7rKcm9IZHf3eGFLnelF4Z
 K5B5H7EYJkXltnhnsal35az9+BJdAceP59BqURVvFwUVP5q1A44WZPNDXv96Jd2i
 EyoXhw7tNjlhuD6V6u7z7n5YZsGNmIPj7BxGhxowWIkgAbQQN57p4xCl6Kckq2w3
 EAwd90N5
-</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="http://15d49b9c30a5:8000/saml/logout" index="0"></md:SingleLogoutService><md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="http://15d49b9c30a5:8000/saml/acs" index="0"></md:AssertionConsumerService></md:SPSSODescriptor></md:EntityDescriptor>
+</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor>
+<md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="http://15d49b9c30a5:8000/saml/logout" index="0"></md:SingleLogoutService>
+<md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="http://15d49b9c30a5:8000/saml/acs" index="0"></md:AssertionConsumerService>
+</md:SPSSODescriptor></md:EntityDescriptor>

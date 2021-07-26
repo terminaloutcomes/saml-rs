@@ -188,15 +188,23 @@ fn add_status<W: Write>(status: &str, writer: &mut EventWriter<W>) {
     write_event(XmlEvent::end_element().into(), writer);
 }
 
+/// returns the base64 encoded version of [create_response]
+pub fn base64_encoded_response(data: ResponseElements, signed: bool) -> Vec<u8> {
+    if signed {
+      unimplemented!("Still need to do this bit.");
+    }
+    let buffer = create_response(data);
+    base64::encode(buffer).into()
+}
+
+
+/// Creates a `samlp:Response` objects based on the input data ([ResponseElements]) you provide
 pub fn create_response(data: ResponseElements) -> Vec<u8> {
     let mut buffer = Vec::new();
     let mut writer = EmitterConfig::new()
         .perform_indent(true)
         .write_document_declaration(false)
         .create_writer(&mut buffer);
-
-    // let tag = String::from("test").as_bytes();
-    // let event: XmlEvent = XmlEvent::start_element(("p", "some-name")).into();
 
     // start of the response
     write_event(
