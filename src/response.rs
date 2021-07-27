@@ -191,12 +191,11 @@ fn add_status<W: Write>(status: &str, writer: &mut EventWriter<W>) {
 /// returns the base64 encoded version of [create_response]
 pub fn base64_encoded_response(data: ResponseElements, signed: bool) -> Vec<u8> {
     if signed {
-      unimplemented!("Still need to do this bit.");
+        unimplemented!("Still need to do this bit.");
     }
     let buffer = create_response(data);
     base64::encode(buffer).into()
 }
-
 
 /// Creates a `samlp:Response` objects based on the input data ([ResponseElements]) you provide
 pub fn create_response(data: ResponseElements) -> Vec<u8> {

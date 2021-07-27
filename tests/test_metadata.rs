@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     // use saml_rs;
+    use chrono::{DateTime, NaiveDate, Utc};
     use saml_rs::metadata::SamlMetadata;
 
     #[test]
@@ -88,7 +89,10 @@ mod tests {
         let expected_result = saml_rs::SamlAuthnRequest {
             request_id: String::from("_6c1cd5d32c2df1bab98f58a144f9b971"),
             issuer: String::from("https://samltest.id/saml/sp"),
-            issue_instant: String::from("2021-07-19T12:06:25Z"),
+            issue_instant: DateTime::<Utc>::from_utc(
+                NaiveDate::from_ymd(2021, 7, 19).and_hms(12, 06, 25),
+                Utc,
+            ),
             consumer_service_url: String::from("https://samltest.id/Shibboleth.sso/SAML2/POST"),
             version: String::from("2.0"),
             destination: String::from("https://example.com/v1/SAML/Redirect"),
@@ -99,7 +103,10 @@ mod tests {
         );
         assert_eq!(result.request_id, expected_result.request_id);
         assert_eq!(result.issuer, expected_result.issuer);
-        assert_eq!(result.issue_instant, expected_result.issue_instant);
+        assert_eq!(
+            result.issue_instant_string(),
+            expected_result.issue_instant_string()
+        );
         assert_eq!(
             result.consumer_service_url,
             expected_result.consumer_service_url

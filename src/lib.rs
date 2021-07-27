@@ -36,13 +36,21 @@
 //! <input type="submit" value="Submit" />
 //! </form>
 //! ```
+//! 4. Request the Assertion Consumer Service at the SP. The user agent issues a POST request to the Assertion Consumer Service at the service provider:
+//!
+//! ```html
+//! POST /SAML2/SSO/POST HTTP/1.1
+//! Host: sp.example.com
+//! Content-Type: application/x-www-form-urlencoded
+//! Content-Length: nnn
+//! SAMLResponse=response&RelayState=token
+//! ```
 //!
 //!
 //! # Testing tools:
 //!
 //! * Idp/SP online tester - <https://samltest.id/>
 //! * Parser for requests and responses: <https://samltool.io>
-
 
 #![deny(unsafe_code)]
 
@@ -66,14 +74,16 @@ pub mod test_samples;
 mod xmlutils;
 use serde::Deserialize;
 
+use chrono::{DateTime, SecondsFormat, Utc};
+
 /// Stores the values one would expect in an AuthN Request
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug, Serialize)]
 pub struct SamlAuthnRequest {
     #[serde(rename = "ID")]
     pub request_id: String,
     #[serde(rename = "IssueInstant")]
     // TODO: change this to a datetime
-    pub issue_instant: String,
+    pub issue_instant: DateTime<Utc>,
     #[serde(rename = "AssertionConsumerServiceURL")]
     pub consumer_service_url: String,
     // this is a nested element inside a <saml:Issuer xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">
@@ -91,7 +101,8 @@ impl SamlAuthnRequest {
         SamlAuthnRequest {
             request_id: parser.request_id.unwrap(),
             // TODO: make a default response for this at the current time
-            issue_instant: parser.issue_instant.unwrap_or(String::from("unset")),
+            // issue_instant: parser.issue_instant.unwrap_or(String::from("unset")),
+            issue_instant: parser.issue_instant.unwrap_or(Utc::now()),
             // TODO: make a default response for this at the current time
             consumer_service_url: parser.consumer_service_url.unwrap_or(String::from("unset")),
             issuer: parser.issuer.unwrap(),
@@ -100,13 +111,18 @@ impl SamlAuthnRequest {
             destination: parser.destination.unwrap_or(String::from("unset")),
         }
     }
+
+    pub fn issue_instant_string(&self) -> String {
+        self.issue_instant
+            .to_rfc3339_opts(SecondsFormat::Secs, true)
+    }
 }
 
 /// Used to pull apart a SAML AuthN Request and build a [SamlAuthnRequest]
 #[derive(Debug, Default)]
 pub struct SamlAuthnRequestParser {
     pub request_id: Option<String>,
-    pub issue_instant: Option<String>,
+    pub issue_instant: Option<DateTime<Utc>>,
     pub consumer_service_url: Option<String>,
     pub issuer: Option<String>,
     pub error: bool,
@@ -177,7 +193,10 @@ pub fn decode_authn_request_base64_encoded(req: String) -> Result<String, AuthnD
     let inflated_result = match inflate_bytes(&base64_decoded_samlrequest) {
         Ok(value) => {
             debug!("Successfully inflated the base64-decoded bytes");
-            debug!("{:?}", from_utf8(&value).unwrap_or("Couldn't utf-8 decode this mess"));
+            debug!(
+                "{:?}",
+                from_utf8(&value).unwrap_or("Couldn't utf-8 decode this mess")
+            );
             value
         }
         // if it fails, it's probably fine to return the bare bytes as they're already a string?
@@ -209,7 +228,25 @@ fn parse_authn_tokenizer_attribute(
             req.request_id = Some(value.to_string());
         }
         "issueinstant" => {
-            req.issue_instant = Some(value.to_string());
+            debug!("Found issueinstant: {}", value.to_string());
+
+            // Date parsing... 2021-07-19T12:06:25Z
+            let parsed_datetime = DateTime::parse_from_rfc3339(&value);
+            debug!("parsed_datetime: {:?}", parsed_datetime);
+            match parsed_datetime {
+                Ok(value) => {
+                    debug!("Setting issue_instant");
+                    let result: DateTime<Utc> = value.into();
+                    req.issue_instant = Some(result);
+                }
+                Err(error) => {
+                    eprintln!(
+                        "Failed to cast datetime source={:?}, error=\"{}\"",
+                        value.to_string(),
+                        error
+                    );
+                }
+            };
         }
         "assertionconsumerserviceurl" => {
             req.consumer_service_url = Some(value.to_string());
@@ -232,6 +269,8 @@ fn parse_authn_tokenizer_attribute(
             value.to_string()
         ),
     }
+
+    eprintln!("after block {:?}", req.issue_instant);
     req
 }
 
@@ -285,11 +324,11 @@ pub fn parse_authn_request(request_data: &str) -> Result<SamlAuthnRequest, &'sta
                 // if issuer_state == -1 { continue }
                 if saml_request.issuer_state == 1 {
                     let issuer = text.as_str();
-                    println!("Found issuer: {}", issuer);
+                    debug!("Found issuer: {}", issuer);
                     saml_request.issuer = Some(issuer.to_string());
                     saml_request.issuer_state = -1; // reset the state machine so we don't try and do this again
                 } else {
-                    println!(
+                    debug!(
                         "Found issuer text and not at issuer_state==1 ({}) text={:?}",
                         saml_request.issuer_state, text
                     );
