@@ -3,8 +3,12 @@ use tide::Request;
 
 use crate::AppState;
 use http_types::Mime;
-use serde::Deserialize as serde_deserialize;
+use std::collections::HashMap;
 use std::str::FromStr;
+
+use saml_rs::sp::SpMetadata;
+use std::fs::read_to_string;
+use std::path::Path;
 
 /// Placeholder function for development purposes, just returns a "Doing nothing" 200 response.
 pub async fn do_nothing(mut _req: Request<AppState>) -> tide::Result {
@@ -15,13 +19,49 @@ pub async fn do_nothing(mut _req: Request<AppState>) -> tide::Result {
         .build())
 }
 
-#[derive(serde_deserialize, Debug)]
+// #[derive(serde_deserialize, Debug)]
+#[derive(Debug)]
 pub struct ServerConfig {
     pub bind_address: String,
     pub public_hostname: String,
     pub tls_cert_path: Option<String>,
     pub tls_key_path: Option<String>,
     pub entity_id: String,
+    pub sp_metadata_files: Option<Vec<String>>,
+    pub sp_metadata: HashMap<String, SpMetadata>,
+}
+
+fn load_sp_metadata(filenames: Vec<String>) -> HashMap<String, SpMetadata> {
+    // load the SP metadata files
+
+    let mut sp_metadata = HashMap::new();
+    eprintln!("Filenames: {:?}", filenames);
+    for filename in filenames {
+        let expanded_filename: String = shellexpand::tilde(&filename).into_owned();
+        if Path::new(&expanded_filename).exists() {
+            eprintln!("Found file: {:?}", expanded_filename);
+            let filecontents = match read_to_string(&expanded_filename) {
+                Err(error) => {
+                    eprintln!(
+                        "Couldn't load SP Metadata file {} for some reason: {:?}",
+                        &expanded_filename, error
+                    );
+                    continue;
+                }
+                Ok(value) => value,
+            };
+            // parse the XML
+            let parsed_sp = saml_rs::sp::SpMetadata::from_xml(&filecontents);
+            eprintln!("SP Metadata loaded: {:?}", parsed_sp);
+            sp_metadata.insert("issuer".to_string(), parsed_sp);
+        } else {
+            eprintln!(
+                "Couldn't find file {:?}, not loading metadata.",
+                expanded_filename
+            );
+        }
+    }
+    sp_metadata
 }
 
 impl ServerConfig {
@@ -32,6 +72,8 @@ impl ServerConfig {
             tls_cert_path: None,
             tls_key_path: None,
             entity_id: String::from("https://example.com/idp/"),
+            sp_metadata_files: None,
+            sp_metadata: HashMap::new(),
         }
     }
 
@@ -44,6 +86,13 @@ impl ServerConfig {
             .unwrap()
             .merge(config::Environment::with_prefix("SAML"))
             .unwrap();
+
+        let filenames: Vec<String> = match settings.get("sp_metadata_files") {
+            Ok(filenames) => filenames,
+            _ => Vec::<String>::new(),
+        };
+
+        let sp_metadata = load_sp_metadata(filenames);
 
         eprintln!("{:?}", settings);
         Self {
@@ -58,6 +107,10 @@ impl ServerConfig {
             entity_id: settings
                 .get("entity_id")
                 .unwrap_or(ServerConfig::default().entity_id),
+            sp_metadata_files: settings
+                .get("sp_metadata_files")
+                .unwrap_or(ServerConfig::default().sp_metadata_files),
+            sp_metadata,
         }
     }
 }

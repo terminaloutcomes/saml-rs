@@ -34,7 +34,7 @@ use std::str::from_utf8;
 use http_types::Mime;
 use std::str::FromStr;
 
-mod util;
+pub mod util;
 use util::do_nothing;
 
 #[derive(Clone, Debug)]
@@ -181,8 +181,10 @@ pub async fn saml_post_binding(req: tide::Request<AppState>) -> tide::Result {
 
 /// SAML requests or responses transmitted via HTTP Redirect have a SAMLRequest or SAMLResponse query string parameter, respectively. Before it's sent, the message is deflated (without header and checksum), base64-encoded, and URL-encoded, in that order. Upon receipt, the process is reversed to recover the original message.
 pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
-    let mut response_body =
-        String::from("<html><head><title>saml_redirect_get</title></head><body>\n\n");
+    let mut response_body = String::from(
+        r#"<!DOCTYPE html>
+        <html lang="en"><head><title>saml_redirect_get</title></head><body>\n\n"#,
+    );
 
     let query: SamlQuery = match req.query() {
         Ok(val) => val,
@@ -327,6 +329,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     response_body.push_str(&generate_login_form(response, relay_state));
     // res.set_body(response_body);
 
+    response_body.push_str("</html>");
     Ok(tide::Response::builder(203)
         .body(response_body)
         .content_type(Mime::from_str("text/html;charset=utf-8").unwrap())
@@ -340,7 +343,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
 pub fn generate_login_form(response: ResponseElements, relay_state: String) -> String {
     format!(
         r#"<form method="post" action="https://example.com/SAML2/SSO/POST" ...>
-    <input type="hidden" name="SAMLResponse" value="{:?}" />
+    <input type="hidden" name="SAMLResponse" value="{}" />
     <input type="hidden" name="RelayState" value="{}" />
         <h1>Fancy example login form</h1>
         <p>Username: <input type='text' name='username' /></p>

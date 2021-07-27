@@ -6,6 +6,10 @@
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
+use std::io::Cursor;
+use xml::attribute::OwnedAttribute;
+use xml::reader::{EventReader, XmlEvent};
+
 /// Allows one to build a definition with [SamlBindingType::AssertionConsumerService]\(s\) and [SamlBindingType::SingleLogoutService]\(s\)
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum SamlBindingType {
@@ -36,6 +40,7 @@ impl FromStr for SamlBindingType {
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum SamlBinding {
     HttpPost,
+    HttpRedirect,
 }
 
 impl Default for SamlBinding {
@@ -48,6 +53,9 @@ impl ToString for SamlBinding {
         #[allow(clippy::match_single_binding)]
         match self {
             SamlBinding::HttpPost => "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST".to_string(),
+            SamlBinding::HttpRedirect => {
+                "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-REDIRECT".to_string()
+            }
         }
     }
 }
@@ -57,6 +65,7 @@ impl FromStr for SamlBinding {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" => Ok(SamlBinding::HttpPost),
+            "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-REDIRECT" => Ok(SamlBinding::HttpRedirect),
             _ => Err("Must be a valid type"),
         }
     }
@@ -101,27 +110,21 @@ impl ServiceBinding {
 
 use openssl;
 
-#[derive(Debug, Clone)] // Serialize, Deserialize,
-                        // #[allow(clippy::dead_code)]
+#[derive(Debug, Clone)]
 pub struct SpMetadata {
-    // #[serde(rename = "entityID")]
+    /// EntityID
     pub entity_id: String,
-
-    // #[serde(rename = "AuthnRequestsSigned")]
+    /// Will this SP send signed requests? If so, we'll reject ones that aren't.
     pub authn_requests_signed: bool,
-
-    // #[serde(rename = "WantAssertionsSigned")]
+    /// Does this SP expect signed assertions?
     pub want_assertions_signed: bool,
-    /// probably should be something else
-    // #[serde(rename = "X509Certificate")]
+    /// The signing (public) certificate for the SP
     pub x509_certificate: Option<openssl::x509::X509>,
+    /// SP Services
     pub services: Vec<ServiceBinding>,
 }
 
-use std::io::Cursor;
-use xml::reader::EventReader;
-use xml::reader::XmlEvent;
-
+/// Used for showing the details of the SP Metadata XML file
 fn xml_indent(size: usize) -> String {
     const INDENT: &str = "    ";
     (0..size)
@@ -130,25 +133,141 @@ fn xml_indent(size: usize) -> String {
 }
 
 impl SpMetadata {
-    /// hand this a bucket of string data and you should get something useful back out... one day.
+    /// Used for handling the attributes of services in the tags of an SP Metadata XML file
     ///
+    /// Types tested (poorly):
+    /// - AssertionConsumerService
+    /// - SingleLogoutService
+    fn service_attrib_parser(
+        &mut self,
+        servicetype: SamlBindingType,
+        attributes: Vec<OwnedAttribute>,
+    ) -> Result<ServiceBinding, String> {
+        let mut tmp_sb = ServiceBinding {
+            servicetype,
+            binding: SamlBinding::HttpPost,
+            location: "".to_string(),
+            index: 0,
+        };
+        for attribute in attributes {
+            match attribute.name.local_name.to_lowercase().as_str() {
+                "binding" => {
+                    log::debug!("Found Binding");
+                    let binding = match SamlBinding::from_str(&attribute.value) {
+                        Ok(value) => value,
+                        Err(error) => {
+                            return Err(format!(
+                                "UNMATCHED BINDING: {}: {}",
+                                &attribute.value, error
+                            ))
+                        }
+                    };
+                    tmp_sb.binding = binding;
+                }
+                "location" => {
+                    log::debug!("Found Location");
+                    tmp_sb.location = attribute.value;
+                }
+                "index" => {
+                    log::debug!("Found index");
+                    tmp_sb.index = attribute.value.parse::<u8>().unwrap();
+                }
+                _ => {
+                    eprintln!(
+                        "Found unhandled attribute in AssertionConsumerService: {:?}",
+                        attribute
+                    );
+                }
+            }
+        }
+        eprintln!("Returning {:?}", tmp_sb);
+        Ok(tmp_sb)
+    }
 
+    /// Let's parse some attributes!
+    fn attrib_parser(&mut self, tag: &str, attributes: Vec<OwnedAttribute>) {
+        // eprintln!("attrib_parser - tag={}, attr:{:?}", tag, attributes);
+        match tag {
+            "AssertionConsumerService" => {
+                log::debug!("AssertionConsumerService: {:?}", attributes);
+                match self
+                    .service_attrib_parser(SamlBindingType::AssertionConsumerService, attributes)
+                {
+                    Ok(value) => {
+                        let mut a = vec![value];
+                        self.services.append(&mut a);
+                    }
+                    Err(error) => {
+                        eprintln!("Failed to parse AssertionConsumerService: {:?}", error)
+                    }
+                }
+            }
+            "SingleLogoutService" => {
+                log::debug!("SingleLogoutService: {:?}", attributes);
+                match self.service_attrib_parser(SamlBindingType::SingleLogoutService, attributes) {
+                    Ok(value) => {
+                        let mut a = vec![value];
+                        self.services.append(&mut a);
+                    }
+                    Err(error) => eprintln!("Failed to parse SingleLogoutService: {:?}", error),
+                }
+            }
+
+            // TODO: SPSSODescriptor
+            "EntityDescriptor" => {
+                for attribute in attributes {
+                    log::debug!("attribute: {}", attribute);
+                    match attribute.name.local_name.as_str() {
+                        "entityID" => {
+                            eprintln!("Setting entityID: {}", attribute.value);
+                            self.entity_id = attribute.value;
+                        }
+                        _ => {
+                            log::debug!(
+                                "found an EntityDescriptor attribute that's not entityID: {:?}",
+                                attribute
+                            );
+                        }
+                    }
+                }
+            }
+            _ => log::warn!(
+                "Asked to parse attributes for tag={}, not caught by anything {:?}",
+                tag,
+                attributes
+            ),
+        }
+
+        // eprintln!("attribute found: {:?}", attribute);
+        // eprintln!("local_name: {}", attribute.name.local_name);
+        // eprintln!("value: {}", attribute.value);
+    }
+
+    /// Hand this a bucket of string data and you should get a struct with all the SP's metadata.
+    ///
     pub fn from_xml(source_xml: &str) -> SpMetadata {
         let bufreader = Cursor::new(source_xml);
         let parser = EventReader::new(bufreader);
         let mut depth = 0;
-        let mut previous_name = "unknown".to_string();
+        let mut tag_name = "###INVALID###".to_string();
         let mut certificate_data = None::<openssl::x509::X509>;
+
+        let mut meta = SpMetadata {
+            entity_id: "".to_string(),
+            authn_requests_signed: false,
+            want_assertions_signed: false,
+            x509_certificate: None,
+            services: vec![],
+        };
+
         for e in parser {
             match e {
                 Ok(XmlEvent::StartElement {
                     name, attributes, ..
                 }) => {
                     println!("{}+{}", xml_indent(depth), name);
-                    for attribute in attributes {
-                        debug!("attribute found: {:?}", attribute);
-                    }
-                    previous_name = name.local_name.to_string();
+                    tag_name = name.local_name.to_string();
+                    meta.attrib_parser(&tag_name, attributes);
                     depth += 1;
                 }
                 Ok(XmlEvent::EndElement { name }) => {
@@ -156,7 +275,7 @@ impl SpMetadata {
                     println!("{}-{}", xml_indent(depth), name);
                 }
                 Ok(XmlEvent::Characters(s)) => {
-                    if previous_name == "X509Certificate" {
+                    if tag_name == "X509Certificate" {
                         debug!("Found certificate!");
                         // certificate_data = s.to_string();
                         let certificate = crate::cert::init_cert_from_base64(&s);
@@ -166,13 +285,13 @@ impl SpMetadata {
                                 certificate_data = Some(value);
                             }
                             Err(error) => {
-                                eprintln!("{:?}", error)
+                                eprintln!("error! {:?}", error)
                             }
                         };
-                        previous_name = "done".to_string();
+                        tag_name = "###INVALID###".to_string();
+                    } else {
+                        println!("Characters: {}{}", xml_indent(depth + 1), s);
                     }
-
-                    println!("{}{}", xml_indent(depth + 1), s);
                 }
                 Err(e) => {
                     println!("Error: {}", e);
@@ -182,27 +301,6 @@ impl SpMetadata {
             }
         }
 
-        let mut meta = SpMetadata {
-            entity_id: "splunkEntityId".to_string(),
-            authn_requests_signed: true,
-            want_assertions_signed: true,
-            x509_certificate: None,
-            services: [
-                ServiceBinding {
-                    servicetype: SamlBindingType::AssertionConsumerService,
-                    binding: SamlBinding::HttpPost,
-                    location: "http://15d49b9c30a5:8000/saml/acs".to_string(),
-                    index: 0,
-                },
-                ServiceBinding {
-                    servicetype: SamlBindingType::SingleLogoutService,
-                    binding: SamlBinding::HttpPost,
-                    location: "http://15d49b9c30a5:8000/saml/logout".to_string(),
-                    index: 0,
-                },
-            ]
-            .to_vec(),
-        };
         match certificate_data {
             Some(value) => {
                 meta.x509_certificate = Some(value);
