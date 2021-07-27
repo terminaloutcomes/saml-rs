@@ -889,7 +889,7 @@
     <span class="kw">use</span> <span class="ident">saml_rs::sp</span>::<span class="kw-2">*</span>;
 
     <span class="prelude-val">Ok</span>(<span class="ident">tide::Response::builder</span>(<span class="number">203</span>)
-        .<span class="ident">body</span>(<span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="ident">meta_example</span>))
+        .<span class="ident">body</span>(<span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="ident">meta_example</span>,))
         .<span class="ident">content_type</span>(<span class="ident">Mime::from_str</span>(<span class="string">&quot;text/html;charset=utf-8&quot;</span>).<span class="ident">unwrap</span>())
         <span class="comment">// .header(&quot;custom-header&quot;, &quot;value&quot;)</span>
         .<span class="ident">build</span>())

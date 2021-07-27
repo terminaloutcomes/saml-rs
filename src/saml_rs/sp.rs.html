@@ -223,10 +223,28 @@
 <span id="220">220</span>
 <span id="221">221</span>
 <span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
+<span id="237">237</span>
+<span id="238">238</span>
+<span id="239">239</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="doccomment">//! Service Provider things</span>
+<span class="doccomment">//! Service Provider utilities and functions</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//!</span>
+
+<span class="attribute">#![<span class="ident">deny</span>(<span class="ident">unsafe_code</span>)]</span>
 
 <span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
 <span class="kw">use</span> <span class="ident">std::str::FromStr</span>;
@@ -324,20 +342,22 @@
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>, <span class="ident">Clone</span>)]</span>
-<span class="comment">// #[allow(clippy::dead_code)]</span>
+<span class="kw">use</span> <span class="ident">openssl</span>;
+
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span> <span class="comment">// Serialize, Deserialize,</span>
+                        <span class="comment">// #[allow(clippy::dead_code)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SpMetadata</span> {
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;entityID&quot;</span>)]</span>
+    <span class="comment">// #[serde(rename = &quot;entityID&quot;)]</span>
     <span class="kw">pub</span> <span class="ident">entity_id</span>: <span class="ident">String</span>,
 
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;AuthnRequestsSigned&quot;</span>)]</span>
+    <span class="comment">// #[serde(rename = &quot;AuthnRequestsSigned&quot;)]</span>
     <span class="kw">pub</span> <span class="ident">authn_requests_signed</span>: <span class="ident">bool</span>,
 
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;WantAssertionsSigned&quot;</span>)]</span>
+    <span class="comment">// #[serde(rename = &quot;WantAssertionsSigned&quot;)]</span>
     <span class="kw">pub</span> <span class="ident">want_assertions_signed</span>: <span class="ident">bool</span>,
     <span class="doccomment">/// probably should be something else</span>
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;X509Certificate&quot;</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">x509_certificate</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+    <span class="comment">// #[serde(rename = &quot;X509Certificate&quot;)]</span>
+    <span class="kw">pub</span> <span class="ident">x509_certificate</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">openssl::x509::X509</span><span class="op">&gt;</span>,
     <span class="kw">pub</span> <span class="ident">services</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">ServiceBinding</span><span class="op">&gt;</span>,
 }
 
@@ -361,7 +381,7 @@
         <span class="kw">let</span> <span class="ident">parser</span> <span class="op">=</span> <span class="ident">EventReader::new</span>(<span class="ident">bufreader</span>);
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">depth</span> <span class="op">=</span> <span class="number">0</span>;
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">previous_name</span> <span class="op">=</span> <span class="string">&quot;unknown&quot;</span>.<span class="ident">to_string</span>();
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">certificate_data</span> <span class="op">=</span> <span class="string">&quot;unset&quot;</span>.<span class="ident">to_string</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">certificate_data</span> <span class="op">=</span> <span class="prelude-val">None</span>::<span class="op">&lt;</span><span class="ident">openssl::x509::X509</span><span class="op">&gt;</span>;
         <span class="kw">for</span> <span class="ident">e</span> <span class="kw">in</span> <span class="ident">parser</span> {
             <span class="kw">match</span> <span class="ident">e</span> {
                 <span class="prelude-val">Ok</span>(<span class="ident">XmlEvent::StartElement</span> {
@@ -381,7 +401,17 @@
                 <span class="prelude-val">Ok</span>(<span class="ident">XmlEvent::Characters</span>(<span class="ident">s</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                     <span class="kw">if</span> <span class="ident">previous_name</span> <span class="op">=</span><span class="op">=</span> <span class="string">&quot;X509Certificate&quot;</span> {
                         <span class="macro">debug!</span>(<span class="string">&quot;Found certificate!&quot;</span>);
-                        <span class="ident">certificate_data</span> <span class="op">=</span> <span class="ident">s</span>.<span class="ident">to_string</span>();
+                        <span class="comment">// certificate_data = s.to_string();</span>
+                        <span class="kw">let</span> <span class="ident">certificate</span> <span class="op">=</span> <span class="kw">crate</span><span class="ident">::cert::init_cert_from_base64</span>(<span class="kw-2">&amp;</span><span class="ident">s</span>);
+                        <span class="kw">match</span> <span class="ident">certificate</span> {
+                            <span class="prelude-val">Ok</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                                <span class="macro">eprintln!</span>(<span class="string">&quot;Parsed cert successfully.&quot;</span>);
+                                <span class="ident">certificate_data</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">value</span>);
+                            }
+                            <span class="prelude-val">Err</span>(<span class="ident">error</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                                <span class="macro">eprintln!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="ident">error</span>)
+                            }
+                        };
                         <span class="ident">previous_name</span> <span class="op">=</span> <span class="string">&quot;done&quot;</span>.<span class="ident">to_string</span>();
                     }
 
@@ -416,10 +446,14 @@
             ]
             .<span class="ident">to_vec</span>(),
         };
-        <span class="kw">if</span> <span class="ident">certificate_data</span> <span class="op">!</span><span class="op">=</span> <span class="string">&quot;unset&quot;</span> {
-            <span class="ident">meta</span>.<span class="ident">x509_certificate</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">certificate_data</span>);
+        <span class="kw">match</span> <span class="ident">certificate_data</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="ident">meta</span>.<span class="ident">x509_certificate</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">value</span>);
+            }
+            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="macro">eprintln!</span>(<span class="string">&quot;Didn&#39;t find a certificate&quot;</span>);
+            }
         }
-
         <span class="ident">meta</span>
     }
 }
