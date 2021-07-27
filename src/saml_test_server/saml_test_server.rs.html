@@ -415,6 +415,38 @@
 <span id="412">412</span>
 <span id="413">413</span>
 <span id="414">414</span>
+<span id="415">415</span>
+<span id="416">416</span>
+<span id="417">417</span>
+<span id="418">418</span>
+<span id="419">419</span>
+<span id="420">420</span>
+<span id="421">421</span>
+<span id="422">422</span>
+<span id="423">423</span>
+<span id="424">424</span>
+<span id="425">425</span>
+<span id="426">426</span>
+<span id="427">427</span>
+<span id="428">428</span>
+<span id="429">429</span>
+<span id="430">430</span>
+<span id="431">431</span>
+<span id="432">432</span>
+<span id="433">433</span>
+<span id="434">434</span>
+<span id="435">435</span>
+<span id="436">436</span>
+<span id="437">437</span>
+<span id="438">438</span>
+<span id="439">439</span>
+<span id="440">440</span>
+<span id="441">441</span>
+<span id="442">442</span>
+<span id="443">443</span>
+<span id="444">444</span>
+<span id="445">445</span>
+<span id="446">446</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! A test server for running as a SAML IdP</span>
 <span class="doccomment">//!</span>
@@ -433,24 +465,23 @@
 
 <span class="comment">// use saml_rs::AuthnDecodeError;</span>
 <span class="kw">use</span> <span class="ident">saml_rs::metadata</span>::{<span class="ident">generate_metadata_xml</span>, <span class="ident">SamlMetadata</span>};
-<span class="kw">use</span> <span class="ident">saml_rs::response::ResponseElements</span>;
-<span class="kw">use</span> <span class="ident">saml_rs::response</span>::{<span class="ident">AuthNStatement</span>, <span class="ident">ResponseAttribute</span>};
+<span class="kw">use</span> <span class="ident">saml_rs::response</span>::{<span class="ident">AuthNStatement</span>, <span class="ident">ResponseAttribute</span>, <span class="ident">ResponseElements</span>};
+<span class="kw">use</span> <span class="ident">saml_rs::sp::ServiceProvider</span>;
 <span class="kw">use</span> <span class="ident">saml_rs::SamlQuery</span>;
 
-<span class="kw">use</span> <span class="ident">chrono::Duration</span>;
-<span class="kw">use</span> <span class="ident">chrono</span>::{<span class="ident">DateTime</span>, <span class="ident">NaiveDate</span>, <span class="ident">Utc</span>};
+<span class="kw">use</span> <span class="ident">chrono</span>::{<span class="ident">DateTime</span>, <span class="ident">Duration</span>, <span class="ident">NaiveDate</span>, <span class="ident">Utc</span>};
 
 <span class="kw">use</span> <span class="ident">tide::log</span>;
 <span class="kw">use</span> <span class="ident">tide::utils</span>::{<span class="ident">After</span>, <span class="ident">Before</span>};
 <span class="kw">use</span> <span class="ident">tide</span>::{<span class="ident">Request</span>, <span class="ident">Response</span>};
 <span class="kw">use</span> <span class="ident">tide_rustls::TlsListener</span>;
 
+<span class="kw">use</span> <span class="ident">std::collections::HashMap</span>;
 <span class="kw">use</span> <span class="ident">std::fs::File</span>;
 <span class="kw">use</span> <span class="ident">std::io::ErrorKind</span>;
-<span class="kw">use</span> <span class="ident">std::str::from_utf8</span>;
+<span class="kw">use</span> <span class="ident">std::str</span>::{<span class="ident">from_utf8</span>, <span class="ident">FromStr</span>};
 
 <span class="kw">use</span> <span class="ident">http_types::Mime</span>;
-<span class="kw">use</span> <span class="ident">std::str::FromStr</span>;
 
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">util</span>;
 <span class="kw">use</span> <span class="ident">util::do_nothing</span>;
@@ -459,6 +490,7 @@
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">AppState</span> {
     <span class="kw">pub</span> <span class="ident">hostname</span>: <span class="ident">String</span>,
     <span class="kw">pub</span> <span class="ident">issuer</span>: <span class="ident">String</span>,
+    <span class="kw">pub</span> <span class="ident">service_providers</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">ServiceProvider</span><span class="op">&gt;</span>,
 }
 
 <span class="attribute">#[<span class="ident">async_std::main</span>]</span>
@@ -473,6 +505,7 @@
     <span class="kw">let</span> <span class="ident">app_state</span> <span class="op">=</span> <span class="ident">AppState</span> {
         <span class="ident">hostname</span>: <span class="ident">server_config</span>.<span class="ident">public_hostname</span>,
         <span class="ident">issuer</span>: <span class="ident">server_config</span>.<span class="ident">entity_id</span>,
+        <span class="ident">service_providers</span>: <span class="ident">server_config</span>.<span class="ident">sp_metadata</span>,
     };
 
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">app</span> <span class="op">=</span> <span class="ident">tide::with_state</span>(<span class="ident">app_state</span>);
@@ -601,7 +634,7 @@
 <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">saml_redirect_get</span>(<span class="ident">req</span>: <span class="ident">tide::Request</span><span class="op">&lt;</span><span class="ident">AppState</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">tide::Result</span> {
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response_body</span> <span class="op">=</span> <span class="ident">String::from</span>(
         <span class="string">r#&quot;&lt;!DOCTYPE html&gt;
-        &lt;html lang=&quot;en&quot;&gt;&lt;head&gt;&lt;title&gt;saml_redirect_get&lt;/title&gt;&lt;/head&gt;&lt;body&gt;\n\n&quot;#</span>,
+        &lt;html lang=&quot;en&quot;&gt;&lt;head&gt;&lt;title&gt;saml_redirect_get&lt;/title&gt;&lt;/head&gt;&lt;body&gt;&quot;#</span>,
     );
 
     <span class="kw">let</span> <span class="ident">query</span>: <span class="ident">SamlQuery</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">req</span>.<span class="ident">query</span>() {
@@ -665,12 +698,57 @@
             }
         };
 
+    <span class="comment">// match the issuer to the authn request</span>
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">form_target</span> <span class="op">=</span> <span class="ident">String::from</span>(<span class="string">&quot;example.com&quot;</span>);
+
+    <span class="kw">if</span> <span class="ident">req</span>
+        .<span class="ident">state</span>()
+        .<span class="ident">service_providers</span>
+        .<span class="ident">contains_key</span>(<span class="kw-2">&amp;</span><span class="ident">parsed_saml_request</span>.<span class="ident">issuer</span>)
+    {
+        <span class="kw">let</span> <span class="ident">sp</span> <span class="op">=</span> <span class="ident">req</span>
+            .<span class="ident">state</span>()
+            .<span class="ident">service_providers</span>
+            .<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="ident">parsed_saml_request</span>.<span class="ident">issuer</span>)
+            .<span class="ident">unwrap</span>();
+        <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="string">&quot;&lt;p style=&#39;color: darkgreen&#39;&gt;found SP in state!&lt;/p&gt;&quot;</span>);
+        <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;&lt;p&gt;{:?}&lt;/p&gt;&quot;</span>, <span class="ident">sp</span>));
+        <span class="comment">// find teh consumer</span>
+        <span class="kw">for</span> <span class="ident">service</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="ident">sp</span>.<span class="ident">services</span> {
+            <span class="kw">match</span> <span class="ident">service</span>.<span class="ident">servicetype</span> {
+                <span class="ident">saml_rs::sp::SamlBindingType::AssertionConsumerService</span> <span class="op">=</span><span class="op">&gt;</span> {
+                    <span class="macro">log::debug!</span>(<span class="string">&quot;acs: {:?}&quot;</span>, <span class="ident">service</span>);
+                    <span class="kw">match</span> <span class="kw-2">&amp;</span><span class="ident">service</span>.<span class="ident">binding</span> {
+                        <span class="ident">saml_rs::sp::SamlBinding::HttpRedirect</span> <span class="op">=</span><span class="op">&gt;</span> {
+                            <span class="macro">log::debug!</span>(<span class="string">&quot;Found it!&quot;</span>);
+                            <span class="ident">form_target</span> <span class="op">=</span> <span class="ident">service</span>.<span class="ident">location</span>.<span class="ident">to_string</span>();
+                        }
+                        <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> {
+                            <span class="macro">log::debug!</span>(<span class="string">&quot;not it!&quot;</span>);
+                        }
+                    }
+                }
+                <span class="ident">saml_rs::sp::SamlBindingType::SingleLogoutService</span> <span class="op">=</span><span class="op">&gt;</span> {
+                    <span class="macro">log::debug!</span>(<span class="string">&quot;sso&quot;</span>);
+                }
+            }
+        }
+    } <span class="kw">else</span> {
+        <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="string">&quot;&lt;p style=&#39;color: red&#39;&gt;Didn&#39;t find SP in state!&lt;/p&gt;&quot;</span>);
+    }
+
+    <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="string">&quot;&lt;h2&gt;Known issuers&lt;/h2&gt;&lt;ul&gt;&quot;</span>);
+    <span class="kw">for</span> <span class="ident">issuer</span> <span class="kw">in</span> <span class="ident">req</span>.<span class="ident">state</span>().<span class="ident">service_providers</span>.<span class="ident">keys</span>() {
+        <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;&lt;li&gt;{}&lt;/li&gt;&quot;</span>, <span class="ident">issuer</span>));
+    }
+    <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="string">&quot;&lt;/ul&gt;&quot;</span>);
+
     <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
-        <span class="string">&quot;request_id: {:?}&lt;br /&gt;&quot;</span>,
+        <span class="string">&quot;&lt;p&gt;request_id: {:?}&lt;/p&gt;&quot;</span>,
         <span class="ident">parsed_saml_request</span>.<span class="ident">request_id</span>
     ));
     <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
-        <span class="string">&quot;issue_instant: {:?}&lt;br /&gt;&quot;</span>,
+        <span class="string">&quot;&lt;p&gt;issue_instant: {:?}&lt;/p&gt;&quot;</span>,
         <span class="ident">parsed_saml_request</span>.<span class="ident">issue_instant</span>
     ));
     <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
@@ -721,11 +799,16 @@
     };
 
     <span class="kw">let</span> <span class="ident">responseattributes</span> <span class="op">=</span> [
-        <span class="ident">ResponseAttribute::basic</span>(<span class="string">&quot;uid&quot;</span>, [<span class="string">&quot;test&quot;</span>.<span class="ident">to_string</span>()].<span class="ident">to_vec</span>()),
-        <span class="ident">ResponseAttribute::basic</span>(<span class="string">&quot;mail&quot;</span>, [<span class="string">&quot;test@example.com&quot;</span>.<span class="ident">to_string</span>()].<span class="ident">to_vec</span>()),
+        <span class="ident">ResponseAttribute::basic</span>(<span class="string">&quot;uid&quot;</span>, [<span class="string">&quot;yaleman&quot;</span>.<span class="ident">to_string</span>()].<span class="ident">to_vec</span>()),
+        <span class="ident">ResponseAttribute::basic</span>(<span class="string">&quot;mail&quot;</span>, [<span class="string">&quot;yaleman@ricetek.net&quot;</span>.<span class="ident">to_string</span>()].<span class="ident">to_vec</span>()),
         <span class="ident">ResponseAttribute::basic</span>(
             <span class="string">&quot;eduPersonAffiliation&quot;</span>,
-            [<span class="string">&quot;users&quot;</span>.<span class="ident">to_string</span>(), <span class="string">&quot;examplerole1&quot;</span>.<span class="ident">to_string</span>()].<span class="ident">to_vec</span>(),
+            [
+                <span class="string">&quot;users&quot;</span>.<span class="ident">to_string</span>(),
+                <span class="string">&quot;examplerole1&quot;</span>.<span class="ident">to_string</span>(),
+                <span class="string">&quot;admin&quot;</span>.<span class="ident">to_string</span>(),
+            ]
+            .<span class="ident">to_vec</span>(),
         ),
     ]
     .<span class="ident">to_vec</span>();
@@ -739,7 +822,7 @@
         ),
         <span class="ident">request_id</span>: <span class="ident">String::from</span>(<span class="string">&quot;ONELOGIN_4fee3b046395c4e751011e97f8900b5273d56685&quot;</span>),
         <span class="ident">attributes</span>: <span class="ident">responseattributes</span>,
-        <span class="ident">destination</span>: <span class="ident">String::from</span>(<span class="string">&quot;http://sp.example.com/demo1/index.php?acs&quot;</span>),
+        <span class="ident">destination</span>: <span class="ident">form_target</span>,
         <span class="ident">authnstatement</span>,
         <span class="ident">assertion_id</span>: <span class="ident">String::from</span>(<span class="string">&quot;_d71a3a8e9fcc45c9e9d248ef7049393fc8f04e5f75&quot;</span>),
     };
@@ -760,7 +843,7 @@
 <span class="doccomment">/// TODO: These responses have to be signed</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">generate_login_form</span>(<span class="ident">response</span>: <span class="ident">ResponseElements</span>, <span class="ident">relay_state</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
     <span class="macro">format!</span>(
-        <span class="string">r#&quot;&lt;form method=&quot;post&quot; action=&quot;https://example.com/SAML2/SSO/POST&quot; ...&gt;
+        <span class="string">r#&quot;&lt;form method=&quot;post&quot; action=&quot;{}&quot;&gt;
     &lt;input type=&quot;hidden&quot; name=&quot;SAMLResponse&quot; value=&quot;{}&quot; /&gt;
     &lt;input type=&quot;hidden&quot; name=&quot;RelayState&quot; value=&quot;{}&quot; /&gt;
         &lt;h1&gt;Fancy example login form&lt;/h1&gt;
@@ -768,6 +851,7 @@
         &lt;p&gt;Password: &lt;input type=&#39;password&#39; name=&#39;password&#39; /&gt;&lt;/p&gt;
         &lt;p&gt;&lt;input type=&quot;submit&quot; value=&quot;Submit&quot; /&gt;&lt;/p&gt;
 &lt;/form&gt;&quot;#</span>,
+        <span class="kw-2">&amp;</span><span class="ident">response</span>.<span class="ident">destination</span>.<span class="ident">to_string</span>(),
         <span class="ident">from_utf8</span>(<span class="kw-2">&amp;</span><span class="ident">saml_rs::response::base64_encoded_response</span>(<span class="ident">response</span>, <span class="bool-val">false</span>)).<span class="ident">unwrap</span>(),
         <span class="ident">relay_state</span>,
     )
@@ -798,29 +882,9 @@
     &lt;md:AssertionConsumerService Binding=&quot;urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST&quot; Location=&quot;http://15d49b9c30a5:8000/saml/acs&quot; index=&quot;0&quot;&gt;&lt;/md:AssertionConsumerService&gt;
     &lt;/md:SPSSODescriptor&gt;&lt;/md:EntityDescriptor&gt;&quot;#</span>;
 
-    <span class="comment">// SpMetadata::from_xml(sample_sp_xml);</span>
+    <span class="comment">// ServiceProvider::from_xml(sample_sp_xml);</span>
 
-    <span class="kw">let</span> <span class="ident">meta_example</span> <span class="op">=</span> <span class="ident">SpMetadata::from_xml</span>(<span class="ident">sample_sp_xml</span>);
-    <span class="comment">// SpMetadata {</span>
-    <span class="comment">//     entity_id: &quot;splunkEntityId&quot;.to_string(),</span>
-    <span class="comment">//     authn_requests_signed: true,</span>
-    <span class="comment">//     want_assertions_signed: true,</span>
-    <span class="comment">//     x509_certificate: Some(&quot;blah&quot;.to_string()),</span>
-    <span class="comment">//     services: [</span>
-    <span class="comment">//         ServiceBinding {</span>
-    <span class="comment">//             servicetype: SamlBindingType::AssertionConsumerService,</span>
-    <span class="comment">//             binding: SamlBinding::HttpPost,</span>
-    <span class="comment">//             location: &quot;http://15d49b9c30a5:8000/saml/acs&quot;.to_string(),</span>
-    <span class="comment">//             index: 0</span>
-    <span class="comment">//         },</span>
-    <span class="comment">//         ServiceBinding {</span>
-    <span class="comment">//             servicetype: SamlBindingType::SingleLogoutService,</span>
-    <span class="comment">//             binding: SamlBinding::HttpPost,</span>
-    <span class="comment">//             location: &quot;http://15d49b9c30a5:8000/saml/logout&quot;.to_string(),</span>
-    <span class="comment">//             index: 0</span>
-    <span class="comment">//         },</span>
-    <span class="comment">//     ].to_vec()</span>
-    <span class="comment">// };</span>
+    <span class="kw">let</span> <span class="ident">meta_example</span> <span class="op">=</span> <span class="ident">ServiceProvider::from_xml</span>(<span class="ident">sample_sp_xml</span>);
 
     <span class="kw">use</span> <span class="ident">saml_rs::sp</span>::<span class="kw-2">*</span>;
 

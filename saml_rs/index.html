@@ -11,10 +11,10 @@ If you would like to help - please log PRs/Issues against <a href="https://githu
 <ul>
 <li>Compiles, most of the time</li>
 <li><code>saml_test_server</code> runs on HTTP and HTTPS, parses Redirect requests as-needed. Doesn’t parse them well… or validate them if they’re signed, but it’s a start!</li>
+<li>Parses and … seems to handle SP XML data so we can store a representation of it and match them up later</li>
 </ul>
 <h1 id="next-steps" class="section-header"><a href="#next-steps">Next steps:</a></h1>
 <ul>
-<li>Parse and handle SP XML data so we can store a representation of it and match them up later</li>
 <li>Support the SAML 2.0 Web Browser SSO (SP Redirect Bind/ IdP POST Response) flow</li>
 <li>Sign responses</li>
 <li>Support Signed AuthN Redirect Requests</li>
