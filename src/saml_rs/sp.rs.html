@@ -240,6 +240,104 @@
 <span id="237">237</span>
 <span id="238">238</span>
 <span id="239">239</span>
+<span id="240">240</span>
+<span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
+<span id="248">248</span>
+<span id="249">249</span>
+<span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
+<span id="253">253</span>
+<span id="254">254</span>
+<span id="255">255</span>
+<span id="256">256</span>
+<span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
+<span id="314">314</span>
+<span id="315">315</span>
+<span id="316">316</span>
+<span id="317">317</span>
+<span id="318">318</span>
+<span id="319">319</span>
+<span id="320">320</span>
+<span id="321">321</span>
+<span id="322">322</span>
+<span id="323">323</span>
+<span id="324">324</span>
+<span id="325">325</span>
+<span id="326">326</span>
+<span id="327">327</span>
+<span id="328">328</span>
+<span id="329">329</span>
+<span id="330">330</span>
+<span id="331">331</span>
+<span id="332">332</span>
+<span id="333">333</span>
+<span id="334">334</span>
+<span id="335">335</span>
+<span id="336">336</span>
+<span id="337">337</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Service Provider utilities and functions</span>
 <span class="doccomment">//!</span>
@@ -248,6 +346,10 @@
 
 <span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
 <span class="kw">use</span> <span class="ident">std::str::FromStr</span>;
+
+<span class="kw">use</span> <span class="ident">std::io::Cursor</span>;
+<span class="kw">use</span> <span class="ident">xml::attribute::OwnedAttribute</span>;
+<span class="kw">use</span> <span class="ident">xml::reader</span>::{<span class="ident">EventReader</span>, <span class="ident">XmlEvent</span>};
 
 <span class="doccomment">/// Allows one to build a definition with [SamlBindingType::AssertionConsumerService]\(s\) and [SamlBindingType::SingleLogoutService]\(s\)</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>, <span class="ident">Clone</span>, <span class="ident">Copy</span>)]</span>
@@ -279,6 +381,7 @@
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>, <span class="ident">Clone</span>, <span class="ident">Copy</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">SamlBinding</span> {
     <span class="ident">HttpPost</span>,
+    <span class="ident">HttpRedirect</span>,
 }
 
 <span class="kw">impl</span> <span class="ident">Default</span> <span class="kw">for</span> <span class="ident">SamlBinding</span> {
@@ -291,6 +394,9 @@
         <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::match_single_binding</span>)]</span>
         <span class="kw">match</span> <span class="self">self</span> {
             <span class="ident">SamlBinding::HttpPost</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST&quot;</span>.<span class="ident">to_string</span>(),
+            <span class="ident">SamlBinding::HttpRedirect</span> <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:bindings:HTTP-REDIRECT&quot;</span>.<span class="ident">to_string</span>()
+            }
         }
     }
 }
@@ -300,6 +406,7 @@
     <span class="kw">fn</span> <span class="ident">from_str</span>(<span class="ident">s</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="self">Self</span><span class="ident">::Err</span><span class="op">&gt;</span> {
         <span class="kw">match</span> <span class="ident">s</span> {
             <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Ok</span>(<span class="ident">SamlBinding::HttpPost</span>),
+            <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:bindings:HTTP-REDIRECT&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Ok</span>(<span class="ident">SamlBinding::HttpRedirect</span>),
             <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Err</span>(<span class="string">&quot;Must be a valid type&quot;</span>),
         }
     }
@@ -344,27 +451,21 @@
 
 <span class="kw">use</span> <span class="ident">openssl</span>;
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span> <span class="comment">// Serialize, Deserialize,</span>
-                        <span class="comment">// #[allow(clippy::dead_code)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SpMetadata</span> {
-    <span class="comment">// #[serde(rename = &quot;entityID&quot;)]</span>
+    <span class="doccomment">/// EntityID</span>
     <span class="kw">pub</span> <span class="ident">entity_id</span>: <span class="ident">String</span>,
-
-    <span class="comment">// #[serde(rename = &quot;AuthnRequestsSigned&quot;)]</span>
+    <span class="doccomment">/// Will this SP send signed requests? If so, we&#39;ll reject ones that aren&#39;t.</span>
     <span class="kw">pub</span> <span class="ident">authn_requests_signed</span>: <span class="ident">bool</span>,
-
-    <span class="comment">// #[serde(rename = &quot;WantAssertionsSigned&quot;)]</span>
+    <span class="doccomment">/// Does this SP expect signed assertions?</span>
     <span class="kw">pub</span> <span class="ident">want_assertions_signed</span>: <span class="ident">bool</span>,
-    <span class="doccomment">/// probably should be something else</span>
-    <span class="comment">// #[serde(rename = &quot;X509Certificate&quot;)]</span>
+    <span class="doccomment">/// The signing (public) certificate for the SP</span>
     <span class="kw">pub</span> <span class="ident">x509_certificate</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">openssl::x509::X509</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// SP Services</span>
     <span class="kw">pub</span> <span class="ident">services</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">ServiceBinding</span><span class="op">&gt;</span>,
 }
 
-<span class="kw">use</span> <span class="ident">std::io::Cursor</span>;
-<span class="kw">use</span> <span class="ident">xml::reader::EventReader</span>;
-<span class="kw">use</span> <span class="ident">xml::reader::XmlEvent</span>;
-
+<span class="doccomment">/// Used for showing the details of the SP Metadata XML file</span>
 <span class="kw">fn</span> <span class="ident">xml_indent</span>(<span class="ident">size</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
     <span class="kw">const</span> <span class="ident">INDENT</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;    &quot;</span>;
     (<span class="number">0</span>..<span class="ident">size</span>)
@@ -373,25 +474,141 @@
 }
 
 <span class="kw">impl</span> <span class="ident">SpMetadata</span> {
-    <span class="doccomment">/// hand this a bucket of string data and you should get something useful back out... one day.</span>
+    <span class="doccomment">/// Used for handling the attributes of services in the tags of an SP Metadata XML file</span>
     <span class="doccomment">///</span>
+    <span class="doccomment">/// Types tested (poorly):</span>
+    <span class="doccomment">/// - AssertionConsumerService</span>
+    <span class="doccomment">/// - SingleLogoutService</span>
+    <span class="kw">fn</span> <span class="ident">service_attrib_parser</span>(
+        <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
+        <span class="ident">servicetype</span>: <span class="ident">SamlBindingType</span>,
+        <span class="ident">attributes</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">OwnedAttribute</span><span class="op">&gt;</span>,
+    ) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ServiceBinding</span>, <span class="ident">String</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">tmp_sb</span> <span class="op">=</span> <span class="ident">ServiceBinding</span> {
+            <span class="ident">servicetype</span>,
+            <span class="ident">binding</span>: <span class="ident">SamlBinding::HttpPost</span>,
+            <span class="ident">location</span>: <span class="string">&quot;&quot;</span>.<span class="ident">to_string</span>(),
+            <span class="ident">index</span>: <span class="number">0</span>,
+        };
+        <span class="kw">for</span> <span class="ident">attribute</span> <span class="kw">in</span> <span class="ident">attributes</span> {
+            <span class="kw">match</span> <span class="ident">attribute</span>.<span class="ident">name</span>.<span class="ident">local_name</span>.<span class="ident">to_lowercase</span>().<span class="ident">as_str</span>() {
+                <span class="string">&quot;binding&quot;</span> <span class="op">=</span><span class="op">&gt;</span> {
+                    <span class="macro">log::debug!</span>(<span class="string">&quot;Found Binding&quot;</span>);
+                    <span class="kw">let</span> <span class="ident">binding</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">SamlBinding::from_str</span>(<span class="kw-2">&amp;</span><span class="ident">attribute</span>.<span class="ident">value</span>) {
+                        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">value</span>,
+                        <span class="prelude-val">Err</span>(<span class="ident">error</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="macro">format!</span>(
+                                <span class="string">&quot;UNMATCHED BINDING: {}: {}&quot;</span>,
+                                <span class="kw-2">&amp;</span><span class="ident">attribute</span>.<span class="ident">value</span>, <span class="ident">error</span>
+                            ))
+                        }
+                    };
+                    <span class="ident">tmp_sb</span>.<span class="ident">binding</span> <span class="op">=</span> <span class="ident">binding</span>;
+                }
+                <span class="string">&quot;location&quot;</span> <span class="op">=</span><span class="op">&gt;</span> {
+                    <span class="macro">log::debug!</span>(<span class="string">&quot;Found Location&quot;</span>);
+                    <span class="ident">tmp_sb</span>.<span class="ident">location</span> <span class="op">=</span> <span class="ident">attribute</span>.<span class="ident">value</span>;
+                }
+                <span class="string">&quot;index&quot;</span> <span class="op">=</span><span class="op">&gt;</span> {
+                    <span class="macro">log::debug!</span>(<span class="string">&quot;Found index&quot;</span>);
+                    <span class="ident">tmp_sb</span>.<span class="ident">index</span> <span class="op">=</span> <span class="ident">attribute</span>.<span class="ident">value</span>.<span class="ident">parse</span>::<span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>().<span class="ident">unwrap</span>();
+                }
+                <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> {
+                    <span class="macro">eprintln!</span>(
+                        <span class="string">&quot;Found unhandled attribute in AssertionConsumerService: {:?}&quot;</span>,
+                        <span class="ident">attribute</span>
+                    );
+                }
+            }
+        }
+        <span class="macro">eprintln!</span>(<span class="string">&quot;Returning {:?}&quot;</span>, <span class="ident">tmp_sb</span>);
+        <span class="prelude-val">Ok</span>(<span class="ident">tmp_sb</span>)
+    }
 
+    <span class="doccomment">/// Let&#39;s parse some attributes!</span>
+    <span class="kw">fn</span> <span class="ident">attrib_parser</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">tag</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">attributes</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">OwnedAttribute</span><span class="op">&gt;</span>) {
+        <span class="comment">// eprintln!(&quot;attrib_parser - tag={}, attr:{:?}&quot;, tag, attributes);</span>
+        <span class="kw">match</span> <span class="ident">tag</span> {
+            <span class="string">&quot;AssertionConsumerService&quot;</span> <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="macro">log::debug!</span>(<span class="string">&quot;AssertionConsumerService: {:?}&quot;</span>, <span class="ident">attributes</span>);
+                <span class="kw">match</span> <span class="self">self</span>
+                    .<span class="ident">service_attrib_parser</span>(<span class="ident">SamlBindingType::AssertionConsumerService</span>, <span class="ident">attributes</span>)
+                {
+                    <span class="prelude-val">Ok</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">a</span> <span class="op">=</span> <span class="macro">vec!</span>[<span class="ident">value</span>];
+                        <span class="self">self</span>.<span class="ident">services</span>.<span class="ident">append</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">a</span>);
+                    }
+                    <span class="prelude-val">Err</span>(<span class="ident">error</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                        <span class="macro">eprintln!</span>(<span class="string">&quot;Failed to parse AssertionConsumerService: {:?}&quot;</span>, <span class="ident">error</span>)
+                    }
+                }
+            }
+            <span class="string">&quot;SingleLogoutService&quot;</span> <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="macro">log::debug!</span>(<span class="string">&quot;SingleLogoutService: {:?}&quot;</span>, <span class="ident">attributes</span>);
+                <span class="kw">match</span> <span class="self">self</span>.<span class="ident">service_attrib_parser</span>(<span class="ident">SamlBindingType::SingleLogoutService</span>, <span class="ident">attributes</span>) {
+                    <span class="prelude-val">Ok</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">a</span> <span class="op">=</span> <span class="macro">vec!</span>[<span class="ident">value</span>];
+                        <span class="self">self</span>.<span class="ident">services</span>.<span class="ident">append</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">a</span>);
+                    }
+                    <span class="prelude-val">Err</span>(<span class="ident">error</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">eprintln!</span>(<span class="string">&quot;Failed to parse SingleLogoutService: {:?}&quot;</span>, <span class="ident">error</span>),
+                }
+            }
+
+            <span class="comment">// TODO: SPSSODescriptor</span>
+            <span class="string">&quot;EntityDescriptor&quot;</span> <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="kw">for</span> <span class="ident">attribute</span> <span class="kw">in</span> <span class="ident">attributes</span> {
+                    <span class="macro">log::debug!</span>(<span class="string">&quot;attribute: {}&quot;</span>, <span class="ident">attribute</span>);
+                    <span class="kw">match</span> <span class="ident">attribute</span>.<span class="ident">name</span>.<span class="ident">local_name</span>.<span class="ident">as_str</span>() {
+                        <span class="string">&quot;entityID&quot;</span> <span class="op">=</span><span class="op">&gt;</span> {
+                            <span class="macro">eprintln!</span>(<span class="string">&quot;Setting entityID: {}&quot;</span>, <span class="ident">attribute</span>.<span class="ident">value</span>);
+                            <span class="self">self</span>.<span class="ident">entity_id</span> <span class="op">=</span> <span class="ident">attribute</span>.<span class="ident">value</span>;
+                        }
+                        <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> {
+                            <span class="macro">log::debug!</span>(
+                                <span class="string">&quot;found an EntityDescriptor attribute that&#39;s not entityID: {:?}&quot;</span>,
+                                <span class="ident">attribute</span>
+                            );
+                        }
+                    }
+                }
+            }
+            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">log::warn!</span>(
+                <span class="string">&quot;Asked to parse attributes for tag={}, not caught by anything {:?}&quot;</span>,
+                <span class="ident">tag</span>,
+                <span class="ident">attributes</span>
+            ),
+        }
+
+        <span class="comment">// eprintln!(&quot;attribute found: {:?}&quot;, attribute);</span>
+        <span class="comment">// eprintln!(&quot;local_name: {}&quot;, attribute.name.local_name);</span>
+        <span class="comment">// eprintln!(&quot;value: {}&quot;, attribute.value);</span>
+    }
+
+    <span class="doccomment">/// Hand this a bucket of string data and you should get a struct with all the SP&#39;s metadata.</span>
+    <span class="doccomment">///</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_xml</span>(<span class="ident">source_xml</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">SpMetadata</span> {
         <span class="kw">let</span> <span class="ident">bufreader</span> <span class="op">=</span> <span class="ident">Cursor::new</span>(<span class="ident">source_xml</span>);
         <span class="kw">let</span> <span class="ident">parser</span> <span class="op">=</span> <span class="ident">EventReader::new</span>(<span class="ident">bufreader</span>);
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">depth</span> <span class="op">=</span> <span class="number">0</span>;
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">previous_name</span> <span class="op">=</span> <span class="string">&quot;unknown&quot;</span>.<span class="ident">to_string</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">tag_name</span> <span class="op">=</span> <span class="string">&quot;###INVALID###&quot;</span>.<span class="ident">to_string</span>();
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">certificate_data</span> <span class="op">=</span> <span class="prelude-val">None</span>::<span class="op">&lt;</span><span class="ident">openssl::x509::X509</span><span class="op">&gt;</span>;
+
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">meta</span> <span class="op">=</span> <span class="ident">SpMetadata</span> {
+            <span class="ident">entity_id</span>: <span class="string">&quot;&quot;</span>.<span class="ident">to_string</span>(),
+            <span class="ident">authn_requests_signed</span>: <span class="bool-val">false</span>,
+            <span class="ident">want_assertions_signed</span>: <span class="bool-val">false</span>,
+            <span class="ident">x509_certificate</span>: <span class="prelude-val">None</span>,
+            <span class="ident">services</span>: <span class="macro">vec!</span>[],
+        };
+
         <span class="kw">for</span> <span class="ident">e</span> <span class="kw">in</span> <span class="ident">parser</span> {
             <span class="kw">match</span> <span class="ident">e</span> {
                 <span class="prelude-val">Ok</span>(<span class="ident">XmlEvent::StartElement</span> {
                     <span class="ident">name</span>, <span class="ident">attributes</span>, ..
                 }) <span class="op">=</span><span class="op">&gt;</span> {
                     <span class="macro">println!</span>(<span class="string">&quot;{}+{}&quot;</span>, <span class="ident">xml_indent</span>(<span class="ident">depth</span>), <span class="ident">name</span>);
-                    <span class="kw">for</span> <span class="ident">attribute</span> <span class="kw">in</span> <span class="ident">attributes</span> {
-                        <span class="macro">debug!</span>(<span class="string">&quot;attribute found: {:?}&quot;</span>, <span class="ident">attribute</span>);
-                    }
-                    <span class="ident">previous_name</span> <span class="op">=</span> <span class="ident">name</span>.<span class="ident">local_name</span>.<span class="ident">to_string</span>();
+                    <span class="ident">tag_name</span> <span class="op">=</span> <span class="ident">name</span>.<span class="ident">local_name</span>.<span class="ident">to_string</span>();
+                    <span class="ident">meta</span>.<span class="ident">attrib_parser</span>(<span class="kw-2">&amp;</span><span class="ident">tag_name</span>, <span class="ident">attributes</span>);
                     <span class="ident">depth</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
                 }
                 <span class="prelude-val">Ok</span>(<span class="ident">XmlEvent::EndElement</span> { <span class="ident">name</span> }) <span class="op">=</span><span class="op">&gt;</span> {
@@ -399,7 +616,7 @@
                     <span class="macro">println!</span>(<span class="string">&quot;{}-{}&quot;</span>, <span class="ident">xml_indent</span>(<span class="ident">depth</span>), <span class="ident">name</span>);
                 }
                 <span class="prelude-val">Ok</span>(<span class="ident">XmlEvent::Characters</span>(<span class="ident">s</span>)) <span class="op">=</span><span class="op">&gt;</span> {
-                    <span class="kw">if</span> <span class="ident">previous_name</span> <span class="op">=</span><span class="op">=</span> <span class="string">&quot;X509Certificate&quot;</span> {
+                    <span class="kw">if</span> <span class="ident">tag_name</span> <span class="op">=</span><span class="op">=</span> <span class="string">&quot;X509Certificate&quot;</span> {
                         <span class="macro">debug!</span>(<span class="string">&quot;Found certificate!&quot;</span>);
                         <span class="comment">// certificate_data = s.to_string();</span>
                         <span class="kw">let</span> <span class="ident">certificate</span> <span class="op">=</span> <span class="kw">crate</span><span class="ident">::cert::init_cert_from_base64</span>(<span class="kw-2">&amp;</span><span class="ident">s</span>);
@@ -409,13 +626,13 @@
                                 <span class="ident">certificate_data</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">value</span>);
                             }
                             <span class="prelude-val">Err</span>(<span class="ident">error</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                                <span class="macro">eprintln!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="ident">error</span>)
+                                <span class="macro">eprintln!</span>(<span class="string">&quot;error! {:?}&quot;</span>, <span class="ident">error</span>)
                             }
                         };
-                        <span class="ident">previous_name</span> <span class="op">=</span> <span class="string">&quot;done&quot;</span>.<span class="ident">to_string</span>();
+                        <span class="ident">tag_name</span> <span class="op">=</span> <span class="string">&quot;###INVALID###&quot;</span>.<span class="ident">to_string</span>();
+                    } <span class="kw">else</span> {
+                        <span class="macro">println!</span>(<span class="string">&quot;Characters: {}{}&quot;</span>, <span class="ident">xml_indent</span>(<span class="ident">depth</span> <span class="op">+</span> <span class="number">1</span>), <span class="ident">s</span>);
                     }
-
-                    <span class="macro">println!</span>(<span class="string">&quot;{}{}&quot;</span>, <span class="ident">xml_indent</span>(<span class="ident">depth</span> <span class="op">+</span> <span class="number">1</span>), <span class="ident">s</span>);
                 }
                 <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span><span class="op">&gt;</span> {
                     <span class="macro">println!</span>(<span class="string">&quot;Error: {}&quot;</span>, <span class="ident">e</span>);
@@ -425,27 +642,6 @@
             }
         }
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">meta</span> <span class="op">=</span> <span class="ident">SpMetadata</span> {
-            <span class="ident">entity_id</span>: <span class="string">&quot;splunkEntityId&quot;</span>.<span class="ident">to_string</span>(),
-            <span class="ident">authn_requests_signed</span>: <span class="bool-val">true</span>,
-            <span class="ident">want_assertions_signed</span>: <span class="bool-val">true</span>,
-            <span class="ident">x509_certificate</span>: <span class="prelude-val">None</span>,
-            <span class="ident">services</span>: [
-                <span class="ident">ServiceBinding</span> {
-                    <span class="ident">servicetype</span>: <span class="ident">SamlBindingType::AssertionConsumerService</span>,
-                    <span class="ident">binding</span>: <span class="ident">SamlBinding::HttpPost</span>,
-                    <span class="ident">location</span>: <span class="string">&quot;http://15d49b9c30a5:8000/saml/acs&quot;</span>.<span class="ident">to_string</span>(),
-                    <span class="ident">index</span>: <span class="number">0</span>,
-                },
-                <span class="ident">ServiceBinding</span> {
-                    <span class="ident">servicetype</span>: <span class="ident">SamlBindingType::SingleLogoutService</span>,
-                    <span class="ident">binding</span>: <span class="ident">SamlBinding::HttpPost</span>,
-                    <span class="ident">location</span>: <span class="string">&quot;http://15d49b9c30a5:8000/saml/logout&quot;</span>.<span class="ident">to_string</span>(),
-                    <span class="ident">index</span>: <span class="number">0</span>,
-                },
-            ]
-            .<span class="ident">to_vec</span>(),
-        };
         <span class="kw">match</span> <span class="ident">certificate_data</span> {
             <span class="prelude-val">Some</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">meta</span>.<span class="ident">x509_certificate</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">value</span>);

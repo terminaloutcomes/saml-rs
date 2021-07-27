@@ -412,6 +412,9 @@
 <span id="409">409</span>
 <span id="410">410</span>
 <span id="411">411</span>
+<span id="412">412</span>
+<span id="413">413</span>
+<span id="414">414</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! A test server for running as a SAML IdP</span>
 <span class="doccomment">//!</span>
@@ -449,7 +452,7 @@
 <span class="kw">use</span> <span class="ident">http_types::Mime</span>;
 <span class="kw">use</span> <span class="ident">std::str::FromStr</span>;
 
-<span class="kw">mod</span> <span class="ident">util</span>;
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">util</span>;
 <span class="kw">use</span> <span class="ident">util::do_nothing</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
@@ -596,8 +599,10 @@
 
 <span class="doccomment">/// SAML requests or responses transmitted via HTTP Redirect have a SAMLRequest or SAMLResponse query string parameter, respectively. Before it&#39;s sent, the message is deflated (without header and checksum), base64-encoded, and URL-encoded, in that order. Upon receipt, the process is reversed to recover the original message.</span>
 <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">saml_redirect_get</span>(<span class="ident">req</span>: <span class="ident">tide::Request</span><span class="op">&lt;</span><span class="ident">AppState</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">tide::Result</span> {
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response_body</span> <span class="op">=</span>
-        <span class="ident">String::from</span>(<span class="string">&quot;&lt;html&gt;&lt;head&gt;&lt;title&gt;saml_redirect_get&lt;/title&gt;&lt;/head&gt;&lt;body&gt;\n\n&quot;</span>);
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response_body</span> <span class="op">=</span> <span class="ident">String::from</span>(
+        <span class="string">r#&quot;&lt;!DOCTYPE html&gt;
+        &lt;html lang=&quot;en&quot;&gt;&lt;head&gt;&lt;title&gt;saml_redirect_get&lt;/title&gt;&lt;/head&gt;&lt;body&gt;\n\n&quot;#</span>,
+    );
 
     <span class="kw">let</span> <span class="ident">query</span>: <span class="ident">SamlQuery</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">req</span>.<span class="ident">query</span>() {
         <span class="prelude-val">Ok</span>(<span class="ident">val</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">val</span>,
@@ -742,6 +747,7 @@
     <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="ident">generate_login_form</span>(<span class="ident">response</span>, <span class="ident">relay_state</span>));
     <span class="comment">// res.set_body(response_body);</span>
 
+    <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="string">&quot;&lt;/html&gt;&quot;</span>);
     <span class="prelude-val">Ok</span>(<span class="ident">tide::Response::builder</span>(<span class="number">203</span>)
         .<span class="ident">body</span>(<span class="ident">response_body</span>)
         .<span class="ident">content_type</span>(<span class="ident">Mime::from_str</span>(<span class="string">&quot;text/html;charset=utf-8&quot;</span>).<span class="ident">unwrap</span>())
@@ -755,7 +761,7 @@
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">generate_login_form</span>(<span class="ident">response</span>: <span class="ident">ResponseElements</span>, <span class="ident">relay_state</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
     <span class="macro">format!</span>(
         <span class="string">r#&quot;&lt;form method=&quot;post&quot; action=&quot;https://example.com/SAML2/SSO/POST&quot; ...&gt;
-    &lt;input type=&quot;hidden&quot; name=&quot;SAMLResponse&quot; value=&quot;{:?}&quot; /&gt;
+    &lt;input type=&quot;hidden&quot; name=&quot;SAMLResponse&quot; value=&quot;{}&quot; /&gt;
     &lt;input type=&quot;hidden&quot; name=&quot;RelayState&quot; value=&quot;{}&quot; /&gt;
         &lt;h1&gt;Fancy example login form&lt;/h1&gt;
         &lt;p&gt;Username: &lt;input type=&#39;text&#39; name=&#39;username&#39; /&gt;&lt;/p&gt;
