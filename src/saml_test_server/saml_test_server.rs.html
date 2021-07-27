@@ -419,34 +419,6 @@
 <span id="416">416</span>
 <span id="417">417</span>
 <span id="418">418</span>
-<span id="419">419</span>
-<span id="420">420</span>
-<span id="421">421</span>
-<span id="422">422</span>
-<span id="423">423</span>
-<span id="424">424</span>
-<span id="425">425</span>
-<span id="426">426</span>
-<span id="427">427</span>
-<span id="428">428</span>
-<span id="429">429</span>
-<span id="430">430</span>
-<span id="431">431</span>
-<span id="432">432</span>
-<span id="433">433</span>
-<span id="434">434</span>
-<span id="435">435</span>
-<span id="436">436</span>
-<span id="437">437</span>
-<span id="438">438</span>
-<span id="439">439</span>
-<span id="440">440</span>
-<span id="441">441</span>
-<span id="442">442</span>
-<span id="443">443</span>
-<span id="444">444</span>
-<span id="445">445</span>
-<span id="446">446</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! A test server for running as a SAML IdP</span>
 <span class="doccomment">//!</span>
@@ -491,6 +463,8 @@
     <span class="kw">pub</span> <span class="ident">hostname</span>: <span class="ident">String</span>,
     <span class="kw">pub</span> <span class="ident">issuer</span>: <span class="ident">String</span>,
     <span class="kw">pub</span> <span class="ident">service_providers</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">ServiceProvider</span><span class="op">&gt;</span>,
+    <span class="kw">pub</span> <span class="ident">tls_cert_path</span>: <span class="ident">String</span>,
+    <span class="kw">pub</span> <span class="ident">tls_key_path</span>: <span class="ident">String</span>,
 }
 
 <span class="attribute">#[<span class="ident">async_std::main</span>]</span>
@@ -506,6 +480,8 @@
         <span class="ident">hostname</span>: <span class="ident">server_config</span>.<span class="ident">public_hostname</span>,
         <span class="ident">issuer</span>: <span class="ident">server_config</span>.<span class="ident">entity_id</span>,
         <span class="ident">service_providers</span>: <span class="ident">server_config</span>.<span class="ident">sp_metadata</span>,
+        <span class="ident">tls_cert_path</span>: <span class="ident">server_config</span>.<span class="ident">tls_cert_path</span>.<span class="ident">to_string</span>(),
+        <span class="ident">tls_key_path</span>: <span class="ident">server_config</span>.<span class="ident">tls_key_path</span>.<span class="ident">to_string</span>(),
     };
 
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">app</span> <span class="op">=</span> <span class="ident">tide::with_state</span>(<span class="ident">app_state</span>);
@@ -547,7 +523,7 @@
 
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">saml_process</span> <span class="op">=</span> <span class="ident">app</span>.<span class="ident">at</span>(<span class="string">&quot;/SAML&quot;</span>);
     <span class="ident">saml_process</span>.<span class="ident">at</span>(<span class="string">&quot;/Metadata&quot;</span>).<span class="ident">get</span>(<span class="ident">saml_metadata_get</span>);
-    <span class="ident">saml_process</span>.<span class="ident">at</span>(<span class="string">&quot;/Metadata/SP&quot;</span>).<span class="ident">get</span>(<span class="ident">saml_metadata_get_sp</span>);
+    <span class="ident">saml_process</span>.<span class="ident">at</span>(<span class="string">&quot;/sign&quot;</span>).<span class="ident">get</span>(<span class="ident">test_sign</span>);
     <span class="comment">// TODO: SAML Logout</span>
     <span class="ident">saml_process</span>.<span class="ident">at</span>(<span class="string">&quot;/Logout&quot;</span>).<span class="ident">get</span>(<span class="ident">do_nothing</span>);
     <span class="comment">// TODO: SAML idp, used the entityID</span>
@@ -559,45 +535,38 @@
     <span class="comment">// TODO: SAML Artifact</span>
     <span class="ident">saml_process</span>.<span class="ident">at</span>(<span class="string">&quot;/Artifact&quot;</span>).<span class="ident">get</span>(<span class="ident">do_nothing</span>);
 
-    <span class="kw">let</span> <span class="ident">_app</span> <span class="op">=</span> <span class="kw">match</span> <span class="kw-2">&amp;</span><span class="ident">server_config</span>.<span class="ident">tls_cert_path</span> {
-        <span class="prelude-val">Some</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> {
-            <span class="kw">let</span> <span class="ident">tls_cert</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">shellexpand::tilde</span>(<span class="ident">value</span>).<span class="ident">into_owned</span>();
-            <span class="kw">let</span> <span class="ident">tls_key</span>: <span class="ident">String</span> <span class="op">=</span>
-                <span class="ident">shellexpand::tilde</span>(<span class="kw-2">&amp;</span><span class="ident">server_config</span>.<span class="ident">tls_key_path</span>.<span class="ident">unwrap</span>()).<span class="ident">into_owned</span>();
-            <span class="kw">match</span> <span class="ident">File::open</span>(<span class="kw-2">&amp;</span><span class="ident">tls_cert</span>) {
-                <span class="prelude-val">Ok</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">log::info!</span>(<span class="string">&quot;Successfully loaded cert from {:?}&quot;</span>, <span class="ident">tls_cert</span>),
-                <span class="prelude-val">Err</span>(<span class="ident">error</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                    <span class="macro">log::error!</span>(
-                        <span class="string">&quot;Failed to load cert from {:?}, bailing: {:?}&quot;</span>,
-                        <span class="ident">tls_cert</span>,
-                        <span class="ident">error</span>
-                    );
-                    <span class="ident">std::process::exit</span>(<span class="number">1</span>);
-                }
+    <span class="kw">let</span> <span class="ident">_app</span> <span class="op">=</span> {
+        <span class="kw">let</span> <span class="ident">tls_cert</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">shellexpand::tilde</span>(<span class="kw-2">&amp;</span><span class="ident">server_config</span>.<span class="ident">tls_cert_path</span>).<span class="ident">into_owned</span>();
+        <span class="kw">let</span> <span class="ident">tls_key</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">shellexpand::tilde</span>(<span class="kw-2">&amp;</span><span class="ident">server_config</span>.<span class="ident">tls_key_path</span>).<span class="ident">into_owned</span>();
+        <span class="kw">match</span> <span class="ident">File::open</span>(<span class="kw-2">&amp;</span><span class="ident">tls_cert</span>) {
+            <span class="prelude-val">Ok</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">log::info!</span>(<span class="string">&quot;Successfully loaded cert from {:?}&quot;</span>, <span class="ident">tls_cert</span>),
+            <span class="prelude-val">Err</span>(<span class="ident">error</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="macro">log::error!</span>(
+                    <span class="string">&quot;Failed to load cert from {:?}, bailing: {:?}&quot;</span>,
+                    <span class="ident">tls_cert</span>,
+                    <span class="ident">error</span>
+                );
+                <span class="ident">std::process::exit</span>(<span class="number">1</span>);
             }
-            <span class="kw">match</span> <span class="ident">File::open</span>(<span class="kw-2">&amp;</span><span class="ident">tls_key</span>) {
-                <span class="prelude-val">Ok</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">log::info!</span>(<span class="string">&quot;Successfully loaded cert from {:?}&quot;</span>, <span class="ident">tls_key</span>),
-                <span class="prelude-val">Err</span>(<span class="ident">error</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                    <span class="macro">log::error!</span>(
-                        <span class="string">&quot;Failed to load cert from {:?}, bailing: {:?}&quot;</span>,
-                        <span class="ident">tls_key</span>,
-                        <span class="ident">error</span>
-                    );
-                    <span class="ident">std::process::exit</span>(<span class="number">1</span>);
-                }
+        }
+        <span class="kw">match</span> <span class="ident">File::open</span>(<span class="kw-2">&amp;</span><span class="ident">tls_key</span>) {
+            <span class="prelude-val">Ok</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">log::info!</span>(<span class="string">&quot;Successfully loaded key from {:?}&quot;</span>, <span class="ident">tls_key</span>),
+            <span class="prelude-val">Err</span>(<span class="ident">error</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="macro">log::error!</span>(
+                    <span class="string">&quot;Failed to load key from {:?}, bailing: {:?}&quot;</span>,
+                    <span class="ident">tls_key</span>,
+                    <span class="ident">error</span>
+                );
+                <span class="ident">std::process::exit</span>(<span class="number">1</span>);
             }
-            <span class="ident">app</span>.<span class="ident">listen</span>(
-                <span class="ident">TlsListener::build</span>()
-                    .<span class="ident">addrs</span>(<span class="macro">format!</span>(<span class="string">&quot;{}:443&quot;</span>, <span class="ident">server_config</span>.<span class="ident">bind_address</span>))
-                    .<span class="ident">cert</span>(<span class="ident">tls_cert</span>)
-                    .<span class="ident">key</span>(<span class="ident">tls_key</span>),
-            )
-            .<span class="kw">await</span><span class="question-mark">?</span>
         }
-        <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> {
-            <span class="ident">app</span>.<span class="ident">listen</span>(<span class="macro">format!</span>(<span class="string">&quot;{}:8080&quot;</span>, <span class="ident">server_config</span>.<span class="ident">bind_address</span>))
-                .<span class="kw">await</span><span class="question-mark">?</span>
-        }
+        <span class="ident">app</span>.<span class="ident">listen</span>(
+            <span class="ident">TlsListener::build</span>()
+                .<span class="ident">addrs</span>(<span class="macro">format!</span>(<span class="string">&quot;{}:443&quot;</span>, <span class="ident">server_config</span>.<span class="ident">bind_address</span>))
+                .<span class="ident">cert</span>(<span class="ident">tls_cert</span>)
+                .<span class="ident">key</span>(<span class="ident">tls_key</span>),
+        )
+        .<span class="kw">await</span><span class="question-mark">?</span>
     };
     <span class="prelude-val">Ok</span>(())
 }
@@ -857,39 +826,14 @@
     )
 }
 
-<span class="kw">async</span> <span class="kw">fn</span> <span class="ident">saml_metadata_get_sp</span>(<span class="ident">_req</span>: <span class="ident">tide::Request</span><span class="op">&lt;</span><span class="ident">AppState</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">tide::Result</span> {
-    <span class="kw">let</span> <span class="ident">sample_sp_xml</span> <span class="op">=</span> <span class="string">r#&quot;&lt;md:EntityDescriptor entityID=&quot;splunkEntityId&quot; xmlns:ds=&quot;http://www.w3.org/2000/09/xmldsig#&quot; xmlns:md=&quot;urn:oasis:names:tc:SAML:2.0:metadata&quot;&gt;&lt;md:SPSSODescriptor protocolSupportEnumeration=&quot;urn:oasis:names:tc:SAML:2.0:protocol&quot; AuthnRequestsSigned=&quot;true&quot; WantAssertionsSigned=&quot;true&quot;&gt;&lt;md:KeyDescriptor&gt;&lt;ds:KeyInfo&gt;&lt;ds:X509Data&gt;&lt;ds:X509Certificate&gt;
-    MIIDMjCCAhoCCQChiuJkNICB8TANBgkqhkiG9w0BAQsFADB/MQswCQYDVQQGEwJV
-    UzELMAkGA1UECAwCQ0ExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDzANBgNVBAoM
-    BlNwbHVuazEXMBUGA1UEAwwOU3BsdW5rQ29tbW9uQ0ExITAfBgkqhkiG9w0BCQEW
-    EnN1cHBvcnRAc3BsdW5rLmNvbTAeFw0yMTA3MjUwMDE3NTNaFw0yNDA3MjQwMDE3
-    NTNaMDcxIDAeBgNVBAMMF1NwbHVua1NlcnZlckRlZmF1bHRDZXJ0MRMwEQYDVQQK
-    DApTcGx1bmtVc2VyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv5tK
-    Py7I7Ql/mIFyXQHussS3tW7DI01TiaPN6QsmcQWheqrBVEX1QDMRMB1wrFRsJdT0
-    FJp6fmM5MG9xo7XGiSrmzX+4s74/Q1wKsoi0D7mopYGE7pDaqSSimaNigcII+Hba
-    HxvhMPDRFSGBA8evcmOGiZjumfkEvAtPDodx2oFqrpwHXnrGObrxkSBtjjVfUr24
-    xbC94CfeQh5iB7Ngzsv8FYSHO8rCwfvmx+G11Tm2kxs+7yvV5KHugrM8iopNe2JJ
-    2srF0imIN79NIpKEoBx9wgkRCkrsq0g83Y+2fIekpvZfL6s87EKYZim2Vzfm7QzO
-    QXnwMmfJrrSCha6S7wIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQCoXiQsmWduliVS
-    FoGVKi/i6kIkP6jen3WOBa2mlNOyP+LnBjA3v5AZ7zsipoYK+C/TfBhcDPKf/ZXH
-    WXHOVGV6A/pivvOskOCOOG94wce0sSyiUjV6zxNqWQj7rKcm9IZHf3eGFLnelF4Z
-    4Kyprztntylg4PNPdXeyPANHGVwhv9JB6DVdpR8GTVbvPiCsQ5qxQFFeZrHYq3r2
-    K5B5H7EYJkXltnhnsal35az9+BJdAceP59BqURVvFwUVP5q1A44WZPNDXv96Jd2i
-    EyoXhw7tNjlhuD6V6u7z7n5YZsGNmIPj7BxGhxowWIkgAbQQN57p4xCl6Kckq2w3
-    EAwd90N5
-    &lt;/ds:X509Certificate&gt;&lt;/ds:X509Data&gt;&lt;/ds:KeyInfo&gt;&lt;/md:KeyDescriptor&gt;
-    &lt;md:SingleLogoutService Binding=&quot;urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST&quot; Location=&quot;http://15d49b9c30a5:8000/saml/logout&quot; index=&quot;0&quot;&gt;&lt;/md:SingleLogoutService&gt;
-    &lt;md:AssertionConsumerService Binding=&quot;urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST&quot; Location=&quot;http://15d49b9c30a5:8000/saml/acs&quot; index=&quot;0&quot;&gt;&lt;/md:AssertionConsumerService&gt;
-    &lt;/md:SPSSODescriptor&gt;&lt;/md:EntityDescriptor&gt;&quot;#</span>;
-
-    <span class="comment">// ServiceProvider::from_xml(sample_sp_xml);</span>
-
-    <span class="kw">let</span> <span class="ident">meta_example</span> <span class="op">=</span> <span class="ident">ServiceProvider::from_xml</span>(<span class="ident">sample_sp_xml</span>);
-
-    <span class="kw">use</span> <span class="ident">saml_rs::sp</span>::<span class="kw-2">*</span>;
-
-    <span class="prelude-val">Ok</span>(<span class="ident">tide::Response::builder</span>(<span class="number">203</span>)
-        .<span class="ident">body</span>(<span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="ident">meta_example</span>,))
+<span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">test_sign</span>(<span class="ident">req</span>: <span class="ident">Request</span><span class="op">&lt;</span><span class="ident">AppState</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">tide::Result</span> {
+    <span class="ident">saml_rs::sign::sign_data</span>(
+        <span class="ident">req</span>.<span class="ident">state</span>().<span class="ident">tls_cert_path</span>.<span class="ident">to_string</span>(),
+        <span class="ident">req</span>.<span class="ident">state</span>().<span class="ident">tls_key_path</span>.<span class="ident">to_string</span>(),
+        <span class="string">&quot;hello world&quot;</span>.<span class="ident">as_bytes</span>(),
+    );
+    <span class="prelude-val">Ok</span>(<span class="ident">tide::Response::builder</span>(<span class="number">200</span>)
+        .<span class="ident">body</span>(<span class="string">&quot;Signing things&quot;</span>)
         .<span class="ident">content_type</span>(<span class="ident">Mime::from_str</span>(<span class="string">&quot;text/html;charset=utf-8&quot;</span>).<span class="ident">unwrap</span>())
         <span class="comment">// .header(&quot;custom-header&quot;, &quot;value&quot;)</span>
         .<span class="ident">build</span>())
