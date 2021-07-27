@@ -409,6 +409,34 @@
 <span id="406">406</span>
 <span id="407">407</span>
 <span id="408">408</span>
+<span id="409">409</span>
+<span id="410">410</span>
+<span id="411">411</span>
+<span id="412">412</span>
+<span id="413">413</span>
+<span id="414">414</span>
+<span id="415">415</span>
+<span id="416">416</span>
+<span id="417">417</span>
+<span id="418">418</span>
+<span id="419">419</span>
+<span id="420">420</span>
+<span id="421">421</span>
+<span id="422">422</span>
+<span id="423">423</span>
+<span id="424">424</span>
+<span id="425">425</span>
+<span id="426">426</span>
+<span id="427">427</span>
+<span id="428">428</span>
+<span id="429">429</span>
+<span id="430">430</span>
+<span id="431">431</span>
+<span id="432">432</span>
+<span id="433">433</span>
+<span id="434">434</span>
+<span id="435">435</span>
+<span id="436">436</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! A library for doing SAML things, terribly, in rust.</span>
 <span class="doccomment">//!</span>
@@ -423,11 +451,13 @@
 <span class="doccomment">//! # Current progress:</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! - Compiles, most of the time</span>
-<span class="doccomment">//! - `saml_test_server` runs on HTTP and HTTPS, parses Redirect requests as-needed.</span>
+<span class="doccomment">//! - `saml_test_server` runs on HTTP and HTTPS, parses Redirect requests as-needed. Doesn&#39;t parse them well... or validate them if they&#39;re signed, but it&#39;s a start!</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! # Next steps:</span>
 <span class="doccomment">//! - Parse and handle SP XML data so we can store a representation of it and match them up later</span>
 <span class="doccomment">//! - Support the SAML 2.0 Web Browser SSO (SP Redirect Bind/ IdP POST Response) flow</span>
+<span class="doccomment">//! - Sign responses</span>
+<span class="doccomment">//! - Support Signed AuthN Redirect Requests</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! # SAML 2.0 Web Browser SSO (SP Redirect Bind/ IdP POST Response) flow</span>
@@ -505,6 +535,14 @@
     <span class="kw">pub</span> <span class="ident">version</span>: <span class="ident">String</span>,
     <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;Destination&quot;</span>)]</span>
     <span class="kw">pub</span> <span class="ident">destination</span>: <span class="ident">String</span>,
+
+    <span class="comment">// Example value http%3A%2F%2Fwww.w3.org%2F2001%2F04%2Fxmldsig-more%23rsa-sha256</span>
+    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;SigAlg&quot;</span>)]</span>
+    <span class="kw">pub</span> <span class="ident">sigalg</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+
+    <span class="comment">// Example signature value Signature=HlQbshvUcfvRY1DYo3B8PJfu%2F32pkFnKNkVtQ%2Fjn%2Bl9DurSUa4DrZH76StCwH1qgJ34v%2FXEfXBPy%2BK79ryojzUs5JR7R1KvlMR%2Fzfvgz7LFGv1fGUIFA9vnbbMsn7G%2FI0%2FXSaFkWiXp9%2BmqTmiBBBhFLsd9A8shXIEjnLVWZNUGR73HwUhEiURhGGAmVkPPGDRW1gU%2BwVdy4YUcsGusqTNEcKvUHZeOe0FC%2BggZ%2BRmCCjr2lTVrAxlXMeNU4NkgBk9VimMFCLA2A6LZ9mtLDn20CHaMEkCbSIessWKfXfz7aXd1VaY6lO1K0aSZ0h3%2BAYRcXcNVl3uvZQUslxh48Nw%3D%3D</span>
+    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;Signature&quot;</span>)]</span>
+    <span class="kw">pub</span> <span class="ident">signature</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
 }
 
 <span class="kw">impl</span> <span class="ident">SamlAuthnRequest</span> {
@@ -522,6 +560,8 @@
             <span class="ident">version</span>: <span class="ident">parser</span>.<span class="ident">version</span>,
             <span class="comment">// TODO: make a default response for this at the current time</span>
             <span class="ident">destination</span>: <span class="ident">parser</span>.<span class="ident">destination</span>.<span class="ident">unwrap_or</span>(<span class="ident">String::from</span>(<span class="string">&quot;unset&quot;</span>)),
+            <span class="ident">sigalg</span>: <span class="ident">parser</span>.<span class="ident">sigalg</span>,
+            <span class="ident">signature</span>: <span class="ident">parser</span>.<span class="ident">signature</span>,
         }
     }
 
@@ -543,6 +583,9 @@
     <span class="kw">pub</span> <span class="ident">issuer_state</span>: <span class="ident">i8</span>,
     <span class="kw">pub</span> <span class="ident">destination</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
     <span class="comment">// need to ull this     &lt;samlp:NameIDPolicy AllowCreate=&quot;true&quot; Format=&quot;urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress&quot;/&gt;</span>
+    <span class="kw">pub</span> <span class="ident">sigalg</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+    <span class="comment">// we leave this as the string while returning from the parser, so the [SamlAuthnRequest] can verify it.</span>
+    <span class="kw">pub</span> <span class="ident">signature</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
 }
 
 <span class="kw">impl</span> <span class="ident">SamlAuthnRequestParser</span> {
@@ -556,6 +599,8 @@
             <span class="ident">version</span>: <span class="ident">String::from</span>(<span class="string">&quot;2.0&quot;</span>),
             <span class="ident">issuer_state</span>: <span class="number">0</span>,
             <span class="ident">destination</span>: <span class="prelude-val">None</span>,
+            <span class="ident">sigalg</span>: <span class="prelude-val">None</span>,
+            <span class="ident">signature</span>: <span class="prelude-val">None</span>,
         }
     }
 }
@@ -587,12 +632,24 @@
     <span class="kw">pub</span> <span class="ident">SAMLRequest</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
     <span class="doccomment">/// The RelayState token is an opaque reference to state information maintained at the service provider.</span>
     <span class="kw">pub</span> <span class="ident">RelayState</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+    <span class="comment">// Stores a base64-encoded signature... maybe?</span>
+    <span class="kw">pub</span> <span class="ident">Signature</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+    <span class="comment">// Stores the signature type - this should be URL-decoded by the web frontend</span>
+    <span class="comment">// TODO: uhh... signature enums?</span>
+    <span class="kw">pub</span> <span class="ident">SigAlg</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+}
+
+<span class="comment">// this does the decoding to hand the signature to the verifier??</span>
+<span class="comment">// TODO: is string the best retval</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">decode_authn_request_signature</span>(<span class="ident">signature</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
+    <span class="macro">debug!</span>(<span class="string">&quot;signature: {:?}&quot;</span>, <span class="ident">signature</span>);
+    <span class="ident">signature</span>
 }
 
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">decode_authn_request_base64_encoded</span>(<span class="ident">req</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">AuthnDecodeError</span><span class="op">&gt;</span> {
     <span class="kw">let</span> <span class="ident">base64_decoded_samlrequest</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">base64::decode</span>(<span class="ident">req</span>) {
         <span class="prelude-val">Ok</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> {
-            <span class="macro">debug!</span>(<span class="string">&quot;Succcesfully Base64 Decoded the SAMLRequest&quot;</span>);
+            <span class="macro">debug!</span>(<span class="string">&quot;Successfully Base64 Decoded the SAMLRequest&quot;</span>);
             <span class="ident">value</span>
         }
         <span class="prelude-val">Err</span>(<span class="ident">err</span>) <span class="op">=</span><span class="op">&gt;</span> {
@@ -605,19 +662,18 @@
     <span class="comment">// here we try and use libflate to deflate the base64-decoded bytes because compression is used</span>
     <span class="kw">let</span> <span class="ident">inflated_result</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">inflate_bytes</span>(<span class="kw-2">&amp;</span><span class="ident">base64_decoded_samlrequest</span>) {
         <span class="prelude-val">Ok</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> {
-            <span class="macro">debug!</span>(<span class="string">&quot;Successfully inflated the base64-decoded bytes&quot;</span>);
             <span class="macro">debug!</span>(
-                <span class="string">&quot;{:?}&quot;</span>,
+                <span class="string">&quot;Successfully inflated the base64-decoded bytes: {:?}&quot;</span>,
                 <span class="ident">from_utf8</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">unwrap_or</span>(<span class="string">&quot;Couldn&#39;t utf-8 decode this mess&quot;</span>)
             );
             <span class="ident">value</span>
         }
         <span class="comment">// if it fails, it&#39;s probably fine to return the bare bytes as they&#39;re already a string?</span>
-        <span class="prelude-val">Err</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">base64_decoded_samlrequest</span>,
+        <span class="prelude-val">Err</span>(<span class="ident">error</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="macro">debug!</span>(<span class="string">&quot;Failed to inflate bytes ({:?})&quot;</span>, <span class="ident">error</span>);
+            <span class="ident">base64_decoded_samlrequest</span>
+        }
     };
-    <span class="comment">// Vec&lt;u8&gt; -&gt; String</span>
-    <span class="macro">debug!</span>(<span class="string">&quot;about to return from decode_authn_request_base64_encoded&quot;</span>);
-
     <span class="kw">match</span> <span class="ident">from_utf8</span>(<span class="kw-2">&amp;</span><span class="ident">inflated_result</span>) {
         <span class="prelude-val">Ok</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Ok</span>(<span class="ident">value</span>.<span class="ident">to_string</span>()),
         <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Err</span>(<span class="ident">AuthnDecodeError::new</span>(<span class="macro">format!</span>(
@@ -683,7 +739,7 @@
         ),
     }
 
-    <span class="macro">eprintln!</span>(<span class="string">&quot;after block {:?}&quot;</span>, <span class="ident">req</span>.<span class="ident">issue_instant</span>);
+    <span class="comment">//eprintln!(&quot;after block {:?}&quot;, req.issue_instant);</span>
     <span class="ident">req</span>
 }
 

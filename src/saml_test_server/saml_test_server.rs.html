@@ -412,41 +412,6 @@
 <span id="409">409</span>
 <span id="410">410</span>
 <span id="411">411</span>
-<span id="412">412</span>
-<span id="413">413</span>
-<span id="414">414</span>
-<span id="415">415</span>
-<span id="416">416</span>
-<span id="417">417</span>
-<span id="418">418</span>
-<span id="419">419</span>
-<span id="420">420</span>
-<span id="421">421</span>
-<span id="422">422</span>
-<span id="423">423</span>
-<span id="424">424</span>
-<span id="425">425</span>
-<span id="426">426</span>
-<span id="427">427</span>
-<span id="428">428</span>
-<span id="429">429</span>
-<span id="430">430</span>
-<span id="431">431</span>
-<span id="432">432</span>
-<span id="433">433</span>
-<span id="434">434</span>
-<span id="435">435</span>
-<span id="436">436</span>
-<span id="437">437</span>
-<span id="438">438</span>
-<span id="439">439</span>
-<span id="440">440</span>
-<span id="441">441</span>
-<span id="442">442</span>
-<span id="443">443</span>
-<span id="444">444</span>
-<span id="445">445</span>
-<span id="446">446</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! A test server for running as a SAML IdP</span>
 <span class="doccomment">//!</span>
@@ -477,7 +442,6 @@
 <span class="kw">use</span> <span class="ident">tide</span>::{<span class="ident">Request</span>, <span class="ident">Response</span>};
 <span class="kw">use</span> <span class="ident">tide_rustls::TlsListener</span>;
 
-<span class="kw">use</span> <span class="ident">serde::Deserialize</span> <span class="kw">as</span> <span class="ident">serde_deserialize</span>;
 <span class="kw">use</span> <span class="ident">std::fs::File</span>;
 <span class="kw">use</span> <span class="ident">std::io::ErrorKind</span>;
 <span class="kw">use</span> <span class="ident">std::str::from_utf8</span>;
@@ -485,52 +449,8 @@
 <span class="kw">use</span> <span class="ident">http_types::Mime</span>;
 <span class="kw">use</span> <span class="ident">std::str::FromStr</span>;
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">serde_deserialize</span>, <span class="ident">Debug</span>)]</span>
-<span class="kw">struct</span> <span class="ident">ServerConfig</span> {
-    <span class="kw">pub</span> <span class="ident">bind_address</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">public_hostname</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">tls_cert_path</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">tls_key_path</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">entity_id</span>: <span class="ident">String</span>,
-}
-
-<span class="kw">impl</span> <span class="ident">ServerConfig</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">default</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
-        <span class="ident">ServerConfig</span> {
-            <span class="ident">bind_address</span>: <span class="ident">String::from</span>(<span class="string">&quot;127.0.0.1&quot;</span>),
-            <span class="ident">public_hostname</span>: <span class="ident">String::from</span>(<span class="string">&quot;example.com&quot;</span>),
-            <span class="ident">tls_cert_path</span>: <span class="prelude-val">None</span>,
-            <span class="ident">tls_key_path</span>: <span class="prelude-val">None</span>,
-            <span class="ident">entity_id</span>: <span class="ident">String::from</span>(<span class="string">&quot;https://example.com/idp/&quot;</span>),
-        }
-    }
-
-    <span class="doccomment">/// Pass this a filename (with or without extension) and it&#39;ll choose from JSON/YAML/TOML etc and also check</span>
-    <span class="doccomment">/// environment variables starting with SAML_</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_filename_and_env</span>(<span class="ident">path</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">settings</span> <span class="op">=</span> <span class="ident">config::Config::default</span>();
-        <span class="ident">settings</span>
-            .<span class="ident">merge</span>(<span class="ident">config::File::with_name</span>(<span class="kw-2">&amp;</span><span class="ident">path</span>))
-            .<span class="ident">unwrap</span>()
-            .<span class="ident">merge</span>(<span class="ident">config::Environment::with_prefix</span>(<span class="string">&quot;SAML&quot;</span>))
-            .<span class="ident">unwrap</span>();
-
-        <span class="macro">eprintln!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="ident">settings</span>);
-        <span class="self">Self</span> {
-            <span class="ident">public_hostname</span>: <span class="ident">settings</span>
-                .<span class="ident">get</span>(<span class="string">&quot;public_hostname&quot;</span>)
-                .<span class="ident">unwrap_or</span>(<span class="ident">ServerConfig::default</span>().<span class="ident">public_hostname</span>),
-            <span class="ident">bind_address</span>: <span class="ident">settings</span>
-                .<span class="ident">get</span>(<span class="string">&quot;bind_address&quot;</span>)
-                .<span class="ident">unwrap_or</span>(<span class="ident">ServerConfig::default</span>().<span class="ident">bind_address</span>),
-            <span class="ident">tls_cert_path</span>: <span class="ident">settings</span>.<span class="ident">get</span>(<span class="string">&quot;tls_cert_path&quot;</span>).<span class="ident">unwrap_or</span>(<span class="prelude-val">None</span>),
-            <span class="ident">tls_key_path</span>: <span class="ident">settings</span>.<span class="ident">get</span>(<span class="string">&quot;tls_key_path&quot;</span>).<span class="ident">unwrap_or</span>(<span class="prelude-val">None</span>),
-            <span class="ident">entity_id</span>: <span class="ident">settings</span>
-                .<span class="ident">get</span>(<span class="string">&quot;entity_id&quot;</span>)
-                .<span class="ident">unwrap_or</span>(<span class="ident">ServerConfig::default</span>().<span class="ident">entity_id</span>),
-        }
-    }
-}
+<span class="kw">mod</span> <span class="ident">util</span>;
+<span class="kw">use</span> <span class="ident">util::do_nothing</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">AppState</span> {
@@ -545,7 +465,7 @@
 <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">main</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">tide::Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
     <span class="kw">let</span> <span class="ident">config_path</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">shellexpand::tilde</span>(<span class="string">&quot;~/.config/saml_test_server&quot;</span>).<span class="ident">into_owned</span>();
 
-    <span class="kw">let</span> <span class="ident">server_config</span> <span class="op">=</span> <span class="ident">ServerConfig::from_filename_and_env</span>(<span class="ident">config_path</span>);
+    <span class="kw">let</span> <span class="ident">server_config</span> <span class="op">=</span> <span class="ident">util::ServerConfig::from_filename_and_env</span>(<span class="ident">config_path</span>);
 
     <span class="kw">let</span> <span class="ident">app_state</span> <span class="op">=</span> <span class="ident">AppState</span> {
         <span class="ident">hostname</span>: <span class="ident">server_config</span>.<span class="ident">public_hostname</span>,
@@ -575,24 +495,17 @@
     }));
 
     <span class="ident">app</span>.<span class="ident">with</span>(<span class="ident">After</span>(<span class="op">|</span><span class="kw-2">mut</span> <span class="ident">res</span>: <span class="ident">Response</span><span class="op">|</span> <span class="kw">async</span> {
-        <span class="kw">match</span> <span class="ident">res</span>.<span class="ident">downcast_error</span>::<span class="op">&lt;</span><span class="ident">async_std::io::Error</span><span class="op">&gt;</span>() {
-            <span class="prelude-val">Some</span>(<span class="ident">err</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="macro">log::debug!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="ident">err</span>);
-                <span class="kw">let</span> <span class="ident">msg</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">err</span>.<span class="ident">kind</span>() {
-                    <span class="ident">ErrorKind::NotFound</span> <span class="op">=</span><span class="op">&gt;</span> {
-                        <span class="comment">// res.set_status(StatusCode::NotFound);</span>
-                        <span class="macro">format!</span>(<span class="string">&quot;Error: {:?}&quot;</span>, <span class="ident">err</span>)
-                    }
-                    <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;Unknown error&quot;</span>.<span class="ident">to_string</span>(),
-                };
-                <span class="comment">// NOTE: You may want to avoid sending error messages in a production server.</span>
-                <span class="ident">res</span>.<span class="ident">set_body</span>(<span class="ident">msg</span>);
-            }
-            <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::no_effect</span>)]</span> <span class="comment">// because matching on only an error is a thing...</span>
-            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> {
-                ();
-            }
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">err</span>) <span class="op">=</span> <span class="ident">res</span>.<span class="ident">downcast_error</span>::<span class="op">&lt;</span><span class="ident">async_std::io::Error</span><span class="op">&gt;</span>() {
+            <span class="macro">log::debug!</span>(<span class="string">&quot;asdfadsfadsf {:?}&quot;</span>, <span class="ident">err</span>);
+            <span class="kw">let</span> <span class="ident">msg</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">err</span>.<span class="ident">kind</span>() {
+                <span class="ident">ErrorKind::NotFound</span> <span class="op">=</span><span class="op">&gt;</span> {
+                    <span class="macro">format!</span>(<span class="string">&quot;Error, Not Found: {:?}&quot;</span>, <span class="ident">err</span>)
+                }
+                <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;Unknown Error&quot;</span>.<span class="ident">to_string</span>(),
+            };
+            <span class="ident">res</span>.<span class="ident">set_body</span>(<span class="ident">msg</span>);
         }
+
         <span class="prelude-val">Ok</span>(<span class="ident">res</span>)
     }));
 
@@ -666,15 +579,6 @@
     .<span class="ident">into</span>())
 }
 
-<span class="doccomment">/// Placeholder function for development purposes, just returns a &quot;Doing nothing&quot; 200 response.</span>
-<span class="kw">async</span> <span class="kw">fn</span> <span class="ident">do_nothing</span>(<span class="kw-2">mut</span> <span class="ident">_req</span>: <span class="ident">Request</span><span class="op">&lt;</span><span class="ident">AppState</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">tide::Result</span> {
-    <span class="prelude-val">Ok</span>(<span class="ident">tide::Response::builder</span>(<span class="number">203</span>)
-        .<span class="ident">body</span>(<span class="string">&quot;Doing nothing&quot;</span>)
-        .<span class="ident">content_type</span>(<span class="ident">Mime::from_str</span>(<span class="string">&quot;text/html;charset=utf-8&quot;</span>).<span class="ident">unwrap</span>())
-        <span class="comment">// .header(&quot;custom-header&quot;, &quot;value&quot;)</span>
-        .<span class="ident">build</span>())
-}
-
 <span class="doccomment">/// Handles a POST binding</span>
 <span class="doccomment">/// ```html</span>
 <span class="doccomment">/// &lt;form method=&quot;post&quot; action=&quot;https://idp.example.org/SAML2/SSO/POST&quot; ...&gt;</span>
@@ -695,16 +599,6 @@
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response_body</span> <span class="op">=</span>
         <span class="ident">String::from</span>(<span class="string">&quot;&lt;html&gt;&lt;head&gt;&lt;title&gt;saml_redirect_get&lt;/title&gt;&lt;/head&gt;&lt;body&gt;\n\n&quot;</span>);
 
-    <span class="comment">// let referer = req</span>
-    <span class="comment">//     .header(&quot;Referer&quot;)</span>
-    <span class="comment">//     .and_then(|hv| hv.get(0))</span>
-    <span class="comment">//     .map(|h| h.as_str())</span>
-    <span class="comment">//     .ok_or(&amp;&quot;&quot;);</span>
-    <span class="comment">//     // #.ok_or_else(|| {</span>
-    <span class="comment">//     // #    log::error!(&quot;Missing Header: Referer in saml_redirect_get&quot;);</span>
-    <span class="comment">//         // tide::Error::from_str(tide::StatusCode::BadRequest, &quot;Missing Referer header&quot;)</span>
-    <span class="comment">//     // })?;</span>
-
     <span class="kw">let</span> <span class="ident">query</span>: <span class="ident">SamlQuery</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">req</span>.<span class="ident">query</span>() {
         <span class="prelude-val">Ok</span>(<span class="ident">val</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">val</span>,
         <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span><span class="op">&gt;</span> {
@@ -718,6 +612,28 @@
     <span class="comment">// I&#39;m not sure why this is here but I better not lose it</span>
     <span class="comment">// https://www.w3.org/TR/2002/REC-xmldsig-core-20020212/xmldsig-core-schema.xsd#rsa-sha1</span>
 
+    <span class="kw">match</span> <span class="ident">query</span>.<span class="ident">Signature</span> {
+        <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="macro">log::debug!</span>(<span class="string">&quot;Found a signature! {:?}&quot;</span>, <span class="ident">value</span>);
+            <span class="kw">let</span> <span class="ident">sigalg</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">query</span>.<span class="ident">SigAlg</span> {
+                <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">String::from</span>(<span class="ident">value</span>),
+                <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> {
+                    <span class="comment">// we should probably bail on this request if we got a signature without an algorithm...</span>
+                    <span class="comment">// or maybe there&#39;s a way to specify it in the SP metadata???</span>
+
+                    <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">tide::Error::from_str</span>(
+                        <span class="ident">tide::StatusCode::BadRequest</span>,
+                        <span class="string">&quot;Found signature without a sigalg in a redirect authn request.&quot;</span>,
+                    ));
+                }
+            };
+            <span class="macro">log::debug!</span>(<span class="string">&quot;SigAlg found: {:?}&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">sigalg</span>);
+        }
+        <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="macro">log::debug!</span>(<span class="string">&quot;Didn&#39;t find a signature in this request.&quot;</span>);
+        }
+    }
+
     <span class="kw">let</span> <span class="ident">samlrequest</span> <span class="op">=</span> <span class="ident">query</span>.<span class="ident">SAMLRequest</span>.<span class="ident">unwrap</span>();
 
     <span class="kw">let</span> <span class="ident">base64_decoded_samlrequest</span> <span class="op">=</span>
@@ -730,7 +646,10 @@
                 ));
             }
         };
-    <span class="macro">log::debug!</span>(<span class="string">&quot;about to parse authn request&quot;</span>);
+    <span class="macro">log::debug!</span>(
+        <span class="string">&quot;about to parse authn request: {:?}&quot;</span>,
+        <span class="ident">base64_decoded_samlrequest</span>
+    );
 
     <span class="kw">let</span> <span class="ident">parsed_saml_request</span>: <span class="ident">saml_rs::SamlAuthnRequest</span> <span class="op">=</span>
         <span class="kw">match</span> <span class="ident">saml_rs::parse_authn_request</span>(<span class="kw-2">&amp;</span><span class="ident">base64_decoded_samlrequest</span>) {
@@ -755,8 +674,19 @@
     ));
     <span class="kw">let</span> <span class="ident">unset_value</span> <span class="op">=</span> <span class="ident">String::from</span>(<span class="string">&quot;unset&quot;</span>);
     <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;issuer: {:?}&lt;br /&gt;&quot;</span>, <span class="ident">parsed_saml_request</span>.<span class="ident">issuer</span>));
+
+    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">value</span>) <span class="op">=</span> <span class="ident">query</span>.<span class="ident">Signature</span> {
+        <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;&lt;p&gt;Original Signature field: &lt;br /&gt;{}&lt;/p&gt;&quot;</span>, <span class="ident">value</span>))
+    };
+    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">value</span>) <span class="op">=</span> <span class="ident">query</span>.<span class="ident">SigAlg</span> {
+        <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;&lt;p&gt;Original SigAlg field: &lt;br /&gt;{}&lt;/p&gt;&quot;</span>, <span class="ident">value</span>))
+    };
+
     <span class="comment">// response_body.push_str(&amp;format!(&quot;Referer: {:?}&lt;br /&gt;&quot;, referer));</span>
-    <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;SAMLRequest: {}&lt;br /&gt;&quot;</span>, <span class="ident">samlrequest</span>));
+    <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
+        <span class="string">&quot;&lt;p&gt;Original SAMLRequest field: &lt;br /&gt;{}&lt;/p&gt;&quot;</span>,
+        <span class="ident">samlrequest</span>
+    ));
     <span class="comment">// #[allow(clippy::or_fun_call)]</span>
     <span class="kw">let</span> <span class="ident">relay_state</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">query</span>.<span class="ident">RelayState</span> {
         <span class="prelude-val">Some</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">value</span>,
