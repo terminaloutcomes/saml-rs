@@ -223,19 +223,13 @@
 <span id="220">220</span>
 <span id="221">221</span>
 <span id="222">222</span>
-<span id="223">223</span>
-<span id="224">224</span>
-<span id="225">225</span>
-<span id="226">226</span>
-<span id="227">227</span>
-<span id="228">228</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Service Provider things</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//!</span>
 
+<span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
 <span class="kw">use</span> <span class="ident">std::str::FromStr</span>;
-<span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">Deserialize</span>,<span class="ident">Serialize</span>};
 
 <span class="doccomment">/// Allows one to build a definition with [SamlBindingType::AssertionConsumerService]\(s\) and [SamlBindingType::SingleLogoutService]\(s\)</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>, <span class="ident">Clone</span>, <span class="ident">Copy</span>)]</span>
@@ -263,10 +257,6 @@
         }
     }
 }
-
-
-
-
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>, <span class="ident">Clone</span>, <span class="ident">Copy</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">SamlBinding</span> {
@@ -297,17 +287,16 @@
     }
 }
 
-
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>, <span class="ident">Clone</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ServiceBinding</span> {
     <span class="kw">pub</span> <span class="ident">servicetype</span>: <span class="ident">SamlBindingType</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span><span class="op">=</span><span class="string">&quot;Binding&quot;</span>)]</span>
+    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;Binding&quot;</span>)]</span>
     <span class="kw">pub</span> <span class="ident">binding</span>: <span class="ident">SamlBinding</span>,
     <span class="doccomment">/// Where to send the response to</span>
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span><span class="op">=</span><span class="string">&quot;Location&quot;</span>)]</span>
+    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;Location&quot;</span>)]</span>
     <span class="kw">pub</span> <span class="ident">location</span>: <span class="ident">String</span>,
     <span class="doccomment">/// Consumer index, if there&#39;s more than 256 then wow, seriously?</span>
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span><span class="op">=</span><span class="string">&quot;Index&quot;</span>)]</span>
+    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;Index&quot;</span>)]</span>
     <span class="kw">pub</span> <span class="ident">index</span>: <span class="ident">u8</span>,
 }
 
@@ -317,7 +306,7 @@
             <span class="ident">servicetype</span>: <span class="ident">SamlBindingType::AssertionConsumerService</span>,
             <span class="ident">binding</span>: <span class="ident">SamlBinding::default</span>(),
             <span class="ident">location</span>: <span class="string">&quot;http://0.0.0.0:0/SAML/acs&quot;</span>.<span class="ident">to_string</span>(),
-            <span class="ident">index</span>: <span class="number">0</span>
+            <span class="ident">index</span>: <span class="number">0</span>,
         }
     }
 
@@ -325,53 +314,49 @@
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_binding</span>(<span class="self">self</span>, <span class="ident">binding</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident">String</span><span class="op">&gt;</span> {
         <span class="kw">match</span> <span class="ident">SamlBinding::from_str</span>(<span class="kw-2">&amp;</span><span class="ident">binding</span>) {
             <span class="prelude-val">Err</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Err</span>(<span class="string">&quot;Failed to match binding name&quot;</span>.<span class="ident">to_string</span>()),
-            <span class="prelude-val">Ok</span>(<span class="ident">saml_binding</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="prelude-val">Ok</span>(<span class="ident">ServiceBinding</span> {
-                    <span class="ident">servicetype</span>: <span class="self">self</span>.<span class="ident">servicetype</span>,
-                    <span class="ident">binding</span>: <span class="ident">saml_binding</span>,
-                    <span class="ident">location</span>: <span class="self">self</span>.<span class="ident">location</span>,
-                    <span class="ident">index</span>: <span class="self">self</span>.<span class="ident">index</span>,
-                })
-            }
+            <span class="prelude-val">Ok</span>(<span class="ident">saml_binding</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Ok</span>(<span class="ident">ServiceBinding</span> {
+                <span class="ident">servicetype</span>: <span class="self">self</span>.<span class="ident">servicetype</span>,
+                <span class="ident">binding</span>: <span class="ident">saml_binding</span>,
+                <span class="ident">location</span>: <span class="self">self</span>.<span class="ident">location</span>,
+                <span class="ident">index</span>: <span class="self">self</span>.<span class="ident">index</span>,
+            }),
         }
     }
 }
 
-
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>, <span class="ident">Clone</span>)]</span>
 <span class="comment">// #[allow(clippy::dead_code)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SpMetadata</span> {
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span><span class="op">=</span><span class="string">&quot;entityID&quot;</span>)]</span>
+    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;entityID&quot;</span>)]</span>
     <span class="kw">pub</span> <span class="ident">entity_id</span>: <span class="ident">String</span>,
 
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span><span class="op">=</span><span class="string">&quot;AuthnRequestsSigned&quot;</span>)]</span>
+    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;AuthnRequestsSigned&quot;</span>)]</span>
     <span class="kw">pub</span> <span class="ident">authn_requests_signed</span>: <span class="ident">bool</span>,
 
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span><span class="op">=</span><span class="string">&quot;WantAssertionsSigned&quot;</span>)]</span>
+    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;WantAssertionsSigned&quot;</span>)]</span>
     <span class="kw">pub</span> <span class="ident">want_assertions_signed</span>: <span class="ident">bool</span>,
     <span class="doccomment">/// probably should be something else</span>
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span><span class="op">=</span><span class="string">&quot;X509Certificate&quot;</span>)]</span>
+    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;X509Certificate&quot;</span>)]</span>
     <span class="kw">pub</span> <span class="ident">x509_certificate</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
     <span class="kw">pub</span> <span class="ident">services</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">ServiceBinding</span><span class="op">&gt;</span>,
 }
 
-<span class="kw">use</span> <span class="ident">xml::reader::EventReader</span>;
 <span class="kw">use</span> <span class="ident">std::io::Cursor</span>;
+<span class="kw">use</span> <span class="ident">xml::reader::EventReader</span>;
 <span class="kw">use</span> <span class="ident">xml::reader::XmlEvent</span>;
-
 
 <span class="kw">fn</span> <span class="ident">xml_indent</span>(<span class="ident">size</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
     <span class="kw">const</span> <span class="ident">INDENT</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;    &quot;</span>;
-    (<span class="number">0</span>..<span class="ident">size</span>).<span class="ident">map</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">INDENT</span>)
-         .<span class="ident">fold</span>(<span class="ident">String::with_capacity</span>(<span class="ident">size</span><span class="kw-2">*</span><span class="ident">INDENT</span>.<span class="ident">len</span>()), <span class="op">|</span><span class="ident">r</span>, <span class="ident">s</span><span class="op">|</span> <span class="ident">r</span> <span class="op">+</span> <span class="ident">s</span>)
+    (<span class="number">0</span>..<span class="ident">size</span>)
+        .<span class="ident">map</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">INDENT</span>)
+        .<span class="ident">fold</span>(<span class="ident">String::with_capacity</span>(<span class="ident">size</span> <span class="op">*</span> <span class="ident">INDENT</span>.<span class="ident">len</span>()), <span class="op">|</span><span class="ident">r</span>, <span class="ident">s</span><span class="op">|</span> <span class="ident">r</span> <span class="op">+</span> <span class="ident">s</span>)
 }
 
 <span class="kw">impl</span> <span class="ident">SpMetadata</span> {
     <span class="doccomment">/// hand this a bucket of string data and you should get something useful back out... one day.</span>
     <span class="doccomment">///</span>
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_xml</span>( <span class="ident">source_xml</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">SpMetadata</span> {
-
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_xml</span>(<span class="ident">source_xml</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">SpMetadata</span> {
         <span class="kw">let</span> <span class="ident">bufreader</span> <span class="op">=</span> <span class="ident">Cursor::new</span>(<span class="ident">source_xml</span>);
         <span class="kw">let</span> <span class="ident">parser</span> <span class="op">=</span> <span class="ident">EventReader::new</span>(<span class="ident">bufreader</span>);
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">depth</span> <span class="op">=</span> <span class="number">0</span>;
@@ -379,7 +364,9 @@
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">certificate_data</span> <span class="op">=</span> <span class="string">&quot;unset&quot;</span>.<span class="ident">to_string</span>();
         <span class="kw">for</span> <span class="ident">e</span> <span class="kw">in</span> <span class="ident">parser</span> {
             <span class="kw">match</span> <span class="ident">e</span> {
-                <span class="prelude-val">Ok</span>(<span class="ident">XmlEvent::StartElement</span> { <span class="ident">name</span>, <span class="ident">attributes</span>, .. }) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="prelude-val">Ok</span>(<span class="ident">XmlEvent::StartElement</span> {
+                    <span class="ident">name</span>, <span class="ident">attributes</span>, ..
+                }) <span class="op">=</span><span class="op">&gt;</span> {
                     <span class="macro">println!</span>(<span class="string">&quot;{}+{}&quot;</span>, <span class="ident">xml_indent</span>(<span class="ident">depth</span>), <span class="ident">name</span>);
                     <span class="kw">for</span> <span class="ident">attribute</span> <span class="kw">in</span> <span class="ident">attributes</span> {
                         <span class="macro">debug!</span>(<span class="string">&quot;attribute found: {:?}&quot;</span>, <span class="ident">attribute</span>);
@@ -390,15 +377,15 @@
                 <span class="prelude-val">Ok</span>(<span class="ident">XmlEvent::EndElement</span> { <span class="ident">name</span> }) <span class="op">=</span><span class="op">&gt;</span> {
                     <span class="ident">depth</span> <span class="op">-</span><span class="op">=</span> <span class="number">1</span>;
                     <span class="macro">println!</span>(<span class="string">&quot;{}-{}&quot;</span>, <span class="ident">xml_indent</span>(<span class="ident">depth</span>), <span class="ident">name</span>);
-                },
-                <span class="prelude-val">Ok</span>(<span class="ident">XmlEvent::Characters</span> ( <span class="ident">s</span> )) <span class="op">=</span><span class="op">&gt;</span> {
+                }
+                <span class="prelude-val">Ok</span>(<span class="ident">XmlEvent::Characters</span>(<span class="ident">s</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                     <span class="kw">if</span> <span class="ident">previous_name</span> <span class="op">=</span><span class="op">=</span> <span class="string">&quot;X509Certificate&quot;</span> {
-                            <span class="macro">debug!</span>(<span class="string">&quot;Found certificate!&quot;</span>);
-                            <span class="ident">certificate_data</span> <span class="op">=</span> <span class="ident">s</span>.<span class="ident">to_string</span>();
-                            <span class="ident">previous_name</span> <span class="op">=</span> <span class="string">&quot;done&quot;</span>.<span class="ident">to_string</span>();
+                        <span class="macro">debug!</span>(<span class="string">&quot;Found certificate!&quot;</span>);
+                        <span class="ident">certificate_data</span> <span class="op">=</span> <span class="ident">s</span>.<span class="ident">to_string</span>();
+                        <span class="ident">previous_name</span> <span class="op">=</span> <span class="string">&quot;done&quot;</span>.<span class="ident">to_string</span>();
                     }
 
-                    <span class="macro">println!</span>(<span class="string">&quot;{}{}&quot;</span>, <span class="ident">xml_indent</span>(<span class="ident">depth</span><span class="op">+</span><span class="number">1</span>), <span class="ident">s</span>);
+                    <span class="macro">println!</span>(<span class="string">&quot;{}{}&quot;</span>, <span class="ident">xml_indent</span>(<span class="ident">depth</span> <span class="op">+</span> <span class="number">1</span>), <span class="ident">s</span>);
                 }
                 <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span><span class="op">&gt;</span> {
                     <span class="macro">println!</span>(<span class="string">&quot;Error: {}&quot;</span>, <span class="ident">e</span>);
@@ -418,15 +405,16 @@
                     <span class="ident">servicetype</span>: <span class="ident">SamlBindingType::AssertionConsumerService</span>,
                     <span class="ident">binding</span>: <span class="ident">SamlBinding::HttpPost</span>,
                     <span class="ident">location</span>: <span class="string">&quot;http://15d49b9c30a5:8000/saml/acs&quot;</span>.<span class="ident">to_string</span>(),
-                    <span class="ident">index</span>: <span class="number">0</span>
+                    <span class="ident">index</span>: <span class="number">0</span>,
                 },
                 <span class="ident">ServiceBinding</span> {
                     <span class="ident">servicetype</span>: <span class="ident">SamlBindingType::SingleLogoutService</span>,
                     <span class="ident">binding</span>: <span class="ident">SamlBinding::HttpPost</span>,
                     <span class="ident">location</span>: <span class="string">&quot;http://15d49b9c30a5:8000/saml/logout&quot;</span>.<span class="ident">to_string</span>(),
-                    <span class="ident">index</span>: <span class="number">0</span>
+                    <span class="ident">index</span>: <span class="number">0</span>,
                 },
-            ].<span class="ident">to_vec</span>()
+            ]
+            .<span class="ident">to_vec</span>(),
         };
         <span class="kw">if</span> <span class="ident">certificate_data</span> <span class="op">!</span><span class="op">=</span> <span class="string">&quot;unset&quot;</span> {
             <span class="ident">meta</span>.<span class="ident">x509_certificate</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">certificate_data</span>);
@@ -457,6 +445,7 @@ From Running SpMetaData::from_xml over the sp_metadata_splunk_self_signed.xml:
     -{urn:oasis:names:tc:SAML:2.0:metadata}md:SPSSODescriptor
 -{urn:oasis:names:tc:SAML:2.0:metadata}md:EntityDescriptor
 
-*/</span></pre></div>
+*/</span>
+</pre></div>
 </section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="saml_rs" data-search-index-js="../../search-index.js" data-search-js="../../search.js"></div>
     <script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script></body></html>
