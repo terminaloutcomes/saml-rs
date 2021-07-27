@@ -75,6 +75,7 @@ use std::str::from_utf8;
 pub mod cert;
 pub mod metadata;
 pub mod response;
+pub mod sign;
 pub mod sp;
 pub mod test_samples;
 // #[cfg(feature = "enable_tide")]

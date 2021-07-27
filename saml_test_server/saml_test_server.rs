@@ -41,6 +41,8 @@ pub struct AppState {
     pub hostname: String,
     pub issuer: String,
     pub service_providers: HashMap<String, ServiceProvider>,
+    pub tls_cert_path: String,
+    pub tls_key_path: String,
 }
 
 #[async_std::main]
@@ -56,6 +58,8 @@ async fn main() -> tide::Result<()> {
         hostname: server_config.public_hostname,
         issuer: server_config.entity_id,
         service_providers: server_config.sp_metadata,
+        tls_cert_path: server_config.tls_cert_path.to_string(),
+        tls_key_path: server_config.tls_key_path.to_string(),
     };
 
     let mut app = tide::with_state(app_state);
@@ -97,7 +101,7 @@ async fn main() -> tide::Result<()> {
 
     let mut saml_process = app.at("/SAML");
     saml_process.at("/Metadata").get(saml_metadata_get);
-    saml_process.at("/Metadata/SP").get(saml_metadata_get_sp);
+    saml_process.at("/sign").get(test_sign);
     // TODO: SAML Logout
     saml_process.at("/Logout").get(do_nothing);
     // TODO: SAML idp, used the entityID
@@ -109,45 +113,38 @@ async fn main() -> tide::Result<()> {
     // TODO: SAML Artifact
     saml_process.at("/Artifact").get(do_nothing);
 
-    let _app = match &server_config.tls_cert_path {
-        Some(value) => {
-            let tls_cert: String = shellexpand::tilde(value).into_owned();
-            let tls_key: String =
-                shellexpand::tilde(&server_config.tls_key_path.unwrap()).into_owned();
-            match File::open(&tls_cert) {
-                Ok(_) => log::info!("Successfully loaded cert from {:?}", tls_cert),
-                Err(error) => {
-                    log::error!(
-                        "Failed to load cert from {:?}, bailing: {:?}",
-                        tls_cert,
-                        error
-                    );
-                    std::process::exit(1);
-                }
+    let _app = {
+        let tls_cert: String = shellexpand::tilde(&server_config.tls_cert_path).into_owned();
+        let tls_key: String = shellexpand::tilde(&server_config.tls_key_path).into_owned();
+        match File::open(&tls_cert) {
+            Ok(_) => log::info!("Successfully loaded cert from {:?}", tls_cert),
+            Err(error) => {
+                log::error!(
+                    "Failed to load cert from {:?}, bailing: {:?}",
+                    tls_cert,
+                    error
+                );
+                std::process::exit(1);
             }
-            match File::open(&tls_key) {
-                Ok(_) => log::info!("Successfully loaded cert from {:?}", tls_key),
-                Err(error) => {
-                    log::error!(
-                        "Failed to load cert from {:?}, bailing: {:?}",
-                        tls_key,
-                        error
-                    );
-                    std::process::exit(1);
-                }
+        }
+        match File::open(&tls_key) {
+            Ok(_) => log::info!("Successfully loaded key from {:?}", tls_key),
+            Err(error) => {
+                log::error!(
+                    "Failed to load key from {:?}, bailing: {:?}",
+                    tls_key,
+                    error
+                );
+                std::process::exit(1);
             }
-            app.listen(
-                TlsListener::build()
-                    .addrs(format!("{}:443", server_config.bind_address))
-                    .cert(tls_cert)
-                    .key(tls_key),
-            )
-            .await?
         }
-        _ => {
-            app.listen(format!("{}:8080", server_config.bind_address))
-                .await?
-        }
+        app.listen(
+            TlsListener::build()
+                .addrs(format!("{}:443", server_config.bind_address))
+                .cert(tls_cert)
+                .key(tls_key),
+        )
+        .await?
     };
     Ok(())
 }
@@ -407,39 +404,14 @@ pub fn generate_login_form(response: ResponseElements, relay_state: String) -> S
     )
 }
 
-async fn saml_metadata_get_sp(_req: tide::Request<AppState>) -> tide::Result {
-    let sample_sp_xml = r#"<md:EntityDescriptor entityID="splunkEntityId" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata"><md:SPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol" AuthnRequestsSigned="true" WantAssertionsSigned="true"><md:KeyDescriptor><ds:KeyInfo><ds:X509Data><ds:X509Certificate>
-    MIIDMjCCAhoCCQChiuJkNICB8TANBgkqhkiG9w0BAQsFADB/MQswCQYDVQQGEwJV
-    UzELMAkGA1UECAwCQ0ExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDzANBgNVBAoM
-    BlNwbHVuazEXMBUGA1UEAwwOU3BsdW5rQ29tbW9uQ0ExITAfBgkqhkiG9w0BCQEW
-    EnN1cHBvcnRAc3BsdW5rLmNvbTAeFw0yMTA3MjUwMDE3NTNaFw0yNDA3MjQwMDE3
-    NTNaMDcxIDAeBgNVBAMMF1NwbHVua1NlcnZlckRlZmF1bHRDZXJ0MRMwEQYDVQQK
-    DApTcGx1bmtVc2VyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv5tK
-    Py7I7Ql/mIFyXQHussS3tW7DI01TiaPN6QsmcQWheqrBVEX1QDMRMB1wrFRsJdT0
-    FJp6fmM5MG9xo7XGiSrmzX+4s74/Q1wKsoi0D7mopYGE7pDaqSSimaNigcII+Hba
-    HxvhMPDRFSGBA8evcmOGiZjumfkEvAtPDodx2oFqrpwHXnrGObrxkSBtjjVfUr24
-    xbC94CfeQh5iB7Ngzsv8FYSHO8rCwfvmx+G11Tm2kxs+7yvV5KHugrM8iopNe2JJ
-    2srF0imIN79NIpKEoBx9wgkRCkrsq0g83Y+2fIekpvZfL6s87EKYZim2Vzfm7QzO
-    QXnwMmfJrrSCha6S7wIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQCoXiQsmWduliVS
-    FoGVKi/i6kIkP6jen3WOBa2mlNOyP+LnBjA3v5AZ7zsipoYK+C/TfBhcDPKf/ZXH
-    WXHOVGV6A/pivvOskOCOOG94wce0sSyiUjV6zxNqWQj7rKcm9IZHf3eGFLnelF4Z
-    4Kyprztntylg4PNPdXeyPANHGVwhv9JB6DVdpR8GTVbvPiCsQ5qxQFFeZrHYq3r2
-    K5B5H7EYJkXltnhnsal35az9+BJdAceP59BqURVvFwUVP5q1A44WZPNDXv96Jd2i
-    EyoXhw7tNjlhuD6V6u7z7n5YZsGNmIPj7BxGhxowWIkgAbQQN57p4xCl6Kckq2w3
-    EAwd90N5
-    </ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor>
-    <md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="http://15d49b9c30a5:8000/saml/logout" index="0"></md:SingleLogoutService>
-    <md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="http://15d49b9c30a5:8000/saml/acs" index="0"></md:AssertionConsumerService>
-    </md:SPSSODescriptor></md:EntityDescriptor>"#;
-
-    // ServiceProvider::from_xml(sample_sp_xml);
-
-    let meta_example = ServiceProvider::from_xml(sample_sp_xml);
-
-    use saml_rs::sp::*;
-
-    Ok(tide::Response::builder(203)
-        .body(format!("{:?}", meta_example,))
+pub async fn test_sign(req: Request<AppState>) -> tide::Result {
+    saml_rs::sign::sign_data(
+        req.state().tls_cert_path.to_string(),
+        req.state().tls_key_path.to_string(),
+        "hello world".as_bytes(),
+    );
+    Ok(tide::Response::builder(200)
+        .body("Signing things")
         .content_type(Mime::from_str("text/html;charset=utf-8").unwrap())
         // .header("custom-header", "value")
         .build())

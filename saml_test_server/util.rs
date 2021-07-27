@@ -12,7 +12,7 @@ use std::path::Path;
 
 /// Placeholder function for development purposes, just returns a "Doing nothing" 200 response.
 pub async fn do_nothing(mut _req: Request<AppState>) -> tide::Result {
-    Ok(tide::Response::builder(203)
+    Ok(tide::Response::builder(418)
         .body("Doing nothing")
         .content_type(Mime::from_str("text/html;charset=utf-8").unwrap())
         // .header("custom-header", "value")
@@ -24,8 +24,8 @@ pub async fn do_nothing(mut _req: Request<AppState>) -> tide::Result {
 pub struct ServerConfig {
     pub bind_address: String,
     pub public_hostname: String,
-    pub tls_cert_path: Option<String>,
-    pub tls_key_path: Option<String>,
+    pub tls_cert_path: String,
+    pub tls_key_path: String,
     pub entity_id: String,
     pub sp_metadata_files: Option<Vec<String>>,
     pub sp_metadata: HashMap<String, ServiceProvider>,
@@ -69,8 +69,8 @@ impl ServerConfig {
         ServerConfig {
             bind_address: String::from("127.0.0.1"),
             public_hostname: String::from("example.com"),
-            tls_cert_path: None,
-            tls_key_path: None,
+            tls_cert_path: String::from("Need to set this"),
+            tls_key_path: String::from("Need to set this"),
             entity_id: String::from("https://example.com/idp/"),
             sp_metadata_files: None,
             sp_metadata: HashMap::new(),
@@ -94,6 +94,14 @@ impl ServerConfig {
 
         let sp_metadata = load_sp_metadata(filenames);
 
+        let tilde_cert_path: String = settings.get("tls_cert_path").unwrap();
+        let tilde_key_path: String = settings.get("tls_key_path").unwrap();
+        eprintln!("tilde_cert_path: {}", tilde_key_path);
+        eprintln!("tilde_key_path: {}", tilde_key_path);
+
+        let tls_cert_path: String = shellexpand::tilde(&tilde_cert_path).into();
+        let tls_key_path: String = shellexpand::tilde(&tilde_key_path).into();
+
         eprintln!("{:?}", settings);
         Self {
             public_hostname: settings
@@ -102,8 +110,8 @@ impl ServerConfig {
             bind_address: settings
                 .get("bind_address")
                 .unwrap_or(ServerConfig::default().bind_address),
-            tls_cert_path: settings.get("tls_cert_path").unwrap_or(None),
-            tls_key_path: settings.get("tls_key_path").unwrap_or(None),
+            tls_cert_path,
+            tls_key_path,
             entity_id: settings
                 .get("entity_id")
                 .unwrap_or(ServerConfig::default().entity_id),
