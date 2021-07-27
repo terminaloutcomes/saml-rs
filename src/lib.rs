@@ -11,11 +11,13 @@
 //! # Current progress:
 //!
 //! - Compiles, most of the time
-//! - `saml_test_server` runs on HTTP and HTTPS, parses Redirect requests as-needed.
+//! - `saml_test_server` runs on HTTP and HTTPS, parses Redirect requests as-needed. Doesn't parse them well... or validate them if they're signed, but it's a start!
 //!
 //! # Next steps:
 //! - Parse and handle SP XML data so we can store a representation of it and match them up later
 //! - Support the SAML 2.0 Web Browser SSO (SP Redirect Bind/ IdP POST Response) flow
+//! - Sign responses
+//! - Support Signed AuthN Redirect Requests
 //!
 //!
 //! # SAML 2.0 Web Browser SSO (SP Redirect Bind/ IdP POST Response) flow
@@ -93,6 +95,14 @@ pub struct SamlAuthnRequest {
     pub version: String,
     #[serde(rename = "Destination")]
     pub destination: String,
+
+    // Example value http%3A%2F%2Fwww.w3.org%2F2001%2F04%2Fxmldsig-more%23rsa-sha256
+    #[serde(rename = "SigAlg")]
+    pub sigalg: Option<String>,
+
+    // Example signature value Signature=HlQbshvUcfvRY1DYo3B8PJfu%2F32pkFnKNkVtQ%2Fjn%2Bl9DurSUa4DrZH76StCwH1qgJ34v%2FXEfXBPy%2BK79ryojzUs5JR7R1KvlMR%2Fzfvgz7LFGv1fGUIFA9vnbbMsn7G%2FI0%2FXSaFkWiXp9%2BmqTmiBBBhFLsd9A8shXIEjnLVWZNUGR73HwUhEiURhGGAmVkPPGDRW1gU%2BwVdy4YUcsGusqTNEcKvUHZeOe0FC%2BggZ%2BRmCCjr2lTVrAxlXMeNU4NkgBk9VimMFCLA2A6LZ9mtLDn20CHaMEkCbSIessWKfXfz7aXd1VaY6lO1K0aSZ0h3%2BAYRcXcNVl3uvZQUslxh48Nw%3D%3D
+    #[serde(rename = "Signature")]
+    pub signature: Option<String>,
 }
 
 impl SamlAuthnRequest {
@@ -110,6 +120,8 @@ impl SamlAuthnRequest {
             version: parser.version,
             // TODO: make a default response for this at the current time
             destination: parser.destination.unwrap_or(String::from("unset")),
+            sigalg: parser.sigalg,
+            signature: parser.signature,
         }
     }
 
@@ -131,6 +143,9 @@ pub struct SamlAuthnRequestParser {
     pub issuer_state: i8,
     pub destination: Option<String>,
     // need to ull this     <samlp:NameIDPolicy AllowCreate="true" Format="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"/>
+    pub sigalg: Option<String>,
+    // we leave this as the string while returning from the parser, so the [SamlAuthnRequest] can verify it.
+    pub signature: Option<String>,
 }
 
 impl SamlAuthnRequestParser {
@@ -144,6 +159,8 @@ impl SamlAuthnRequestParser {
             version: String::from("2.0"),
             issuer_state: 0,
             destination: None,
+            sigalg: None,
+            signature: None,
         }
     }
 }
@@ -175,12 +192,24 @@ pub struct SamlQuery {
     pub SAMLRequest: Option<String>,
     /// The RelayState token is an opaque reference to state information maintained at the service provider.
     pub RelayState: Option<String>,
+    // Stores a base64-encoded signature... maybe?
+    pub Signature: Option<String>,
+    // Stores the signature type - this should be URL-decoded by the web frontend
+    // TODO: uhh... signature enums?
+    pub SigAlg: Option<String>,
+}
+
+// this does the decoding to hand the signature to the verifier??
+// TODO: is string the best retval
+pub fn decode_authn_request_signature(signature: String) -> String {
+    debug!("signature: {:?}", signature);
+    signature
 }
 
 pub fn decode_authn_request_base64_encoded(req: String) -> Result<String, AuthnDecodeError> {
     let base64_decoded_samlrequest: Vec<u8> = match base64::decode(req) {
         Ok(value) => {
-            debug!("Succcesfully Base64 Decoded the SAMLRequest");
+            debug!("Successfully Base64 Decoded the SAMLRequest");
             value
         }
         Err(err) => {
@@ -193,19 +222,18 @@ pub fn decode_authn_request_base64_encoded(req: String) -> Result<String, AuthnD
     // here we try and use libflate to deflate the base64-decoded bytes because compression is used
     let inflated_result = match inflate_bytes(&base64_decoded_samlrequest) {
         Ok(value) => {
-            debug!("Successfully inflated the base64-decoded bytes");
             debug!(
-                "{:?}",
+                "Successfully inflated the base64-decoded bytes: {:?}",
                 from_utf8(&value).unwrap_or("Couldn't utf-8 decode this mess")
             );
             value
         }
         // if it fails, it's probably fine to return the bare bytes as they're already a string?
-        Err(_) => base64_decoded_samlrequest,
+        Err(error) => {
+            debug!("Failed to inflate bytes ({:?})", error);
+            base64_decoded_samlrequest
+        }
     };
-    // Vec<u8> -> String
-    debug!("about to return from decode_authn_request_base64_encoded");
-
     match from_utf8(&inflated_result) {
         Ok(value) => Ok(value.to_string()),
         _ => Err(AuthnDecodeError::new(format!(
@@ -271,7 +299,7 @@ fn parse_authn_tokenizer_attribute(
         ),
     }
 
-    eprintln!("after block {:?}", req.issue_instant);
+    //eprintln!("after block {:?}", req.issue_instant);
     req
 }
 

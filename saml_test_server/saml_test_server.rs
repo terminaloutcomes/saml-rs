@@ -27,7 +27,6 @@ use tide::utils::{After, Before};
 use tide::{Request, Response};
 use tide_rustls::TlsListener;
 
-use serde::Deserialize as serde_deserialize;
 use std::fs::File;
 use std::io::ErrorKind;
 use std::str::from_utf8;
@@ -35,52 +34,8 @@ use std::str::from_utf8;
 use http_types::Mime;
 use std::str::FromStr;
 
-#[derive(serde_deserialize, Debug)]
-struct ServerConfig {
-    pub bind_address: String,
-    pub public_hostname: String,
-    pub tls_cert_path: Option<String>,
-    pub tls_key_path: Option<String>,
-    pub entity_id: String,
-}
-
-impl ServerConfig {
-    pub fn default() -> Self {
-        ServerConfig {
-            bind_address: String::from("127.0.0.1"),
-            public_hostname: String::from("example.com"),
-            tls_cert_path: None,
-            tls_key_path: None,
-            entity_id: String::from("https://example.com/idp/"),
-        }
-    }
-
-    /// Pass this a filename (with or without extension) and it'll choose from JSON/YAML/TOML etc and also check
-    /// environment variables starting with SAML_
-    pub fn from_filename_and_env(path: String) -> Self {
-        let mut settings = config::Config::default();
-        settings
-            .merge(config::File::with_name(&path))
-            .unwrap()
-            .merge(config::Environment::with_prefix("SAML"))
-            .unwrap();
-
-        eprintln!("{:?}", settings);
-        Self {
-            public_hostname: settings
-                .get("public_hostname")
-                .unwrap_or(ServerConfig::default().public_hostname),
-            bind_address: settings
-                .get("bind_address")
-                .unwrap_or(ServerConfig::default().bind_address),
-            tls_cert_path: settings.get("tls_cert_path").unwrap_or(None),
-            tls_key_path: settings.get("tls_key_path").unwrap_or(None),
-            entity_id: settings
-                .get("entity_id")
-                .unwrap_or(ServerConfig::default().entity_id),
-        }
-    }
-}
+mod util;
+use util::do_nothing;
 
 #[derive(Clone, Debug)]
 pub struct AppState {
@@ -95,7 +50,7 @@ pub struct AppState {
 async fn main() -> tide::Result<()> {
     let config_path: String = shellexpand::tilde("~/.config/saml_test_server").into_owned();
 
-    let server_config = ServerConfig::from_filename_and_env(config_path);
+    let server_config = util::ServerConfig::from_filename_and_env(config_path);
 
     let app_state = AppState {
         hostname: server_config.public_hostname,
@@ -125,24 +80,17 @@ async fn main() -> tide::Result<()> {
     }));
 
     app.with(After(|mut res: Response| async {
-        match res.downcast_error::<async_std::io::Error>() {
-            Some(err) => {
-                log::debug!("{:?}", err);
-                let msg = match err.kind() {
-                    ErrorKind::NotFound => {
-                        // res.set_status(StatusCode::NotFound);
-                        format!("Error: {:?}", err)
-                    }
-                    _ => "Unknown error".to_string(),
-                };
-                // NOTE: You may want to avoid sending error messages in a production server.
-                res.set_body(msg);
-            }
-            #[allow(clippy::no_effect)] // because matching on only an error is a thing...
-            _ => {
-                ();
-            }
+        if let Some(err) = res.downcast_error::<async_std::io::Error>() {
+            log::debug!("asdfadsfadsf {:?}", err);
+            let msg = match err.kind() {
+                ErrorKind::NotFound => {
+                    format!("Error, Not Found: {:?}", err)
+                }
+                _ => "Unknown Error".to_string(),
+            };
+            res.set_body(msg);
         }
+
         Ok(res)
     }));
 
@@ -216,15 +164,6 @@ async fn saml_metadata_get(req: Request<AppState>) -> tide::Result {
     .into())
 }
 
-/// Placeholder function for development purposes, just returns a "Doing nothing" 200 response.
-async fn do_nothing(mut _req: Request<AppState>) -> tide::Result {
-    Ok(tide::Response::builder(203)
-        .body("Doing nothing")
-        .content_type(Mime::from_str("text/html;charset=utf-8").unwrap())
-        // .header("custom-header", "value")
-        .build())
-}
-
 /// Handles a POST binding
 /// ```html
 /// <form method="post" action="https://idp.example.org/SAML2/SSO/POST" ...>
@@ -245,16 +184,6 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     let mut response_body =
         String::from("<html><head><title>saml_redirect_get</title></head><body>\n\n");
 
-    // let referer = req
-    //     .header("Referer")
-    //     .and_then(|hv| hv.get(0))
-    //     .map(|h| h.as_str())
-    //     .ok_or(&"");
-    //     // #.ok_or_else(|| {
-    //     // #    log::error!("Missing Header: Referer in saml_redirect_get");
-    //         // tide::Error::from_str(tide::StatusCode::BadRequest, "Missing Referer header")
-    //     // })?;
-
     let query: SamlQuery = match req.query() {
         Ok(val) => val,
         Err(e) => {
@@ -268,6 +197,28 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     // I'm not sure why this is here but I better not lose it
     // https://www.w3.org/TR/2002/REC-xmldsig-core-20020212/xmldsig-core-schema.xsd#rsa-sha1
 
+    match query.Signature {
+        Some(ref value) => {
+            log::debug!("Found a signature! {:?}", value);
+            let sigalg = match query.SigAlg {
+                Some(ref value) => String::from(value),
+                None => {
+                    // we should probably bail on this request if we got a signature without an algorithm...
+                    // or maybe there's a way to specify it in the SP metadata???
+
+                    return Err(tide::Error::from_str(
+                        tide::StatusCode::BadRequest,
+                        "Found signature without a sigalg in a redirect authn request.",
+                    ));
+                }
+            };
+            log::debug!("SigAlg found: {:?}", &sigalg);
+        }
+        _ => {
+            log::debug!("Didn't find a signature in this request.");
+        }
+    }
+
     let samlrequest = query.SAMLRequest.unwrap();
 
     let base64_decoded_samlrequest =
@@ -280,7 +231,10 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
                 ));
             }
         };
-    log::debug!("about to parse authn request");
+    log::debug!(
+        "about to parse authn request: {:?}",
+        base64_decoded_samlrequest
+    );
 
     let parsed_saml_request: saml_rs::SamlAuthnRequest =
         match saml_rs::parse_authn_request(&base64_decoded_samlrequest) {
@@ -305,8 +259,19 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     ));
     let unset_value = String::from("unset");
     response_body.push_str(&format!("issuer: {:?}<br />", parsed_saml_request.issuer));
+
+    if let Some(value) = query.Signature {
+        response_body.push_str(&format!("<p>Original Signature field: <br />{}</p>", value))
+    };
+    if let Some(value) = query.SigAlg {
+        response_body.push_str(&format!("<p>Original SigAlg field: <br />{}</p>", value))
+    };
+
     // response_body.push_str(&format!("Referer: {:?}<br />", referer));
-    response_body.push_str(&format!("SAMLRequest: {}<br />", samlrequest));
+    response_body.push_str(&format!(
+        "<p>Original SAMLRequest field: <br />{}</p>",
+        samlrequest
+    ));
     // #[allow(clippy::or_fun_call)]
     let relay_state = match query.RelayState {
         Some(value) => value,

@@ -96,6 +96,8 @@ mod tests {
             consumer_service_url: String::from("https://samltest.id/Shibboleth.sso/SAML2/POST"),
             version: String::from("2.0"),
             destination: String::from("https://example.com/v1/SAML/Redirect"),
+            sigalg: None,
+            signature: None,
         };
         assert_eq!(
             result.request_id,
@@ -112,6 +114,9 @@ mod tests {
             expected_result.consumer_service_url
         );
         assert_eq!(result.version, expected_result.version);
+        // nothing, hopefully!
+        assert_eq!(result.signature, expected_result.signature);
+        assert_eq!(result.sigalg, expected_result.sigalg);
     }
 
     /// tests parsing saml_rs::test_samples::TEST_AUTHN_REQUEST_EXAMPLE_COM_BASE64_DEFLATED
