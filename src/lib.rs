@@ -48,6 +48,11 @@
 //! SAMLResponse=response&RelayState=token
 //! ```
 //!
+//! To automate the submission of the form, the following line of JavaScript may appear anywhere on the XHTML page:
+//!
+//! ```javascript
+//! window.onload = function () { document.forms[0].submit(); }
+//! ```
 //!
 //! # Testing tools:
 //!
