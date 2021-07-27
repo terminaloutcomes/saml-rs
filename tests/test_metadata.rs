@@ -90,7 +90,7 @@ mod tests {
             request_id: String::from("_6c1cd5d32c2df1bab98f58a144f9b971"),
             issuer: String::from("https://samltest.id/saml/sp"),
             issue_instant: DateTime::<Utc>::from_utc(
-                NaiveDate::from_ymd(2021, 7, 19).and_hms(12, 06, 25),
+                NaiveDate::from_ymd(2021, 7, 19).and_hms(12, 6, 25),
                 Utc,
             ),
             consumer_service_url: String::from("https://samltest.id/Shibboleth.sso/SAML2/POST"),

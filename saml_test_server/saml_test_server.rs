@@ -439,7 +439,7 @@ async fn saml_metadata_get_sp(_req: tide::Request<AppState>) -> tide::Result {
     use saml_rs::sp::*;
 
     Ok(tide::Response::builder(203)
-        .body(format!("{:?}", meta_example))
+        .body(format!("{:?}", meta_example,))
         .content_type(Mime::from_str("text/html;charset=utf-8").unwrap())
         // .header("custom-header", "value")
         .build())

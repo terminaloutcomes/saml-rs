@@ -65,6 +65,7 @@ use xmlparser::{StrSpan, Token};
 use inflate::inflate_bytes;
 use std::str::from_utf8;
 
+pub mod cert;
 pub mod metadata;
 pub mod response;
 pub mod sp;

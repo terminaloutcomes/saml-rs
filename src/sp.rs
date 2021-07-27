@@ -1,6 +1,7 @@
-//! Service Provider things
+//! Service Provider utilities and functions
 //!
-//!
+
+#![deny(unsafe_code)]
 
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -98,20 +99,22 @@ impl ServiceBinding {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-// #[allow(clippy::dead_code)]
+use openssl;
+
+#[derive(Debug, Clone)] // Serialize, Deserialize,
+                        // #[allow(clippy::dead_code)]
 pub struct SpMetadata {
-    #[serde(rename = "entityID")]
+    // #[serde(rename = "entityID")]
     pub entity_id: String,
 
-    #[serde(rename = "AuthnRequestsSigned")]
+    // #[serde(rename = "AuthnRequestsSigned")]
     pub authn_requests_signed: bool,
 
-    #[serde(rename = "WantAssertionsSigned")]
+    // #[serde(rename = "WantAssertionsSigned")]
     pub want_assertions_signed: bool,
     /// probably should be something else
-    #[serde(rename = "X509Certificate")]
-    pub x509_certificate: Option<String>,
+    // #[serde(rename = "X509Certificate")]
+    pub x509_certificate: Option<openssl::x509::X509>,
     pub services: Vec<ServiceBinding>,
 }
 
@@ -135,7 +138,7 @@ impl SpMetadata {
         let parser = EventReader::new(bufreader);
         let mut depth = 0;
         let mut previous_name = "unknown".to_string();
-        let mut certificate_data = "unset".to_string();
+        let mut certificate_data = None::<openssl::x509::X509>;
         for e in parser {
             match e {
                 Ok(XmlEvent::StartElement {
@@ -155,7 +158,17 @@ impl SpMetadata {
                 Ok(XmlEvent::Characters(s)) => {
                     if previous_name == "X509Certificate" {
                         debug!("Found certificate!");
-                        certificate_data = s.to_string();
+                        // certificate_data = s.to_string();
+                        let certificate = crate::cert::init_cert_from_base64(&s);
+                        match certificate {
+                            Ok(value) => {
+                                eprintln!("Parsed cert successfully.");
+                                certificate_data = Some(value);
+                            }
+                            Err(error) => {
+                                eprintln!("{:?}", error)
+                            }
+                        };
                         previous_name = "done".to_string();
                     }
 
@@ -190,10 +203,14 @@ impl SpMetadata {
             ]
             .to_vec(),
         };
-        if certificate_data != "unset" {
-            meta.x509_certificate = Some(certificate_data);
+        match certificate_data {
+            Some(value) => {
+                meta.x509_certificate = Some(value);
+            }
+            None => {
+                eprintln!("Didn't find a certificate");
+            }
         }
-
         meta
     }
 }

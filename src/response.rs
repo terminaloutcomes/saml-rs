@@ -1,5 +1,7 @@
 //! Want to build a SAML response? Here's your module. 🥳
 
+#![deny(unsafe_code)]
+
 use chrono::{DateTime, SecondsFormat, Utc};
 use serde::Serialize;
 

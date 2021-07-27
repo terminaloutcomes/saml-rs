@@ -1,5 +1,7 @@
 //! Internal utilities for doing things with XML
 
+#![deny(unsafe_code)]
+
 use std::io::Write;
 
 use xml::writer::{EventWriter, XmlEvent};

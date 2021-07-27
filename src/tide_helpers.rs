@@ -1,6 +1,8 @@
 //! Helpers for working with tide-based HTTP(S) services
 //!
 
+#![deny(unsafe_code)]
+
 use crate::metadata::{generate_metadata_xml, SamlMetadata};
 // use crate::{decode_authn_request_base64_encoded, parse_authn_request, SamlAuthnRequest};
 use tide;

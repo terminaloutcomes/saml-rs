@@ -1,5 +1,7 @@
 //! Handy for the XML metadata part of SAML
 
+#![deny(unsafe_code)]
+
 use serde::Serialize;
 
 /// Stores the required data for generating a SAML metadata XML file
