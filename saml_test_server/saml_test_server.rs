@@ -15,24 +15,23 @@
 
 // use saml_rs::AuthnDecodeError;
 use saml_rs::metadata::{generate_metadata_xml, SamlMetadata};
-use saml_rs::response::ResponseElements;
-use saml_rs::response::{AuthNStatement, ResponseAttribute};
+use saml_rs::response::{AuthNStatement, ResponseAttribute, ResponseElements};
+use saml_rs::sp::ServiceProvider;
 use saml_rs::SamlQuery;
 
-use chrono::Duration;
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::{DateTime, Duration, NaiveDate, Utc};
 
 use tide::log;
 use tide::utils::{After, Before};
 use tide::{Request, Response};
 use tide_rustls::TlsListener;
 
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::ErrorKind;
-use std::str::from_utf8;
+use std::str::{from_utf8, FromStr};
 
 use http_types::Mime;
-use std::str::FromStr;
 
 pub mod util;
 use util::do_nothing;
@@ -41,6 +40,7 @@ use util::do_nothing;
 pub struct AppState {
     pub hostname: String,
     pub issuer: String,
+    pub service_providers: HashMap<String, ServiceProvider>,
 }
 
 #[async_std::main]
@@ -55,6 +55,7 @@ async fn main() -> tide::Result<()> {
     let app_state = AppState {
         hostname: server_config.public_hostname,
         issuer: server_config.entity_id,
+        service_providers: server_config.sp_metadata,
     };
 
     let mut app = tide::with_state(app_state);
@@ -183,7 +184,7 @@ pub async fn saml_post_binding(req: tide::Request<AppState>) -> tide::Result {
 pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     let mut response_body = String::from(
         r#"<!DOCTYPE html>
-        <html lang="en"><head><title>saml_redirect_get</title></head><body>\n\n"#,
+        <html lang="en"><head><title>saml_redirect_get</title></head><body>"#,
     );
 
     let query: SamlQuery = match req.query() {
@@ -247,12 +248,57 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
             }
         };
 
+    // match the issuer to the authn request
+    let mut form_target = String::from("example.com");
+
+    if req
+        .state()
+        .service_providers
+        .contains_key(&parsed_saml_request.issuer)
+    {
+        let sp = req
+            .state()
+            .service_providers
+            .get(&parsed_saml_request.issuer)
+            .unwrap();
+        response_body.push_str("<p style='color: darkgreen'>found SP in state!</p>");
+        response_body.push_str(&format!("<p>{:?}</p>", sp));
+        // find teh consumer
+        for service in &sp.services {
+            match service.servicetype {
+                saml_rs::sp::SamlBindingType::AssertionConsumerService => {
+                    log::debug!("acs: {:?}", service);
+                    match &service.binding {
+                        saml_rs::sp::SamlBinding::HttpRedirect => {
+                            log::debug!("Found it!");
+                            form_target = service.location.to_string();
+                        }
+                        _ => {
+                            log::debug!("not it!");
+                        }
+                    }
+                }
+                saml_rs::sp::SamlBindingType::SingleLogoutService => {
+                    log::debug!("sso");
+                }
+            }
+        }
+    } else {
+        response_body.push_str("<p style='color: red'>Didn't find SP in state!</p>");
+    }
+
+    response_body.push_str("<h2>Known issuers</h2><ul>");
+    for issuer in req.state().service_providers.keys() {
+        response_body.push_str(&format!("<li>{}</li>", issuer));
+    }
+    response_body.push_str("</ul>");
+
     response_body.push_str(&format!(
-        "request_id: {:?}<br />",
+        "<p>request_id: {:?}</p>",
         parsed_saml_request.request_id
     ));
     response_body.push_str(&format!(
-        "issue_instant: {:?}<br />",
+        "<p>issue_instant: {:?}</p>",
         parsed_saml_request.issue_instant
     ));
     response_body.push_str(&format!(
@@ -303,11 +349,16 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     };
 
     let responseattributes = [
-        ResponseAttribute::basic("uid", ["test".to_string()].to_vec()),
-        ResponseAttribute::basic("mail", ["test@example.com".to_string()].to_vec()),
+        ResponseAttribute::basic("uid", ["yaleman".to_string()].to_vec()),
+        ResponseAttribute::basic("mail", ["yaleman@ricetek.net".to_string()].to_vec()),
         ResponseAttribute::basic(
             "eduPersonAffiliation",
-            ["users".to_string(), "examplerole1".to_string()].to_vec(),
+            [
+                "users".to_string(),
+                "examplerole1".to_string(),
+                "admin".to_string(),
+            ]
+            .to_vec(),
         ),
     ]
     .to_vec();
@@ -321,7 +372,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         ),
         request_id: String::from("ONELOGIN_4fee3b046395c4e751011e97f8900b5273d56685"),
         attributes: responseattributes,
-        destination: String::from("http://sp.example.com/demo1/index.php?acs"),
+        destination: form_target,
         authnstatement,
         assertion_id: String::from("_d71a3a8e9fcc45c9e9d248ef7049393fc8f04e5f75"),
     };
@@ -342,7 +393,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
 /// TODO: These responses have to be signed
 pub fn generate_login_form(response: ResponseElements, relay_state: String) -> String {
     format!(
-        r#"<form method="post" action="https://example.com/SAML2/SSO/POST" ...>
+        r#"<form method="post" action="{}">
     <input type="hidden" name="SAMLResponse" value="{}" />
     <input type="hidden" name="RelayState" value="{}" />
         <h1>Fancy example login form</h1>
@@ -350,6 +401,7 @@ pub fn generate_login_form(response: ResponseElements, relay_state: String) -> S
         <p>Password: <input type='password' name='password' /></p>
         <p><input type="submit" value="Submit" /></p>
 </form>"#,
+        &response.destination.to_string(),
         from_utf8(&saml_rs::response::base64_encoded_response(response, false)).unwrap(),
         relay_state,
     )
@@ -380,29 +432,9 @@ async fn saml_metadata_get_sp(_req: tide::Request<AppState>) -> tide::Result {
     <md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="http://15d49b9c30a5:8000/saml/acs" index="0"></md:AssertionConsumerService>
     </md:SPSSODescriptor></md:EntityDescriptor>"#;
 
-    // SpMetadata::from_xml(sample_sp_xml);
+    // ServiceProvider::from_xml(sample_sp_xml);
 
-    let meta_example = SpMetadata::from_xml(sample_sp_xml);
-    // SpMetadata {
-    //     entity_id: "splunkEntityId".to_string(),
-    //     authn_requests_signed: true,
-    //     want_assertions_signed: true,
-    //     x509_certificate: Some("blah".to_string()),
-    //     services: [
-    //         ServiceBinding {
-    //             servicetype: SamlBindingType::AssertionConsumerService,
-    //             binding: SamlBinding::HttpPost,
-    //             location: "http://15d49b9c30a5:8000/saml/acs".to_string(),
-    //             index: 0
-    //         },
-    //         ServiceBinding {
-    //             servicetype: SamlBindingType::SingleLogoutService,
-    //             binding: SamlBinding::HttpPost,
-    //             location: "http://15d49b9c30a5:8000/saml/logout".to_string(),
-    //             index: 0
-    //         },
-    //     ].to_vec()
-    // };
+    let meta_example = ServiceProvider::from_xml(sample_sp_xml);
 
     use saml_rs::sp::*;
 

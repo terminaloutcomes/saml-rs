@@ -12,13 +12,13 @@
 //!
 //! - Compiles, most of the time
 //! - `saml_test_server` runs on HTTP and HTTPS, parses Redirect requests as-needed. Doesn't parse them well... or validate them if they're signed, but it's a start!
+//! - Parses and ... seems to handle SP XML data so we can store a representation of it and match them up later
 //!
 //! # Next steps:
-//! - Parse and handle SP XML data so we can store a representation of it and match them up later
+//!
 //! - Support the SAML 2.0 Web Browser SSO (SP Redirect Bind/ IdP POST Response) flow
 //! - Sign responses
 //! - Support Signed AuthN Redirect Requests
-//!
 //!
 //! # SAML 2.0 Web Browser SSO (SP Redirect Bind/ IdP POST Response) flow
 //!

@@ -46,3 +46,9 @@ pub fn init_cert_from_base64(buf: &str) -> Result<openssl::x509::X509, CertParse
     // .read_to_end(&mut buf)?;
     // let cert = reqwest::Certificate::from_pem(&buf)?;
 }
+
+/* cert validation things
+
+https://docs.rs/openssl/0.10.35/openssl/pkey/index.html
+
+*/

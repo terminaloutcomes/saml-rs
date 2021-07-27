@@ -1,4 +1,14 @@
-<md:EntityDescriptor entityID="splunkEntityId" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata"><md:SPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol" AuthnRequestsSigned="true" WantAssertionsSigned="true"><md:KeyDescriptor><ds:KeyInfo><ds:X509Data><ds:X509Certificate>
+<md:EntityDescriptor entityID="splunkEntityId"
+    xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
+    xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata">
+    <md:SPSSODescriptor
+        protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"
+        AuthnRequestsSigned="true"
+        WantAssertionsSigned="true">
+        <md:KeyDescriptor>
+            <ds:KeyInfo>
+                <ds:X509Data>
+                    <ds:X509Certificate>
 MIIDMjCCAhoCCQChiuJkNICB8TANBgkqhkiG9w0BAQsFADB/MQswCQYDVQQGEwJV
 UzELMAkGA1UECAwCQ0ExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDzANBgNVBAoM
 BlNwbHVuazEXMBUGA1UEAwwOU3BsdW5rQ29tbW9uQ0ExITAfBgkqhkiG9w0BCQEW
@@ -17,7 +27,17 @@ WXHOVGV6A/pivvOskOCOOG94wce0sSyiUjV6zxNqWQj7rKcm9IZHf3eGFLnelF4Z
 K5B5H7EYJkXltnhnsal35az9+BJdAceP59BqURVvFwUVP5q1A44WZPNDXv96Jd2i
 EyoXhw7tNjlhuD6V6u7z7n5YZsGNmIPj7BxGhxowWIkgAbQQN57p4xCl6Kckq2w3
 EAwd90N5
-</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor>
-<md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="http://15d49b9c30a5:8000/saml/logout" index="0"></md:SingleLogoutService>
-<md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="http://15d49b9c30a5:8000/saml/acs" index="0"></md:AssertionConsumerService>
+                    </ds:X509Certificate>
+                </ds:X509Data>
+            </ds:KeyInfo>
+        </md:KeyDescriptor>
+    <md:SingleLogoutService
+        Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
+        Location="http://15d49b9c30a5:8000/saml/logout"
+        index="0"></md:SingleLogoutService>
+    <md:AssertionConsumerService
+        Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
+        Location="http://15d49b9c30a5:8000/saml/acs"
+        index="0">
+        </md:AssertionConsumerService>
 </md:SPSSODescriptor></md:EntityDescriptor>

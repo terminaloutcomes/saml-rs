@@ -6,9 +6,82 @@
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
+// use std::io::Read;
 use std::io::Cursor;
 use xml::attribute::OwnedAttribute;
 use xml::reader::{EventReader, XmlEvent};
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+pub enum NameIdFormat {
+    EmailAddress,
+    Entity,
+    Kerberos,
+    Persistent,
+    Transient,
+    Unspecified,
+    WindowsDomainQualifiedName,
+    X509SubjectName,
+}
+
+impl Default for NameIdFormat {
+    fn default() -> NameIdFormat {
+        NameIdFormat::Unspecified
+    }
+}
+
+impl ToString for NameIdFormat {
+    fn to_string(&self) -> String {
+        match self {
+            NameIdFormat::EmailAddress => {
+                "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress".to_string()
+            }
+            NameIdFormat::Entity => "urn:oasis:names:tc:SAML:2.0:nameid-format:entity".to_string(),
+            NameIdFormat::Kerberos => {
+                " urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos".to_string()
+            }
+            NameIdFormat::Persistent => {
+                "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent".to_string()
+            }
+            NameIdFormat::Transient => {
+                "urn:oasis:names:tc:SAML:2.0:nameid-format:transient".to_string()
+            }
+            NameIdFormat::Unspecified => {
+                "urn:oasis:names:tc:SAML:1.0:nameid-format:unspecified".to_string()
+            }
+            NameIdFormat::WindowsDomainQualifiedName => {
+                "urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName".to_string()
+            }
+            NameIdFormat::X509SubjectName => {
+                "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName".to_string()
+            }
+        }
+    }
+}
+impl FromStr for NameIdFormat {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress" => {
+                Ok(NameIdFormat::EmailAddress)
+            }
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:entity" => Ok(NameIdFormat::Entity),
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent" => Ok(NameIdFormat::Persistent),
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos" => Ok(NameIdFormat::Kerberos),
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:transient" => Ok(NameIdFormat::Transient),
+            "urn:oasis:names:tc:SAML:1.0:nameid-format:unspecified" => {
+                Ok(NameIdFormat::Unspecified)
+            }
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName" => {
+                Ok(NameIdFormat::X509SubjectName)
+            }
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName" => {
+                Ok(NameIdFormat::WindowsDomainQualifiedName)
+            }
+            _ => Err("Must be a valid type"),
+        }
+    }
+}
 
 /// Allows one to build a definition with [SamlBindingType::AssertionConsumerService]\(s\) and [SamlBindingType::SingleLogoutService]\(s\)
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
@@ -71,6 +144,8 @@ impl FromStr for SamlBinding {
     }
 }
 
+/// Types of bindings for service providers
+/// TODO: implement a way of pulling the first/a given logout, or the first/ a given assertionconsumer
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ServiceBinding {
     pub servicetype: SamlBindingType,
@@ -94,7 +169,7 @@ impl ServiceBinding {
         }
     }
 
-    /// TODO: actually use this in SpMetaData::fromxml()
+    /// TODO: actually use this in ServiceProvider::fromxml()
     pub fn set_binding(self, binding: String) -> Result<Self, String> {
         match SamlBinding::from_str(&binding) {
             Err(_) => Err("Failed to match binding name".to_string()),
@@ -111,7 +186,7 @@ impl ServiceBinding {
 use openssl;
 
 #[derive(Debug, Clone)]
-pub struct SpMetadata {
+pub struct ServiceProvider {
     /// EntityID
     pub entity_id: String,
     /// Will this SP send signed requests? If so, we'll reject ones that aren't.
@@ -122,6 +197,8 @@ pub struct SpMetadata {
     pub x509_certificate: Option<openssl::x509::X509>,
     /// SP Services
     pub services: Vec<ServiceBinding>,
+    pub protocol_support_enumeration: Option<String>,
+    pub nameid_format: NameIdFormat,
 }
 
 /// Used for showing the details of the SP Metadata XML file
@@ -132,7 +209,7 @@ fn xml_indent(size: usize) -> String {
         .fold(String::with_capacity(size * INDENT.len()), |r, s| r + s)
 }
 
-impl SpMetadata {
+impl ServiceProvider {
     /// Used for handling the attributes of services in the tags of an SP Metadata XML file
     ///
     /// Types tested (poorly):
@@ -180,7 +257,7 @@ impl SpMetadata {
                 }
             }
         }
-        eprintln!("Returning {:?}", tmp_sb);
+        log::debug!("Returning {:?}", tmp_sb);
         Ok(tmp_sb)
     }
 
@@ -202,6 +279,23 @@ impl SpMetadata {
                     }
                 }
             }
+            "EntityDescriptor" => {
+                for attribute in attributes {
+                    log::debug!("attribute: {}", attribute);
+                    match attribute.name.local_name.as_str() {
+                        "entityID" => {
+                            log::debug!("Setting entityID: {}", attribute.value);
+                            self.entity_id = attribute.value;
+                        }
+                        _ => {
+                            eprintln!(
+                                "found an EntityDescriptor attribute that's not entityID: {:?}",
+                                attribute
+                            );
+                        }
+                    }
+                }
+            }
             "SingleLogoutService" => {
                 log::debug!("SingleLogoutService: {:?}", attributes);
                 match self.service_attrib_parser(SamlBindingType::SingleLogoutService, attributes) {
@@ -213,51 +307,77 @@ impl SpMetadata {
                 }
             }
 
-            // TODO: SPSSODescriptor
-            "EntityDescriptor" => {
+            "SPSSODescriptor" => {
+                log::debug!("Dumping SPSSODescriptor: {:?}", attributes);
                 for attribute in attributes {
-                    log::debug!("attribute: {}", attribute);
-                    match attribute.name.local_name.as_str() {
-                        "entityID" => {
-                            eprintln!("Setting entityID: {}", attribute.value);
-                            self.entity_id = attribute.value;
+                    match attribute.name.local_name.to_lowercase().as_str() {
+                        "authnrequestssigned" => {
+                            // AuthnRequestsSigned
+                            match attribute.value.to_lowercase().as_str() {
+                                "true" => self.authn_requests_signed = true,
+                                "false" => self.authn_requests_signed = false,
+                                _ => eprintln!(
+                                    "Couldn't parse value of AuthnRequestsSigned: {}",
+                                    attribute.value.to_lowercase()
+                                ),
+                            }
                         }
-                        _ => {
-                            log::debug!(
-                                "found an EntityDescriptor attribute that's not entityID: {:?}",
-                                attribute
-                            );
+                        "wantassertionssigned" => {
+                            // WantAssertionsSigned
+                            match attribute.value.to_lowercase().as_str() {
+                                "true" => self.want_assertions_signed = true,
+                                "false" => self.want_assertions_signed = false,
+                                _ => eprintln!(
+                                    "Couldn't parse value of WantAssertionsSigned: {}",
+                                    attribute.value.to_lowercase()
+                                ),
+                            }
                         }
+                        "protocolsupportenumeration" => {
+                            self.protocol_support_enumeration = Some(attribute.value.to_string())
+                        }
+                        _ => eprintln!("SPSSODescriptor attribute not handled {:?}", attribute), // protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"
+                                                                                                 // WantAssertionsSigned="true"
                     }
                 }
             }
-            _ => log::warn!(
-                "Asked to parse attributes for tag={}, not caught by anything {:?}",
-                tag,
-                attributes
+            "NameIDFormat" => log::debug!("Don't need to parse attributes for NameIDFormat"),
+            "KeyDescriptor" => log::debug!("Don't need to parse attributes for KeyDescriptor"),
+            "KeyInfo" => log::debug!("Don't need to parse attributes for KeyInfo"),
+            "X509Certificate" => log::debug!("Don't need to parse attributes for X509Certificate"),
+            "X509Data" => log::debug!("Don't need to parse attributes for X509Data"),
+            _ => eprintln!(
+                "!!! Asked to parse attributes for tag={}, not caught by anything {:?}",
+                tag, attributes
             ),
         }
-
-        // eprintln!("attribute found: {:?}", attribute);
-        // eprintln!("local_name: {}", attribute.name.local_name);
-        // eprintln!("value: {}", attribute.value);
     }
+
+    //    pub fn add_to_xmlevent(&self, writer: &mut EventWriter<W>) {
+
+    // fn ssp_so_descriptor_handler<R: Read>(&self,
+    //     parser: &mut EventReader<R>,
+    //     meta: &mut ServiceProvider ) {
+
+    // }
 
     /// Hand this a bucket of string data and you should get a struct with all the SP's metadata.
     ///
-    pub fn from_xml(source_xml: &str) -> SpMetadata {
+    pub fn from_xml(source_xml: &str) -> ServiceProvider {
         let bufreader = Cursor::new(source_xml);
         let parser = EventReader::new(bufreader);
         let mut depth = 0;
         let mut tag_name = "###INVALID###".to_string();
         let mut certificate_data = None::<openssl::x509::X509>;
 
-        let mut meta = SpMetadata {
+        let mut meta = ServiceProvider {
             entity_id: "".to_string(),
             authn_requests_signed: false,
             want_assertions_signed: false,
             x509_certificate: None,
             services: vec![],
+            protocol_support_enumeration: None,
+            nameid_format: NameIdFormat::default(),
         };
 
         for e in parser {
@@ -265,32 +385,44 @@ impl SpMetadata {
                 Ok(XmlEvent::StartElement {
                     name, attributes, ..
                 }) => {
-                    println!("{}+{}", xml_indent(depth), name);
+                    // println!("{}+{}", xml_indent(depth), name);
                     tag_name = name.local_name.to_string();
+
                     meta.attrib_parser(&tag_name, attributes);
                     depth += 1;
                 }
-                Ok(XmlEvent::EndElement { name }) => {
+                Ok(XmlEvent::EndElement { .. /* name */ }) => {
                     depth -= 1;
-                    println!("{}-{}", xml_indent(depth), name);
+                    // println!("{}-{}", xml_indent(depth), name);
                 }
                 Ok(XmlEvent::Characters(s)) => {
-                    if tag_name == "X509Certificate" {
-                        debug!("Found certificate!");
-                        // certificate_data = s.to_string();
-                        let certificate = crate::cert::init_cert_from_base64(&s);
-                        match certificate {
-                            Ok(value) => {
-                                eprintln!("Parsed cert successfully.");
-                                certificate_data = Some(value);
+                    match tag_name.as_str() {
+                        "NameIDFormat" => {
+                            debug!("Found NameIDFormat!");
+                            match NameIdFormat::from_str(&s) {
+                                Err(error) => eprintln!("Failed to parse NameIDFormat: {} {:?}", s, error),
+                                Ok(value) => meta.nameid_format = value
                             }
-                            Err(error) => {
-                                eprintln!("error! {:?}", error)
-                            }
-                        };
-                        tag_name = "###INVALID###".to_string();
-                    } else {
-                        println!("Characters: {}{}", xml_indent(depth + 1), s);
+
+                        }
+                        "X509Certificate" => {
+                            debug!("Found certificate!");
+                            // certificate_data = s.to_string();
+                            let certificate = crate::cert::init_cert_from_base64(&s);
+                            match certificate {
+                                Ok(value) => {
+                                    log::debug!("Parsed cert successfully.");
+                                    certificate_data = Some(value);
+                                }
+                                Err(error) => {
+                                    eprintln!("error! {:?}", error)
+                                }
+                            };
+                            tag_name = "###INVALID###".to_string();
+                        }
+                        _ => {
+                            println!("Characters: {}{}", xml_indent(depth + 1), s);
+                        }
                     }
                 }
                 Err(e) => {
@@ -314,7 +446,7 @@ impl SpMetadata {
 }
 
 /*
-From Running SpMetaData::from_xml over the sp_metadata_splunk_self_signed.xml:
+From Running ServiceProvider::from_xml over the sp_metadata_splunk_self_signed.xml:
 
 
 +{urn:oasis:names:tc:SAML:2.0:metadata}md:EntityDescriptor

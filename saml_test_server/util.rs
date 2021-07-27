@@ -6,7 +6,7 @@ use http_types::Mime;
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use saml_rs::sp::SpMetadata;
+use saml_rs::sp::ServiceProvider;
 use std::fs::read_to_string;
 use std::path::Path;
 
@@ -28,18 +28,18 @@ pub struct ServerConfig {
     pub tls_key_path: Option<String>,
     pub entity_id: String,
     pub sp_metadata_files: Option<Vec<String>>,
-    pub sp_metadata: HashMap<String, SpMetadata>,
+    pub sp_metadata: HashMap<String, ServiceProvider>,
 }
 
-fn load_sp_metadata(filenames: Vec<String>) -> HashMap<String, SpMetadata> {
+fn load_sp_metadata(filenames: Vec<String>) -> HashMap<String, ServiceProvider> {
     // load the SP metadata files
 
     let mut sp_metadata = HashMap::new();
-    eprintln!("Filenames: {:?}", filenames);
+    eprintln!("Configuration has SP metadata filenames: {:?}", filenames);
     for filename in filenames {
         let expanded_filename: String = shellexpand::tilde(&filename).into_owned();
         if Path::new(&expanded_filename).exists() {
-            eprintln!("Found file: {:?}", expanded_filename);
+            log::debug!("Found SP metadata file: {:?}", expanded_filename);
             let filecontents = match read_to_string(&expanded_filename) {
                 Err(error) => {
                     eprintln!(
@@ -51,9 +51,9 @@ fn load_sp_metadata(filenames: Vec<String>) -> HashMap<String, SpMetadata> {
                 Ok(value) => value,
             };
             // parse the XML
-            let parsed_sp = saml_rs::sp::SpMetadata::from_xml(&filecontents);
+            let parsed_sp = saml_rs::sp::ServiceProvider::from_xml(&filecontents);
             eprintln!("SP Metadata loaded: {:?}", parsed_sp);
-            sp_metadata.insert("issuer".to_string(), parsed_sp);
+            sp_metadata.insert(parsed_sp.entity_id.to_string(), parsed_sp);
         } else {
             eprintln!(
                 "Couldn't find file {:?}, not loading metadata.",
