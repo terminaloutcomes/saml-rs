@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["init_cert_from_base64","this is a terrible function and only used for me to figure out how to parse out the cert from an SP Metadata file"],["strip_cert_headers",""]],"struct":[["CertParseError",""]]});
+initSidebarItems({"fn":[["gen_self_signed_certificate","generates a really terrible self-signed certificate for testing purposes"],["init_cert_from_base64","this is a terrible function and only used for me to figure out how to parse out the cert from an SP Metadata file"],["strip_cert_headers",""]],"struct":[["CertParseError",""]]});
