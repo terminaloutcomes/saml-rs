@@ -470,6 +470,7 @@
 <span id="467">467</span>
 <span id="468">468</span>
 <span id="469">469</span>
+<span id="470">470</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Service Provider utilities and functions</span>
 <span class="doccomment">//!</span>
@@ -479,8 +480,9 @@
 <span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
 <span class="kw">use</span> <span class="ident">std::str::FromStr</span>;
 
-<span class="comment">// use std::io::Read;</span>
+<span class="kw">use</span> <span class="ident">openssl::x509::X509</span>;
 <span class="kw">use</span> <span class="ident">std::io::Cursor</span>;
+
 <span class="kw">use</span> <span class="ident">xml::attribute::OwnedAttribute</span>;
 <span class="kw">use</span> <span class="ident">xml::reader</span>::{<span class="ident">EventReader</span>, <span class="ident">XmlEvent</span>};
 
@@ -667,7 +669,7 @@
     <span class="doccomment">/// Does this SP expect signed assertions?</span>
     <span class="kw">pub</span> <span class="ident">want_assertions_signed</span>: <span class="ident">bool</span>,
     <span class="doccomment">/// The signing (public) certificate for the SP</span>
-    <span class="kw">pub</span> <span class="ident">x509_certificate</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">openssl::x509::X509</span><span class="op">&gt;</span>,
+    <span class="kw">pub</span> <span class="ident">x509_certificate</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">X509</span><span class="op">&gt;</span>,
     <span class="doccomment">/// SP Services</span>
     <span class="kw">pub</span> <span class="ident">services</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">ServiceBinding</span><span class="op">&gt;</span>,
     <span class="kw">pub</span> <span class="ident">protocol_support_enumeration</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
@@ -841,7 +843,7 @@
         <span class="kw">let</span> <span class="ident">parser</span> <span class="op">=</span> <span class="ident">EventReader::new</span>(<span class="ident">bufreader</span>);
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">depth</span> <span class="op">=</span> <span class="number">0</span>;
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">tag_name</span> <span class="op">=</span> <span class="string">&quot;###INVALID###&quot;</span>.<span class="ident">to_string</span>();
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">certificate_data</span> <span class="op">=</span> <span class="prelude-val">None</span>::<span class="op">&lt;</span><span class="ident">openssl::x509::X509</span><span class="op">&gt;</span>;
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">certificate_data</span> <span class="op">=</span> <span class="prelude-val">None</span>::<span class="op">&lt;</span><span class="ident">X509</span><span class="op">&gt;</span>;
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">meta</span> <span class="op">=</span> <span class="ident">ServiceProvider</span> {
             <span class="ident">entity_id</span>: <span class="string">&quot;&quot;</span>.<span class="ident">to_string</span>(),
