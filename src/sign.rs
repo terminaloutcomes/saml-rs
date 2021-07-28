@@ -66,7 +66,7 @@ pub fn load_public_cert_from_filename(cert_filename: &str) -> Result<X509, Strin
         }
     }
 
-    match openssl::x509::X509::from_pem(&cert_buffer) {
+    match X509::from_pem(&cert_buffer) {
         Ok(value) => Ok(value),
         Err(error) => Err(format!(
             "Failed to load certificate from pem bytes: {:?}",

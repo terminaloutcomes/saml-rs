@@ -2,9 +2,9 @@
 
 #![deny(unsafe_code)]
 
-// use serde::Serialize;
+use crate::xml::X509Utils;
+use openssl::x509::X509;
 use std::str::from_utf8;
-use tera::{Context, Tera};
 
 /// Stores the required data for generating a SAML metadata XML file
 #[derive(Debug)]
@@ -21,10 +21,8 @@ pub struct SamlMetadata {
     pub redirect_suffix: String,
     /// Appended to the baseurl when using the [SamlMetadata::post_url] function
     pub post_suffix: String,
-    pub x509_certificate: openssl::x509::X509,
+    pub x509_certificate: X509,
 }
-
-// use openssl::x509::X509;
 
 impl SamlMetadata {
     pub fn new(
@@ -34,7 +32,7 @@ impl SamlMetadata {
         logout_suffix: Option<String>,
         redirect_suffix: Option<String>,
         post_suffix: Option<String>,
-        x509_certificate: openssl::x509::X509,
+        x509_certificate: X509,
     ) -> Self {
         let hostname = hostname.to_string();
         let baseurl = baseurl.unwrap_or(format!("https://{}/SAML", hostname));
@@ -67,61 +65,157 @@ impl SamlMetadata {
     }
 }
 
+use crate::xml::write_event;
+use std::io::Write;
+use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
+
+pub fn xml_write_key<W: Write>(
+    key_use: &str,
+    base64_encoded_certificate: &str,
+    writer: &mut EventWriter<W>,
+) {
+    write_event(
+        XmlEvent::start_element(("md", "KeyDescriptor"))
+            .attr("use", key_use)
+            .into(),
+        writer,
+    );
+    write_event(
+        XmlEvent::start_element(("ds", "KeyInfo"))
+            .attr("xmlns:ds", "http://www.w3.org/2000/09/xmldsig#")
+            .into(),
+        writer,
+    );
+    write_event(XmlEvent::start_element(("ds", "X509Data")).into(), writer);
+    write_event(
+        XmlEvent::start_element(("ds", "X509Certificate")).into(),
+        writer,
+    );
+
+    write_event(
+        XmlEvent::characters(&base64_encoded_certificate.replace("\n", "")),
+        writer,
+    );
+    // end the x509certificate
+    write_event(XmlEvent::end_element().into(), writer);
+    // end the x509data
+    write_event(XmlEvent::end_element().into(), writer);
+    // end the ds:keyinfo
+    write_event(XmlEvent::end_element().into(), writer);
+    // end the md:keydescriptor signing
+    write_event(XmlEvent::end_element().into(), writer);
+}
+
 /// Generates the XML For a metadata file
 ///
 /// Current response data is based on the data returned from  https://samltest.id/saml/idp
 pub fn generate_metadata_xml(metadata: SamlMetadata) -> String {
-    // Load the signing (public) certificate
+    let base64_encoded_certificate = metadata.x509_certificate.get_as_pem_string(true);
 
-    // Base64 Encode it
-    // TODO: the base64 encoded cert bit
+    let mut buffer = Vec::new();
+    let mut writer = EmitterConfig::new()
+        .perform_indent(true)
+        .write_document_declaration(false)
+        .create_writer(&mut buffer);
 
-    let mut context = Context::new();
-    context.insert("entity_id", &metadata.entity_id);
-    context.insert("logout_url", metadata.logout_url().as_str());
-    context.insert("redirect_url", &metadata.redirect_url());
-
-    log::debug!("{}", metadata.logout_url());
-    log::debug!("{}", metadata.redirect_url());
-
-    let cert_pem = metadata.x509_certificate.to_pem().unwrap();
-    let cert_pem = from_utf8(&cert_pem).unwrap().to_string();
-    let base64_encoded_certificate = crate::cert::strip_cert_headers(cert_pem);
-
-    context.insert("base64_encoded_certificate", &base64_encoded_certificate);
-
-    let metadata_contents = String::from(
-        r#"<?xml version="1.0"?>
-<md:EntityDescriptor
-    xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata"
-    xmlns:ds="http://www.w3.org/2000/09/xmldsig#" entityID="{{entity_id | safe}}">
-    <md:IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
-    <md:KeyDescriptor use="signing">
-    {% if base64_encoded_certificate %}<ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
-        <ds:X509Data>
-            <ds:X509Certificate>{{base64_encoded_certificate | safe }}</ds:X509Certificate>
-        </ds:X509Data>
-    </ds:KeyInfo>{% endif %}
-    </md:KeyDescriptor>
-    <md:KeyDescriptor use="encryption">
-    {% if base64_encoded_certificate %}
-        <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
-            <ds:X509Data>
-                <ds:X509Certificate>{{base64_encoded_certificate | safe }}</ds:X509Certificate>
-            </ds:X509Data>
-        </ds:KeyInfo>{% endif %}
-    </md:KeyDescriptor>
-    <md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="{{logout_url | safe }}"/>
-        <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>
-    <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="{{redirect_url | safe }}"/>
-    </md:IDPSSODescriptor>
-    <md:ContactPerson contactType="technical">
-        <md:GivenName>Admin</md:GivenName>
-        <md:EmailAddress>mailto:admin@example.com</md:EmailAddress>
-    </md:ContactPerson>
-</md:EntityDescriptor>"#,
+    write_event(
+        XmlEvent::start_element(("md", "EntityDescriptor"))
+            .attr("xmlns:md", "urn:oasis:names:tc:SAML:2.0:metadata")
+            .attr("xmlns:ds", "http://www.w3.org/2000/09/xmldsig#")
+            .attr("entityID", &metadata.entity_id)
+            .into(),
+        &mut writer,
     );
 
-    Tera::one_off(&metadata_contents, &context, true).unwrap()
-    // metadata_contents
+    write_event(
+        XmlEvent::start_element(("md", "IDPSSODescriptor"))
+            .attr(
+                "protocolSupportEnumeration",
+                "urn:oasis:names:tc:SAML:2.0:protocol",
+            )
+            .into(),
+        &mut writer,
+    );
+
+    xml_write_key("signing", &base64_encoded_certificate, &mut writer);
+    xml_write_key("encryption", &base64_encoded_certificate, &mut writer);
+
+    write_event(
+        XmlEvent::start_element(("md", "SingleLogoutService"))
+            // TODO: make the binding configurable, when we support something else 🤔
+            .attr(
+                "Binding",
+                "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+            )
+            .attr("Location", metadata.logout_url().as_str())
+            .into(),
+        &mut writer,
+    );
+    write_event(XmlEvent::end_element().into(), &mut writer);
+
+    write_event(
+        XmlEvent::start_element(("md", "NameIDFormat")).into(),
+        &mut writer,
+    );
+    write_event(
+        // TODO: nameid-format should definitely be configurable
+        XmlEvent::characters(&"urn:oasis:names:tc:SAML:2.0:nameid-format:transient"),
+        &mut writer,
+    );
+    write_event(XmlEvent::end_element().into(), &mut writer);
+
+    write_event(
+        XmlEvent::start_element(("md", "SingleSignOnService"))
+            // TODO: make the binding configurable, when we support something else 🤔
+            .attr(
+                "Binding",
+                "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+            )
+            .attr("Location", metadata.redirect_url().as_str())
+            .into(),
+        &mut writer,
+    );
+    write_event(XmlEvent::end_element().into(), &mut writer);
+
+    // end md:IDPSSODescriptor
+    write_event(XmlEvent::end_element().into(), &mut writer);
+
+    write_event(
+        XmlEvent::start_element(("md", "ContactPerson"))
+            // TODO: be able to enumerate technical contacts in IdP metadta
+            .attr("contactType", "technical")
+            .into(),
+        &mut writer,
+    );
+
+    write_event(
+        XmlEvent::start_element(("md", "GivenName")).into(),
+        &mut writer,
+    );
+    write_event(
+        // TODO: md:contactperson name should be configurable
+        XmlEvent::characters(&"Admin"),
+        &mut writer,
+    );
+    write_event(XmlEvent::end_element().into(), &mut writer);
+
+    write_event(
+        XmlEvent::start_element(("md", "EmailAddress")).into(),
+        &mut writer,
+    );
+    write_event(
+        // TODO: md:contactperson EmailAddress should be configurable
+        XmlEvent::characters(&"mailto:admin@example.com"),
+        &mut writer,
+    );
+    write_event(XmlEvent::end_element().into(), &mut writer);
+
+    // end md:ContactPerson
+    write_event(XmlEvent::end_element().into(), &mut writer);
+
+    // end md:EntityDescriptor
+    write_event(XmlEvent::end_element().into(), &mut writer);
+
+    // TODO: figure out if we really need that prepended silliness '<?xml version=\"1.0\"?>'
+    format!("<?xml version=\"1.0\"?>\n{}", from_utf8(&buffer).unwrap())
 }

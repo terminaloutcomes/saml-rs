@@ -4,8 +4,27 @@
 
 use serde::Serialize;
 use std::io::Write;
-
+use std::str::from_utf8;
 use xml::writer::{EventWriter, XmlEvent};
+
+// Extensions for [openssl::x509::X509] for nicer functionality
+pub trait X509Utils {
+    fn get_as_pem_string(&self, includeheaders: bool) -> String;
+}
+
+impl X509Utils for openssl::x509::X509 {
+    /// return an X509 object as a string,
+    /// either including the ```--- BEGIN LOLS ---```  or not
+    fn get_as_pem_string(&self, includeheaders: bool) -> String {
+        let cert_pem = &self.to_pem().unwrap();
+        let cert_pem: String = from_utf8(&cert_pem).unwrap().to_string();
+
+        match includeheaders {
+            true => cert_pem,
+            false => crate::cert::strip_cert_headers(cert_pem),
+        }
+    }
+}
 
 /// Used by the XML Event writer to append events to the response
 pub fn write_event<W: Write>(event: XmlEvent, writer: &mut EventWriter<W>) -> String {

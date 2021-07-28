@@ -6,8 +6,9 @@
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
-// use std::io::Read;
+use openssl::x509::X509;
 use std::io::Cursor;
+
 use xml::attribute::OwnedAttribute;
 use xml::reader::{EventReader, XmlEvent};
 
@@ -194,7 +195,7 @@ pub struct ServiceProvider {
     /// Does this SP expect signed assertions?
     pub want_assertions_signed: bool,
     /// The signing (public) certificate for the SP
-    pub x509_certificate: Option<openssl::x509::X509>,
+    pub x509_certificate: Option<X509>,
     /// SP Services
     pub services: Vec<ServiceBinding>,
     pub protocol_support_enumeration: Option<String>,
@@ -368,7 +369,7 @@ impl ServiceProvider {
         let parser = EventReader::new(bufreader);
         let mut depth = 0;
         let mut tag_name = "###INVALID###".to_string();
-        let mut certificate_data = None::<openssl::x509::X509>;
+        let mut certificate_data = None::<X509>;
 
         let mut meta = ServiceProvider {
             entity_id: "".to_string(),
