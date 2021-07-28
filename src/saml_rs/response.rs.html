@@ -315,37 +315,64 @@
 <span id="312">312</span>
 <span id="313">313</span>
 <span id="314">314</span>
+<span id="315">315</span>
+<span id="316">316</span>
+<span id="317">317</span>
+<span id="318">318</span>
+<span id="319">319</span>
+<span id="320">320</span>
+<span id="321">321</span>
+<span id="322">322</span>
+<span id="323">323</span>
+<span id="324">324</span>
+<span id="325">325</span>
+<span id="326">326</span>
+<span id="327">327</span>
+<span id="328">328</span>
+<span id="329">329</span>
+<span id="330">330</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Want to build a SAML response? Here&#39;s your module. 🥳</span>
 
-<span class="attribute">#![<span class="ident">deny</span>(<span class="ident">unsafe_code</span>)]</span>
+<span class="comment">// #![deny(unsafe_code)]</span>
 
 <span class="kw">use</span> <span class="ident">chrono</span>::{<span class="ident">DateTime</span>, <span class="ident">SecondsFormat</span>, <span class="ident">Utc</span>};
 
 <span class="kw">use</span> <span class="ident">std::io::Write</span>;
 
-<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::xml::write_event</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::xml</span>::{<span class="ident">write_event</span>, <span class="ident">ResponseAttribute</span>};
 <span class="kw">use</span> <span class="ident">xml::writer</span>::{<span class="ident">EmitterConfig</span>, <span class="ident">EventWriter</span>, <span class="ident">XmlEvent</span>};
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="doccomment">/// Stores all the required elements of a SAML response... maybe?</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ResponseElements</span> {
     <span class="comment">// #[serde(rename = &quot;Issuer&quot;)]</span>
+    <span class="doccomment">/// Issuer of the resposne?</span>
+    <span class="comment">// TODO: Figure out if this is right :P</span>
     <span class="kw">pub</span> <span class="ident">issuer</span>: <span class="ident">String</span>,
     <span class="comment">// #[serde(rename = &quot;ID&quot;)]</span>
+    <span class="doccomment">/// ID of the response</span>
+    <span class="doccomment">/// TODO: Figure out the rules for generating this</span>
     <span class="kw">pub</span> <span class="ident">response_id</span>: <span class="ident">String</span>,
     <span class="comment">// #[serde(rename = &quot;IssueInstant&quot;)]</span>
+    <span class="doccomment">/// Issue time of the response</span>
     <span class="kw">pub</span> <span class="ident">issue_instant</span>: <span class="ident">DateTime</span><span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span>,
     <span class="comment">// #[serde(rename = &quot;InResponseTo&quot;)]</span>
-    <span class="kw">pub</span> <span class="ident">request_id</span>: <span class="ident">String</span>,
+    <span class="doccomment">/// RelayState from the original AuthN request</span>
+    <span class="kw">pub</span> <span class="ident">relay_state</span>: <span class="ident">String</span>,
 
     <span class="comment">// #[serde(rename = &quot;Attributes&quot;)]</span>
-    <span class="kw">pub</span> <span class="ident">attributes</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw">crate</span><span class="ident">::xml::ResponseAttribute</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// A list of relevant [ResponseAttribute]s</span>
+    <span class="kw">pub</span> <span class="ident">attributes</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">ResponseAttribute</span><span class="op">&gt;</span>,
     <span class="comment">// #[serde(rename = &quot;Destination&quot;)]</span>
+    <span class="doccomment">/// Destination endpoint of the request</span>
+    <span class="comment">// TODO just like with the authnrequest, find out if destination is the right name/referecne</span>
     <span class="kw">pub</span> <span class="ident">destination</span>: <span class="ident">String</span>,
 
+    <span class="doccomment">/// The [AuthNStatement] itself</span>
     <span class="kw">pub</span> <span class="ident">authnstatement</span>: <span class="ident">AuthNStatement</span>,
 
+    <span class="doccomment">/// ID Of the assertion</span>
     <span class="kw">pub</span> <span class="ident">assertion_id</span>: <span class="ident">String</span>,
 }
 
@@ -354,10 +381,15 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// The expiry&#39;s optional</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">AuthNStatement</span> {
+    <span class="doccomment">/// Issue time of the response</span>
+    <span class="doccomment">/// TODO Figure out if this is different to the authnresponse?</span>
     <span class="kw">pub</span> <span class="ident">instant</span>: <span class="ident">DateTime</span><span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// TODO document this</span>
     <span class="kw">pub</span> <span class="ident">session_index</span>: <span class="ident">String</span>,
-    <span class="comment">// TODO: do we need to respond with multiple context class refs?</span>
+    <span class="doccomment">/// TODO: do we need to respond with multiple context class refs?</span>
     <span class="kw">pub</span> <span class="ident">classref</span>: <span class="ident">String</span>,
+    <span class="doccomment">/// Expiry of the statement,</span>
+    <span class="doccomment">/// TODO: findd out if this is optional</span>
     <span class="kw">pub</span> <span class="ident">expiry</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">DateTime</span><span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span><span class="op">&gt;</span>,
 }
 
@@ -497,7 +529,7 @@
                     .<span class="ident">to_rfc3339_opts</span>(<span class="ident">SecondsFormat::Secs</span>, <span class="bool-val">true</span>),
             )
             .<span class="ident">attr</span>(<span class="string">&quot;Destination&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">data</span>.<span class="ident">destination</span>)
-            .<span class="ident">attr</span>(<span class="string">&quot;InResponseTo&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">data</span>.<span class="ident">request_id</span>)
+            .<span class="ident">attr</span>(<span class="string">&quot;InResponseTo&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">data</span>.<span class="ident">relay_state</span>)
             .<span class="ident">into</span>(),
         <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>,
     );
@@ -568,7 +600,7 @@
         <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;SubjectConfirmationData&quot;</span>))
             .<span class="ident">attr</span>(<span class="string">&quot;NotOnOrAfter&quot;</span>, <span class="string">&quot;2024-01-18T06:21:48Z&quot;</span>)
             .<span class="ident">attr</span>(<span class="string">&quot;Recipient&quot;</span>, <span class="string">&quot;http://sp.example.com/demo1/index.php?acs&quot;</span>)
-            .<span class="ident">attr</span>(<span class="string">&quot;InResponseTo&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">data</span>.<span class="ident">request_id</span>)
+            .<span class="ident">attr</span>(<span class="string">&quot;InResponseTo&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">data</span>.<span class="ident">relay_state</span>)
             .<span class="ident">into</span>(),
         <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>,
     );

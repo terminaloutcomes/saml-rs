@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["add_attribute","add an attribute to the statement"],["write_event","Used by the XML Event writer to append events to the response"]],"struct":[["ResponseAttribute",""]],"trait":[["X509Utils",""]]});
+initSidebarItems({"fn":[["add_attribute","add an attribute to the statement"],["write_event","Used by the XML Event writer to append events to the response"]],"struct":[["ResponseAttribute","Attributes for responses"]],"trait":[["X509Utils","Extensions for [openssl::x509::X509] for nicer functionality"]]});

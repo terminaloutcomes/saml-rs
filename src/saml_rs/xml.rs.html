@@ -77,18 +77,24 @@
 <span id="74">74</span>
 <span id="75">75</span>
 <span id="76">76</span>
+<span id="77">77</span>
+<span id="78">78</span>
+<span id="79">79</span>
+<span id="80">80</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Internal utilities for doing things with XML</span>
 
-<span class="attribute">#![<span class="ident">deny</span>(<span class="ident">unsafe_code</span>)]</span>
+<span class="comment">// #![deny(unsafe_code)]</span>
 
 <span class="kw">use</span> <span class="ident">serde::Serialize</span>;
 <span class="kw">use</span> <span class="ident">std::io::Write</span>;
 <span class="kw">use</span> <span class="ident">std::str::from_utf8</span>;
 <span class="kw">use</span> <span class="ident">xml::writer</span>::{<span class="ident">EventWriter</span>, <span class="ident">XmlEvent</span>};
 
-<span class="comment">// Extensions for [openssl::x509::X509] for nicer functionality</span>
+<span class="doccomment">/// Extensions for [openssl::x509::X509] for nicer functionality</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">X509Utils</span> {
+    <span class="doccomment">/// return an X509 object as a string,</span>
+    <span class="doccomment">/// either including the ```--- BEGIN LOLS ---```  or not</span>
     <span class="kw">fn</span> <span class="ident">get_as_pem_string</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">includeheaders</span>: <span class="ident">bool</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span>;
 }
 
@@ -116,6 +122,7 @@
 
 <span class="comment">// let mut animals: [&amp;str; 2] = [&quot;bird&quot;, &quot;frog&quot;];</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Default</span>, <span class="ident">Serialize</span>, <span class="ident">Clone</span>)]</span>
+<span class="doccomment">/// Attributes for responses</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ResponseAttribute</span> {
     <span class="ident">name</span>: <span class="ident">String</span>,
     <span class="ident">nameformat</span>: <span class="ident">String</span>,
@@ -123,6 +130,7 @@
 }
 
 <span class="kw">impl</span> <span class="ident">ResponseAttribute</span> {
+    <span class="doccomment">/// new Response Attribute with `attrname-format:basic`</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">basic</span>(<span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">values</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">ResponseAttribute</span> {
         <span class="ident">ResponseAttribute</span> {
             <span class="ident">name</span>: <span class="ident">name</span>.<span class="ident">to_string</span>(),

@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["load_key_from_filename",""],["load_public_cert_from_filename",""],["sign_data",""]]});
+initSidebarItems({"fn":[["load_key_from_filename","Loads a PEM-encoded public key into a PKey object"],["load_public_cert_from_filename","Loads a public cert from a PEM file into an X509 object"],["sign_data","Sign some data, with a key"]]});

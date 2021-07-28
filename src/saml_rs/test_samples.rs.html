@@ -89,6 +89,7 @@
 <span id="86">86</span>
 <span id="87">87</span>
 <span id="88">88</span>
+<span id="89">89</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Random samples of XML I&#39;ve found around the place</span>
 
@@ -109,8 +110,9 @@ Version=&quot;2.0&quot;
 <span class="kw">pub</span> <span class="kw">const</span> <span class="ident">TEST_AUTHN_REQUEST_EXAMPLE_COM_BASE64_DEFLATED</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">r#&quot;fZFNr5swEEX/CvI+GBwlRFZAosniRUpbFGgX3TwZMymWjE09Jk3/ffhI1VaqshuJM+cO13sUne55PvjWXODHAOiDe6cN8vlDSgZnuBWokBvRAXIveZl/PHMWRrx31ltpNQlyRHBeWXOwBocOXAnupiR8uZxT0nrfI6d0MvoxIFQNLVtV11aDb0NESyclo8XnsiLBcUSUEZPtzy7cRddrCKXt6C2eeXqBRjmQngSnY0red1Esd9dGbOto01zlRjbJNRFiK0WdsDWLRwxxgJNBL4xPCYtYvIqSFYuriPF1wiP2jQTF858+KNMo8/11AfUCIX+rqmK1nP8VHM6njwDJ5n75HOz+Kva1Vvxuk2T/626aKfb7eXi6l6Cefxplp2NhtZK/glxr+/PgQHhISUxotqz8+9zZAw==&quot;#</span>;
 
 <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">dead_code</span>)]</span>
-<span class="comment">// AuthNRequest with embedded signature (HTTP-POST binding)</span>
-<span class="comment">// from https://developers.onelogin.com/saml/examples/authnrequest</span>
+<span class="doccomment">/// AuthNRequest with embedded signature (HTTP-POST binding)</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// from https://developers.onelogin.com/saml/examples/authnrequest</span>
 <span class="kw">pub</span> <span class="kw">const</span> <span class="ident">TEST_AUTHN_REQUEST_WITH_EMBEDDED_SIGNATURE_POST</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">r#&quot;&lt;samlp:AuthnRequest xmlns:samlp=&quot;urn:oasis:names:tc:SAML:2.0:protocol&quot; xmlns:saml=&quot;urn:oasis:names:tc:SAML:2.0:assertion&quot; ID=&quot;pfx41d8ef22-e612-8c50-9960-1b16f15741b3&quot; Version=&quot;2.0&quot; ProviderName=&quot;SP test&quot; IssueInstant=&quot;2014-07-16T23:52:45Z&quot; Destination=&quot;http://idp.example.com/SSOService.php&quot; ProtocolBinding=&quot;urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST&quot; AssertionConsumerServiceURL=&quot;http://sp.example.com/demo1/index.php?acs&quot;&gt;
   &lt;saml:Issuer&gt;http://sp.example.com/demo1/metadata.php&lt;/saml:Issuer&gt;
   &lt;ds:Signature xmlns:ds=&quot;http://www.w3.org/2000/09/xmldsig#&quot;&gt;

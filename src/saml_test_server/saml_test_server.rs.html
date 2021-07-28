@@ -447,7 +447,7 @@
 <span class="doccomment">//! }</span>
 <span class="doccomment">//!</span>
 
-<span class="attribute">#![<span class="ident">deny</span>(<span class="ident">unsafe_code</span>)]</span>
+<span class="attribute">#![<span class="ident">forbid</span>(<span class="ident">unsafe_code</span>)]</span>
 
 <span class="comment">// use saml_rs::AuthnDecodeError;</span>
 <span class="kw">use</span> <span class="ident">saml_rs::metadata</span>::{<span class="ident">generate_metadata_xml</span>, <span class="ident">SamlMetadata</span>};
@@ -733,8 +733,8 @@
     <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="string">&quot;&lt;/ul&gt;&quot;</span>);
 
     <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
-        <span class="string">&quot;&lt;p&gt;request_id: {:?}&lt;/p&gt;&quot;</span>,
-        <span class="ident">parsed_saml_request</span>.<span class="ident">request_id</span>
+        <span class="string">&quot;&lt;p&gt;relay_state: {:?}&lt;/p&gt;&quot;</span>,
+        <span class="ident">parsed_saml_request</span>.<span class="ident">relay_state</span>
     ));
     <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
         <span class="string">&quot;&lt;p&gt;issue_instant: {:?}&lt;/p&gt;&quot;</span>,
@@ -809,7 +809,7 @@
             <span class="ident">NaiveDate::from_ymd</span>(<span class="number">2014</span>, <span class="number">7</span>, <span class="number">17</span>).<span class="ident">and_hms</span>(<span class="number">1</span>, <span class="number">1</span>, <span class="number">48</span>),
             <span class="ident">Utc</span>,
         ),
-        <span class="ident">request_id</span>: <span class="ident">String::from</span>(<span class="string">&quot;ONELOGIN_4fee3b046395c4e751011e97f8900b5273d56685&quot;</span>),
+        <span class="ident">relay_state</span>: <span class="ident">String::from</span>(<span class="string">&quot;ONELOGIN_4fee3b046395c4e751011e97f8900b5273d56685&quot;</span>),
         <span class="ident">attributes</span>: <span class="ident">responseattributes</span>,
         <span class="ident">destination</span>: <span class="ident">form_target</span>,
         <span class="ident">authnstatement</span>,

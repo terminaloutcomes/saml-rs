@@ -79,10 +79,13 @@
 <span id="76">76</span>
 <span id="77">77</span>
 <span id="78">78</span>
+<span id="79">79</span>
+<span id="80">80</span>
+<span id="81">81</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Certificate and signing-related things</span>
 
-<span class="attribute">#![<span class="ident">deny</span>(<span class="ident">unsafe_code</span>)]</span>
+<span class="comment">// #![deny(unsafe_code)]</span>
 
 <span class="kw">use</span> <span class="ident">openssl</span>;
 <span class="kw">use</span> <span class="ident">openssl::x509</span>::{<span class="ident">X509NameBuilder</span>, <span class="ident">X509</span>};
@@ -90,6 +93,7 @@
 <span class="kw">use</span> <span class="ident">std::fmt</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
+<span class="doccomment">/// Error type for when parsing certificates from input</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">CertParseError</span>;
 
 <span class="kw">impl</span> <span class="ident">fmt::Display</span> <span class="kw">for</span> <span class="ident">CertParseError</span> {
@@ -136,6 +140,8 @@ https://docs.rs/openssl/0.10.35/openssl/pkey/index.html
 
 */</span>
 
+<span class="doccomment">/// Strips `-----BEGIN CERTIFICATE-----` and `-----END CERTIFICATE-----` off a String,</span>
+<span class="doccomment">/// good for including a certificate in an XML declaration for example</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">strip_cert_headers</span>(<span class="ident">cert_string</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
     <span class="ident">cert_string</span>
         .<span class="ident">replace</span>(<span class="string">&quot;-----BEGIN CERTIFICATE-----&quot;</span>, <span class="string">&quot;&quot;</span>)

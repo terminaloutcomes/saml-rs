@@ -222,21 +222,38 @@
 <span id="219">219</span>
 <span id="220">220</span>
 <span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Handy for the XML metadata part of SAML</span>
 
-<span class="attribute">#![<span class="ident">deny</span>(<span class="ident">unsafe_code</span>)]</span>
+<span class="comment">// #![deny(unsafe_code)]</span>
 
 <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::xml::X509Utils</span>;
 <span class="kw">use</span> <span class="ident">openssl::x509::X509</span>;
 <span class="kw">use</span> <span class="ident">std::str::from_utf8</span>;
 
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::xml::write_event</span>;
+<span class="kw">use</span> <span class="ident">std::io::Write</span>;
+<span class="kw">use</span> <span class="ident">xml::writer</span>::{<span class="ident">EmitterConfig</span>, <span class="ident">EventWriter</span>, <span class="ident">XmlEvent</span>};
+
 <span class="doccomment">/// Stores the required data for generating a SAML metadata XML file</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SamlMetadata</span> {
+    <span class="doccomment">/// Hostname of the issuer, used for URLs etc</span>
     <span class="kw">pub</span> <span class="ident">hostname</span>: <span class="ident">String</span>,
+    <span class="doccomment">/// Set this as the base of the suffix-items elsewhere</span>
     <span class="kw">pub</span> <span class="ident">baseurl</span>: <span class="ident">String</span>,
     <span class="doccomment">/// entityID is transmitted in all requests</span>
+    <span class="doccomment">///</span>
     <span class="doccomment">/// Every SAML system entity has an entity ID, a globally-unique identifier used in software configurations, relying-party databases, and client-side cookies. On the wire, every SAML protocol message contains the entity ID of the issuer</span>
     <span class="comment">// #[serde(rename = &quot;entityID&quot;)]</span>
     <span class="kw">pub</span> <span class="ident">entity_id</span>: <span class="ident">String</span>,
@@ -246,10 +263,12 @@
     <span class="kw">pub</span> <span class="ident">redirect_suffix</span>: <span class="ident">String</span>,
     <span class="doccomment">/// Appended to the baseurl when using the [SamlMetadata::post_url] function</span>
     <span class="kw">pub</span> <span class="ident">post_suffix</span>: <span class="ident">String</span>,
+    <span class="doccomment">/// Public certificate for signing/encryption</span>
     <span class="kw">pub</span> <span class="ident">x509_certificate</span>: <span class="ident">X509</span>,
 }
 
 <span class="kw">impl</span> <span class="ident">SamlMetadata</span> {
+    <span class="doccomment">/// Create a new SamlMetadata object for your IdP</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(
         <span class="ident">hostname</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
         <span class="ident">baseurl</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
@@ -274,26 +293,27 @@
         }
     }
 
+    <span class="doccomment">/// really simple version with a self-signed certificate based on just the hostname. Mainly for testing.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_hostname</span>(<span class="ident">hostname</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">SamlMetadata</span> {
         <span class="kw">let</span> <span class="ident">cert</span> <span class="op">=</span> <span class="kw">crate</span><span class="ident">::cert::gen_self_signed_certificate</span>(<span class="ident">hostname</span>);
         <span class="ident">SamlMetadata::new</span>(<span class="ident">hostname</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="ident">cert</span>)
     }
 
+    <span class="doccomment">/// return the generated Logout URL based on the baseurl + logout_suffix</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">logout_url</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
         <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.<span class="ident">baseurl</span>, <span class="self">self</span>.<span class="ident">logout_suffix</span>)
     }
+    <span class="doccomment">/// return the generated redirect URL based on the baseurl + redirect_suffix</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">redirect_url</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
         <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.<span class="ident">baseurl</span>, <span class="self">self</span>.<span class="ident">redirect_suffix</span>)
     }
+    <span class="doccomment">/// return the generated post URL based on the baseurl + post_suffix</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">post_url</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
         <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.<span class="ident">baseurl</span>, <span class="self">self</span>.<span class="ident">post_suffix</span>)
     }
 }
 
-<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::xml::write_event</span>;
-<span class="kw">use</span> <span class="ident">std::io::Write</span>;
-<span class="kw">use</span> <span class="ident">xml::writer</span>::{<span class="ident">EmitterConfig</span>, <span class="ident">EventWriter</span>, <span class="ident">XmlEvent</span>};
-
+<span class="doccomment">/// Write a key to an XMLEventWriter</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">xml_write_key</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span>(
     <span class="ident">key_use</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
     <span class="ident">base64_encoded_certificate</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
