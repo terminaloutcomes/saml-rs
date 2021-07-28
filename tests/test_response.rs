@@ -4,8 +4,9 @@ mod tests {
 
     use chrono::{DateTime, Duration, NaiveDate, Utc};
 
-    use saml_rs::response::{create_response, AuthNStatement, ResponseAttribute, ResponseElements};
+    use saml_rs::response::{create_response, AuthNStatement, ResponseElements};
     use saml_rs::test_samples::TEST_SAML_UNSIGNED_RESPONSE_UNSIGNED_ASSERTION;
+    use saml_rs::xml::ResponseAttribute;
     use std::str::from_utf8;
     #[test]
     /// tests saml_rs::metadata::SamlMetadata::new()

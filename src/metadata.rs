@@ -19,7 +19,10 @@ pub struct SamlMetadata {
     pub redirect_suffix: String,
     /// Appended to the baseurl when using the [SamlMetadata::post_url] function
     pub post_suffix: String,
+    pub base64_encoded_certificate: Option<String>,
 }
+
+// use openssl::x509::X509;
 
 impl SamlMetadata {
     pub fn new(
@@ -29,25 +32,25 @@ impl SamlMetadata {
         logout_suffix: Option<String>,
         redirect_suffix: Option<String>,
         post_suffix: Option<String>,
+        base64_encoded_certificate: Option<String>,
     ) -> Self {
         let hostname = hostname.to_string();
         let baseurl = baseurl.unwrap_or(format!("https://{}/SAML", hostname));
         let entity_id = entity_id.unwrap_or(format!("{}/idp", baseurl));
         let logout_suffix_default = String::from("/Logout");
-        let redirect_suffix_default = String::from("/Redirect");
-        let post_suffix_default = String::from("/POST");
         SamlMetadata {
             hostname,
             baseurl,
             entity_id,
             logout_suffix: logout_suffix.unwrap_or(logout_suffix_default),
-            redirect_suffix: redirect_suffix.unwrap_or(redirect_suffix_default),
-            post_suffix: post_suffix.unwrap_or(post_suffix_default),
+            redirect_suffix: redirect_suffix.unwrap_or_else(|| String::from("/Redirect")),
+            post_suffix: post_suffix.unwrap_or_else(|| String::from("/POST")),
+            base64_encoded_certificate,
         }
     }
 
     pub fn from_hostname(hostname: &str) -> SamlMetadata {
-        SamlMetadata::new(hostname, None, None, None, None, None)
+        SamlMetadata::new(hostname, None, None, None, None, None, None)
     }
 
     pub fn logout_url(&self) -> String {
@@ -61,6 +64,7 @@ impl SamlMetadata {
     }
 }
 
+use tera::{Context, Tera};
 /// Generates the XML For a metadata file
 ///
 /// Current response data is based on the data returned from  https://samltest.id/saml/idp
@@ -69,57 +73,52 @@ pub fn generate_metadata_xml(metadata: SamlMetadata) -> String {
 
     // Base64 Encode it
     // TODO: the base64 encoded cert bit
-    let base64_encoded_certificate = base64::encode("yeah, soon.");
 
-    let mut metadata_contents = String::new();
-    metadata_contents.push_str(&format!(
-        "<?xml version=\"1.0\"?>
+    let mut context = Context::new();
+    context.insert("entity_id", &metadata.entity_id);
+    context.insert("logout_url", metadata.logout_url().as_str());
+    context.insert("redirect_url", &metadata.redirect_url());
+
+    log::debug!("{}", metadata.logout_url());
+    log::debug!("{}", metadata.redirect_url());
+
+    match metadata.base64_encoded_certificate {
+        Some(value) => context.insert("base64_encoded_certificate", &value),
+        None => log::debug!("no cert provided"),
+    }
+
+    let metadata_contents = String::from(
+        r#"<?xml version="1.0"?>
 <md:EntityDescriptor
-    xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\"
-    xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\" entityID=\"{}\">
-    <md:IDPSSODescriptor protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">
-        ",
-        metadata.entity_id
-    ));
-
-    metadata_contents.push_str(
-        "
-    <md:KeyDescriptor use=\"signing\">
-    <ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\">
-        <ds:X509Data>\n",
-    );
-    metadata_contents.push_str(&format!(
-        "            <ds:X509Certificate>\n{}\n            </ds:X509Certificate>\n",
-        base64_encoded_certificate
-    ));
-    metadata_contents.push_str(
-        r#"        </ds:X509Data>
-    </ds:KeyInfo>
+    xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata"
+    xmlns:ds="http://www.w3.org/2000/09/xmldsig#" entityID="{{entity_id | safe}}">
+    <md:IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+    <md:KeyDescriptor use="signing">
+    {% if base64_encoded_certificate %}<ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+        <ds:X509Data>
+            <ds:X509Certificate>{{base64_encoded_certificate | safe }}</ds:X509Certificate>
+        </ds:X509Data>
+    </ds:KeyInfo>{% endif %}
     </md:KeyDescriptor>
     <md:KeyDescriptor use="encryption">
+    {% if base64_encoded_certificate %}
         <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
-        <ds:X509Data>
-    "#,
-    );
-    metadata_contents.push_str(&format!(
-        "            <ds:X509Certificate>{}\n            </ds:X509Certificate>\n",
-        base64_encoded_certificate
-    ));
-    metadata_contents.push_str(&format!("
-        </ds:X509Data>
-    </ds:KeyInfo>
+            <ds:X509Data>
+                <ds:X509Certificate>{{base64_encoded_certificate | safe }}</ds:X509Certificate>
+            </ds:X509Data>
+        </ds:KeyInfo>{% endif %}
     </md:KeyDescriptor>
-    <md:SingleLogoutService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"{}\"/>\n", metadata.logout_url()));
-    metadata_contents.push_str("    <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>\n");
-    metadata_contents.push_str(&format!("    <md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"{}\"/>\n", &metadata.redirect_url()));
-    metadata_contents.push_str(
-        "</md:IDPSSODescriptor>
-    <md:ContactPerson contactType=\"technical\">
+    <md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="{{logout_url | safe }}"/>
+        <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>
+    <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="{{redirect_url | safe }}"/>
+    </md:IDPSSODescriptor>
+    <md:ContactPerson contactType="technical">
         <md:GivenName>Admin</md:GivenName>
         <md:EmailAddress>mailto:admin@example.com</md:EmailAddress>
     </md:ContactPerson>
-</md:EntityDescriptor>",
+</md:EntityDescriptor>"#,
     );
 
-    metadata_contents
+    Tera::one_off(&metadata_contents, &context, true).unwrap()
+    // metadata_contents
 }

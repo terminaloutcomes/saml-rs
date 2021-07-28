@@ -3,11 +3,10 @@
 #![deny(unsafe_code)]
 
 use chrono::{DateTime, SecondsFormat, Utc};
-use serde::Serialize;
 
 use std::io::Write;
 
-use crate::xmlutils::write_event;
+use crate::xml::write_event;
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
 #[derive(Debug)]
@@ -23,31 +22,13 @@ pub struct ResponseElements {
     pub request_id: String,
 
     // #[serde(rename = "Attributes")]
-    pub attributes: Vec<ResponseAttribute>,
+    pub attributes: Vec<crate::xml::ResponseAttribute>,
     // #[serde(rename = "Destination")]
     pub destination: String,
 
     pub authnstatement: AuthNStatement,
 
     pub assertion_id: String,
-}
-
-// let mut animals: [&str; 2] = ["bird", "frog"];
-#[derive(Debug, Default, Serialize, Clone)]
-pub struct ResponseAttribute {
-    name: String,
-    nameformat: String,
-    values: Vec<String>,
-}
-
-impl ResponseAttribute {
-    pub fn basic(name: &str, values: Vec<String>) -> ResponseAttribute {
-        ResponseAttribute {
-            name: name.to_string(),
-            nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic".to_string(),
-            values,
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -140,29 +121,6 @@ impl AuthNStatement {
 fn add_issuer<W: Write>(issuer: &str, writer: &mut EventWriter<W>) {
     write_event(XmlEvent::start_element(("saml", "Issuer")).into(), writer);
     write_event(XmlEvent::characters(&issuer), writer);
-    write_event(XmlEvent::end_element().into(), writer);
-}
-
-/// add an attribute to the statement
-fn add_attribute<W: Write>(attr: ResponseAttribute, writer: &mut EventWriter<W>) {
-    write_event(
-        XmlEvent::start_element(("saml", "Attribute"))
-            .attr("Name", attr.name.as_str())
-            .attr("NameFormat", attr.nameformat.as_str())
-            .into(),
-        writer,
-    );
-    for value in attr.values {
-        write_event(
-            XmlEvent::start_element(("saml", "AttributeValue"))
-                .attr("xsi:type", "xs:string")
-                .into(),
-            writer,
-        );
-        write_event(XmlEvent::characters(value.as_str()), writer);
-        write_event(XmlEvent::end_element().into(), writer);
-    }
-    // write_event(XmlEvent::end_element().into(), writer);
     write_event(XmlEvent::end_element().into(), writer);
 }
 
@@ -339,7 +297,7 @@ pub fn create_response(data: ResponseElements) -> Vec<u8> {
     data.authnstatement.add_to_xmlevent(&mut writer);
 
     for attribute in data.attributes {
-        add_attribute(attribute, &mut writer);
+        crate::xml::add_attribute(attribute, &mut writer);
     }
 
     // end attribute statement

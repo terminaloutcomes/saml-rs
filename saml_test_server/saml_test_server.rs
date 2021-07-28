@@ -15,8 +15,9 @@
 
 // use saml_rs::AuthnDecodeError;
 use saml_rs::metadata::{generate_metadata_xml, SamlMetadata};
-use saml_rs::response::{AuthNStatement, ResponseAttribute, ResponseElements};
+use saml_rs::response::{AuthNStatement, ResponseElements};
 use saml_rs::sp::ServiceProvider;
+use saml_rs::xml::ResponseAttribute;
 use saml_rs::SamlQuery;
 
 use chrono::{DateTime, Duration, NaiveDate, Utc};
@@ -149,8 +150,18 @@ async fn main() -> tide::Result<()> {
     Ok(())
 }
 
+use saml_rs::cert::strip_cert_headers;
 /// Provides a GET response for the metadata URL
 async fn saml_metadata_get(req: Request<AppState>) -> tide::Result {
+    let cert_path = &req.state().tls_cert_path;
+    let certificate = saml_rs::sign::load_public_cert_from_filename(&cert_path)
+        .unwrap()
+        .to_pem();
+    let certificate = match certificate {
+        Ok(value) => strip_cert_headers(from_utf8(&value).unwrap().to_string()),
+        Err(error) => format!("well, shit {:?}", error),
+    };
+
     Ok(generate_metadata_xml(SamlMetadata::new(
         &req.state().hostname,
         None,
@@ -158,6 +169,7 @@ async fn saml_metadata_get(req: Request<AppState>) -> tide::Result {
         None,
         None,
         None,
+        Some(certificate),
     ))
     .into())
 }
@@ -179,11 +191,6 @@ pub async fn saml_post_binding(req: tide::Request<AppState>) -> tide::Result {
 
 /// SAML requests or responses transmitted via HTTP Redirect have a SAMLRequest or SAMLResponse query string parameter, respectively. Before it's sent, the message is deflated (without header and checksum), base64-encoded, and URL-encoded, in that order. Upon receipt, the process is reversed to recover the original message.
 pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
-    let mut response_body = String::from(
-        r#"<!DOCTYPE html>
-        <html lang="en"><head><title>saml_redirect_get</title></head><body>"#,
-    );
-
     let query: SamlQuery = match req.query() {
         Ok(val) => val,
         Err(e) => {
@@ -194,6 +201,11 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
             ));
         }
     };
+
+    let mut response_body = String::from(
+        r#"<!DOCTYPE html>
+        <html lang="en"><head><title>saml_redirect_get</title></head><body>"#,
+    );
     // I'm not sure why this is here but I better not lose it
     // https://www.w3.org/TR/2002/REC-xmldsig-core-20020212/xmldsig-core-schema.xsd#rsa-sha1
 

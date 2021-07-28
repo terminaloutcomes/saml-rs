@@ -7,7 +7,8 @@ mod tests {
     #[test]
     /// tests saml_rs::metadata::SamlMetadata::new()
     fn metadata_new_set_foo_example_com() {
-        let test_metadata = SamlMetadata::new("foo.example.com", None, None, None, None, None);
+        let test_metadata =
+            SamlMetadata::new("foo.example.com", None, None, None, None, None, None);
 
         assert_eq!(test_metadata.hostname, String::from("foo.example.com"));
         assert_eq!(
@@ -36,6 +37,7 @@ mod tests {
             None,
             None,
             Some("/fooooooo".to_string()),
+            None,
             None,
             None,
         );

@@ -52,3 +52,9 @@ pub fn init_cert_from_base64(buf: &str) -> Result<openssl::x509::X509, CertParse
 https://docs.rs/openssl/0.10.35/openssl/pkey/index.html
 
 */
+
+pub fn strip_cert_headers(cert_string: String) -> String {
+    cert_string
+        .replace("-----BEGIN CERTIFICATE-----", "")
+        .replace("-----END CERTIFICATE-----", "")
+}

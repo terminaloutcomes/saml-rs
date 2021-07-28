@@ -43,3 +43,6 @@ openssl = "0.10.35"
 
 # web things
 tide = { version="0.16" }
+
+# html generation
+tera = "1"

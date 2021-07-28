@@ -58,6 +58,7 @@
 //!
 //! * Idp/SP online tester - <https://samltest.id/>
 //! * Parser for requests and responses: <https://samltool.io>
+//! * OneLogin SAMLTool - <https://www.samltool.com/validate_xml.php> great for validating things against schema.
 
 #![deny(unsafe_code)]
 
@@ -78,9 +79,10 @@ pub mod response;
 pub mod sign;
 pub mod sp;
 pub mod test_samples;
+pub mod xml;
+
 // #[cfg(feature = "enable_tide")]
 // pub mod tide_helpers;
-mod xmlutils;
 use serde::Deserialize;
 
 use chrono::{DateTime, SecondsFormat, Utc};
