@@ -51,7 +51,7 @@ mod tests {
                 NaiveDate::from_ymd(2014, 7, 17).and_hms(1, 1, 48),
                 Utc,
             ),
-            request_id: String::from("ONELOGIN_4fee3b046395c4e751011e97f8900b5273d56685"),
+            relay_state: String::from("ONELOGIN_4fee3b046395c4e751011e97f8900b5273d56685"),
             attributes: responseattributes,
             destination: String::from("http://sp.example.com/demo1/index.php?acs"),
             authnstatement,

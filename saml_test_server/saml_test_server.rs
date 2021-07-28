@@ -11,7 +11,7 @@
 //! }
 //!
 
-#![deny(unsafe_code)]
+#![forbid(unsafe_code)]
 
 // use saml_rs::AuthnDecodeError;
 use saml_rs::metadata::{generate_metadata_xml, SamlMetadata};
@@ -297,8 +297,8 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     response_body.push_str("</ul>");
 
     response_body.push_str(&format!(
-        "<p>request_id: {:?}</p>",
-        parsed_saml_request.request_id
+        "<p>relay_state: {:?}</p>",
+        parsed_saml_request.relay_state
     ));
     response_body.push_str(&format!(
         "<p>issue_instant: {:?}</p>",
@@ -373,7 +373,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
             NaiveDate::from_ymd(2014, 7, 17).and_hms(1, 1, 48),
             Utc,
         ),
-        request_id: String::from("ONELOGIN_4fee3b046395c4e751011e97f8900b5273d56685"),
+        relay_state: String::from("ONELOGIN_4fee3b046395c4e751011e97f8900b5273d56685"),
         attributes: responseattributes,
         destination: form_target,
         authnstatement,

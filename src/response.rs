@@ -1,33 +1,44 @@
 //! Want to build a SAML response? Here's your module. 🥳
 
-#![deny(unsafe_code)]
+// #![deny(unsafe_code)]
 
 use chrono::{DateTime, SecondsFormat, Utc};
 
 use std::io::Write;
 
-use crate::xml::write_event;
+use crate::xml::{write_event, ResponseAttribute};
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
 #[derive(Debug)]
 /// Stores all the required elements of a SAML response... maybe?
 pub struct ResponseElements {
     // #[serde(rename = "Issuer")]
+    /// Issuer of the resposne?
+    // TODO: Figure out if this is right :P
     pub issuer: String,
     // #[serde(rename = "ID")]
+    /// ID of the response
+    /// TODO: Figure out the rules for generating this
     pub response_id: String,
     // #[serde(rename = "IssueInstant")]
+    /// Issue time of the response
     pub issue_instant: DateTime<Utc>,
     // #[serde(rename = "InResponseTo")]
-    pub request_id: String,
+    /// RelayState from the original AuthN request
+    pub relay_state: String,
 
     // #[serde(rename = "Attributes")]
-    pub attributes: Vec<crate::xml::ResponseAttribute>,
+    /// A list of relevant [ResponseAttribute]s
+    pub attributes: Vec<ResponseAttribute>,
     // #[serde(rename = "Destination")]
+    /// Destination endpoint of the request
+    // TODO just like with the authnrequest, find out if destination is the right name/referecne
     pub destination: String,
 
+    /// The [AuthNStatement] itself
     pub authnstatement: AuthNStatement,
 
+    /// ID Of the assertion
     pub assertion_id: String,
 }
 
@@ -36,10 +47,15 @@ pub struct ResponseElements {
 ///
 /// The expiry's optional
 pub struct AuthNStatement {
+    /// Issue time of the response
+    /// TODO Figure out if this is different to the authnresponse?
     pub instant: DateTime<Utc>,
+    /// TODO document this
     pub session_index: String,
-    // TODO: do we need to respond with multiple context class refs?
+    /// TODO: do we need to respond with multiple context class refs?
     pub classref: String,
+    /// Expiry of the statement,
+    /// TODO: findd out if this is optional
     pub expiry: Option<DateTime<Utc>>,
 }
 
@@ -179,7 +195,7 @@ pub fn create_response(data: ResponseElements) -> Vec<u8> {
                     .to_rfc3339_opts(SecondsFormat::Secs, true),
             )
             .attr("Destination", &data.destination)
-            .attr("InResponseTo", &data.request_id)
+            .attr("InResponseTo", &data.relay_state)
             .into(),
         &mut writer,
     );
@@ -250,7 +266,7 @@ pub fn create_response(data: ResponseElements) -> Vec<u8> {
         XmlEvent::start_element(("saml", "SubjectConfirmationData"))
             .attr("NotOnOrAfter", "2024-01-18T06:21:48Z")
             .attr("Recipient", "http://sp.example.com/demo1/index.php?acs")
-            .attr("InResponseTo", &data.request_id)
+            .attr("InResponseTo", &data.relay_state)
             .into(),
         &mut writer,
     );

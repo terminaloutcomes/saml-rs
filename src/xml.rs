@@ -1,14 +1,16 @@
 //! Internal utilities for doing things with XML
 
-#![deny(unsafe_code)]
+// #![deny(unsafe_code)]
 
 use serde::Serialize;
 use std::io::Write;
 use std::str::from_utf8;
 use xml::writer::{EventWriter, XmlEvent};
 
-// Extensions for [openssl::x509::X509] for nicer functionality
+/// Extensions for [openssl::x509::X509] for nicer functionality
 pub trait X509Utils {
+    /// return an X509 object as a string,
+    /// either including the ```--- BEGIN LOLS ---```  or not
     fn get_as_pem_string(&self, includeheaders: bool) -> String;
 }
 
@@ -36,6 +38,7 @@ pub fn write_event<W: Write>(event: XmlEvent, writer: &mut EventWriter<W>) -> St
 
 // let mut animals: [&str; 2] = ["bird", "frog"];
 #[derive(Debug, Default, Serialize, Clone)]
+/// Attributes for responses
 pub struct ResponseAttribute {
     name: String,
     nameformat: String,
@@ -43,6 +46,7 @@ pub struct ResponseAttribute {
 }
 
 impl ResponseAttribute {
+    /// new Response Attribute with `attrname-format:basic`
     pub fn basic(name: &str, values: Vec<String>) -> ResponseAttribute {
         ResponseAttribute {
             name: name.to_string(),

@@ -12,6 +12,8 @@ use openssl::sign::{Signer, Verifier};
 use openssl::pkey::Private;
 use std::fs::File;
 use std::io::prelude::*;
+
+/// Loads a PEM-encoded public key into a PKey object
 pub fn load_key_from_filename(key_filename: &str) -> Result<PKey<Private>, String> {
     let mut f = match File::open(key_filename) {
         Ok(value) => value,
@@ -43,6 +45,7 @@ pub fn load_key_from_filename(key_filename: &str) -> Result<PKey<Private>, Strin
 
 use openssl::x509::X509;
 
+/// Loads a public cert from a PEM file into an X509 object
 pub fn load_public_cert_from_filename(cert_filename: &str) -> Result<X509, String> {
     log::debug!("loading cert:  {}", cert_filename);
 
@@ -75,7 +78,9 @@ pub fn load_public_cert_from_filename(cert_filename: &str) -> Result<X509, Strin
     }
 }
 
-// TODO add some testing
+// TODO add some testing, and validation of sign_data
+// TODO implement sign_data properly
+/// Sign some data, with a key
 pub fn sign_data(cert_filename: String, key_filename: String, bytes_to_sign: &[u8]) {
     // Generate a keypair
     debug!("cert: {}", cert_filename);

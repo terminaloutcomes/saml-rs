@@ -1,6 +1,6 @@
 //! Certificate and signing-related things
 
-#![deny(unsafe_code)]
+// #![deny(unsafe_code)]
 
 use openssl;
 use openssl::x509::{X509NameBuilder, X509};
@@ -8,6 +8,7 @@ use openssl::x509::{X509NameBuilder, X509};
 use std::fmt;
 
 #[derive(Debug)]
+/// Error type for when parsing certificates from input
 pub struct CertParseError;
 
 impl fmt::Display for CertParseError {
@@ -54,6 +55,8 @@ https://docs.rs/openssl/0.10.35/openssl/pkey/index.html
 
 */
 
+/// Strips `-----BEGIN CERTIFICATE-----` and `-----END CERTIFICATE-----` off a String,
+/// good for including a certificate in an XML declaration for example
 pub fn strip_cert_headers(cert_string: String) -> String {
     cert_string
         .replace("-----BEGIN CERTIFICATE-----", "")

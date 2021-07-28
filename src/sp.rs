@@ -1,7 +1,7 @@
 //! Service Provider utilities and functions
 //!
 
-#![deny(unsafe_code)]
+// #![deny(unsafe_code)]
 
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -13,14 +13,23 @@ use xml::attribute::OwnedAttribute;
 use xml::reader::{EventReader, XmlEvent};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+/// Different types of name-id formats from the spec
 pub enum NameIdFormat {
+    /// Email Address
     EmailAddress,
+    /// TODO: entity?
     Entity,
+    /// Kerberos, the worst-eros
     Kerberos,
+    /// Should stay the same
     Persistent,
+    /// Don't keep this, it'll change
     Transient,
+    /// 🤷‍♂️🤷‍♀️ who even knows
     Unspecified,
+    /// Windows format
     WindowsDomainQualifiedName,
+    /// X509 format
     X509SubjectName,
 }
 
@@ -87,7 +96,9 @@ impl FromStr for NameIdFormat {
 /// Allows one to build a definition with [SamlBindingType::AssertionConsumerService]\(s\) and [SamlBindingType::SingleLogoutService]\(s\)
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum SamlBindingType {
+    /// AssertionConsumerService, where you send Authn Rssponses
     AssertionConsumerService,
+    /// Logout endpoints
     SingleLogoutService,
 }
 
@@ -112,8 +123,12 @@ impl FromStr for SamlBindingType {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+/// Binding methods
+/// TODO: should this be renamed to binding method?
 pub enum SamlBinding {
+    /// HTTP-POST method
     HttpPost,
+    /// HTTP-REDIRECT method
     HttpRedirect,
 }
 
@@ -136,6 +151,7 @@ impl ToString for SamlBinding {
 impl FromStr for SamlBinding {
     type Err = &'static str;
 
+    /// turn a string into a SamlBinding
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" => Ok(SamlBinding::HttpPost),
@@ -149,8 +165,10 @@ impl FromStr for SamlBinding {
 /// TODO: implement a way of pulling the first/a given logout, or the first/ a given assertionconsumer
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ServiceBinding {
+    /// [SamlBindingType] Binding type, things like `HTTP-POST` or `HTTP-REDIRECT`
     pub servicetype: SamlBindingType,
     #[serde(rename = "Binding")]
+    /// Binding method
     pub binding: SamlBinding,
     /// Where to send the response to
     #[serde(rename = "Location")]
@@ -161,6 +179,7 @@ pub struct ServiceBinding {
 }
 
 impl ServiceBinding {
+    /// return a default broken binding for testing or later changing - the ACS is set to `http://0.0.0.0:0/SAML/acs`
     pub fn default() -> Self {
         ServiceBinding {
             servicetype: SamlBindingType::AssertionConsumerService,
@@ -187,6 +206,7 @@ impl ServiceBinding {
 use openssl;
 
 #[derive(Debug, Clone)]
+/// SP metadata object, used for being able to find one when an AuthN request comes in (or IdP-initiated, eventually, maymbe?)
 pub struct ServiceProvider {
     /// EntityID
     pub entity_id: String,
@@ -198,7 +218,9 @@ pub struct ServiceProvider {
     pub x509_certificate: Option<X509>,
     /// SP Services
     pub services: Vec<ServiceBinding>,
+    /// TODO protocol_support_enumeration? what's this?
     pub protocol_support_enumeration: Option<String>,
+    /// [NameIdFormat] - how we should identify the user
     pub nameid_format: NameIdFormat,
 }
 

@@ -1,17 +1,24 @@
 //! Handy for the XML metadata part of SAML
 
-#![deny(unsafe_code)]
+// #![deny(unsafe_code)]
 
 use crate::xml::X509Utils;
 use openssl::x509::X509;
 use std::str::from_utf8;
 
+use crate::xml::write_event;
+use std::io::Write;
+use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
+
 /// Stores the required data for generating a SAML metadata XML file
 #[derive(Debug)]
 pub struct SamlMetadata {
+    /// Hostname of the issuer, used for URLs etc
     pub hostname: String,
+    /// Set this as the base of the suffix-items elsewhere
     pub baseurl: String,
     /// entityID is transmitted in all requests
+    ///
     /// Every SAML system entity has an entity ID, a globally-unique identifier used in software configurations, relying-party databases, and client-side cookies. On the wire, every SAML protocol message contains the entity ID of the issuer
     // #[serde(rename = "entityID")]
     pub entity_id: String,
@@ -21,10 +28,12 @@ pub struct SamlMetadata {
     pub redirect_suffix: String,
     /// Appended to the baseurl when using the [SamlMetadata::post_url] function
     pub post_suffix: String,
+    /// Public certificate for signing/encryption
     pub x509_certificate: X509,
 }
 
 impl SamlMetadata {
+    /// Create a new SamlMetadata object for your IdP
     pub fn new(
         hostname: &str,
         baseurl: Option<String>,
@@ -49,26 +58,27 @@ impl SamlMetadata {
         }
     }
 
+    /// really simple version with a self-signed certificate based on just the hostname. Mainly for testing.
     pub fn from_hostname(hostname: &str) -> SamlMetadata {
         let cert = crate::cert::gen_self_signed_certificate(hostname);
         SamlMetadata::new(hostname, None, None, None, None, None, cert)
     }
 
+    /// return the generated Logout URL based on the baseurl + logout_suffix
     pub fn logout_url(&self) -> String {
         format!("{}{}", self.baseurl, self.logout_suffix)
     }
+    /// return the generated redirect URL based on the baseurl + redirect_suffix
     pub fn redirect_url(&self) -> String {
         format!("{}{}", self.baseurl, self.redirect_suffix)
     }
+    /// return the generated post URL based on the baseurl + post_suffix
     pub fn post_url(&self) -> String {
         format!("{}{}", self.baseurl, self.post_suffix)
     }
 }
 
-use crate::xml::write_event;
-use std::io::Write;
-use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
-
+/// Write a key to an XMLEventWriter
 pub fn xml_write_key<W: Write>(
     key_use: &str,
     base64_encoded_certificate: &str,
