@@ -443,6 +443,8 @@
 <span id="440">440</span>
 <span id="441">441</span>
 <span id="442">442</span>
+<span id="443">443</span>
+<span id="444">444</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! A library for doing SAML things, terribly, in rust.</span>
 <span class="doccomment">//!</span>
@@ -504,6 +506,7 @@
 <span class="doccomment">//!</span>
 <span class="doccomment">//! * Idp/SP online tester - &lt;https://samltest.id/&gt;</span>
 <span class="doccomment">//! * Parser for requests and responses: &lt;https://samltool.io&gt;</span>
+<span class="doccomment">//! * OneLogin SAMLTool - &lt;https://www.samltool.com/validate_xml.php&gt; great for validating things against schema.</span>
 
 <span class="attribute">#![<span class="ident">deny</span>(<span class="ident">unsafe_code</span>)]</span>
 
@@ -524,9 +527,10 @@
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">sign</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">sp</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">test_samples</span>;
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">xml</span>;
+
 <span class="comment">// #[cfg(feature = &quot;enable_tide&quot;)]</span>
 <span class="comment">// pub mod tide_helpers;</span>
-<span class="kw">mod</span> <span class="ident">xmlutils</span>;
 <span class="kw">use</span> <span class="ident">serde::Deserialize</span>;
 
 <span class="kw">use</span> <span class="ident">chrono</span>::{<span class="ident">DateTime</span>, <span class="ident">SecondsFormat</span>, <span class="ident">Utc</span>};

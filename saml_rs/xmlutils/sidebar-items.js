@@ -1,1 +1,0 @@
-initSidebarItems({"fn":[["write_event","Used by the XML Event writer to append events to the response"]]});
