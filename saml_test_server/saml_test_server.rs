@@ -150,17 +150,11 @@ async fn main() -> tide::Result<()> {
     Ok(())
 }
 
-use saml_rs::cert::strip_cert_headers;
+// use saml_rs::cert::strip_cert_headers;
 /// Provides a GET response for the metadata URL
 async fn saml_metadata_get(req: Request<AppState>) -> tide::Result {
     let cert_path = &req.state().tls_cert_path;
-    let certificate = saml_rs::sign::load_public_cert_from_filename(&cert_path)
-        .unwrap()
-        .to_pem();
-    let certificate = match certificate {
-        Ok(value) => strip_cert_headers(from_utf8(&value).unwrap().to_string()),
-        Err(error) => format!("well, shit {:?}", error),
-    };
+    let certificate = saml_rs::sign::load_public_cert_from_filename(&cert_path).unwrap();
 
     Ok(generate_metadata_xml(SamlMetadata::new(
         &req.state().hostname,
@@ -169,7 +163,7 @@ async fn saml_metadata_get(req: Request<AppState>) -> tide::Result {
         None,
         None,
         None,
-        Some(certificate),
+        certificate,
     ))
     .into())
 }
@@ -401,19 +395,27 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
 ///
 /// TODO: These responses have to be signed
 pub fn generate_login_form(response: ResponseElements, relay_state: String) -> String {
-    format!(
-        r#"<form method="post" action="{}">
-    <input type="hidden" name="SAMLResponse" value="{}" />
-    <input type="hidden" name="RelayState" value="{}" />
-        <h1>Fancy example login form</h1>
-        <p>Username: <input type='text' name='username' /></p>
-        <p>Password: <input type='password' name='password' /></p>
-        <p><input type="submit" value="Submit" /></p>
-</form>"#,
-        &response.destination.to_string(),
+    let mut context = tera::Context::new();
+    context.insert("authn_destination", &response.destination);
+    context.insert(
+        "response_destination",
         from_utf8(&saml_rs::response::base64_encoded_response(response, false)).unwrap(),
-        relay_state,
-    )
+    );
+    context.insert("relay_state", &relay_state);
+
+    let template = String::from(
+        r#"<form method="post" action="{{authn_destination}}">
+<input type="hidden" name="SAMLResponse" value="{{response_destination}}" />
+<input type="hidden" name="RelayState" value="{{relay_state}}" />
+    <h1>Fancy example login form</h1>
+    <p>Username: <input type='text' name='username' /></p>
+    <p>Password: <input type='password' name='password' /></p>
+    <p><input type="submit" value="Submit" /></p>
+</form>"#,
+    );
+
+    tera::Tera::one_off(&template, &context, true)
+        .unwrap_or_else(|_| String::from("Couldn't generate login form"))
 }
 
 pub async fn test_sign(req: Request<AppState>) -> tide::Result {

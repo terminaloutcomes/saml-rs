@@ -2,16 +2,18 @@
 
 #![deny(unsafe_code)]
 
-use serde::Serialize;
+// use serde::Serialize;
+use std::str::from_utf8;
+use tera::{Context, Tera};
 
 /// Stores the required data for generating a SAML metadata XML file
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct SamlMetadata {
     pub hostname: String,
     pub baseurl: String,
     /// entityID is transmitted in all requests
     /// Every SAML system entity has an entity ID, a globally-unique identifier used in software configurations, relying-party databases, and client-side cookies. On the wire, every SAML protocol message contains the entity ID of the issuer
-    #[serde(rename = "entityID")]
+    // #[serde(rename = "entityID")]
     pub entity_id: String,
     /// Appended to the baseurl when using the [SamlMetadata::logout_url] function
     pub logout_suffix: String,
@@ -19,7 +21,7 @@ pub struct SamlMetadata {
     pub redirect_suffix: String,
     /// Appended to the baseurl when using the [SamlMetadata::post_url] function
     pub post_suffix: String,
-    pub base64_encoded_certificate: Option<String>,
+    pub x509_certificate: openssl::x509::X509,
 }
 
 // use openssl::x509::X509;
@@ -32,7 +34,7 @@ impl SamlMetadata {
         logout_suffix: Option<String>,
         redirect_suffix: Option<String>,
         post_suffix: Option<String>,
-        base64_encoded_certificate: Option<String>,
+        x509_certificate: openssl::x509::X509,
     ) -> Self {
         let hostname = hostname.to_string();
         let baseurl = baseurl.unwrap_or(format!("https://{}/SAML", hostname));
@@ -45,12 +47,13 @@ impl SamlMetadata {
             logout_suffix: logout_suffix.unwrap_or(logout_suffix_default),
             redirect_suffix: redirect_suffix.unwrap_or_else(|| String::from("/Redirect")),
             post_suffix: post_suffix.unwrap_or_else(|| String::from("/POST")),
-            base64_encoded_certificate,
+            x509_certificate,
         }
     }
 
     pub fn from_hostname(hostname: &str) -> SamlMetadata {
-        SamlMetadata::new(hostname, None, None, None, None, None, None)
+        let cert = crate::cert::gen_self_signed_certificate(hostname);
+        SamlMetadata::new(hostname, None, None, None, None, None, cert)
     }
 
     pub fn logout_url(&self) -> String {
@@ -64,7 +67,6 @@ impl SamlMetadata {
     }
 }
 
-use tera::{Context, Tera};
 /// Generates the XML For a metadata file
 ///
 /// Current response data is based on the data returned from  https://samltest.id/saml/idp
@@ -82,10 +84,11 @@ pub fn generate_metadata_xml(metadata: SamlMetadata) -> String {
     log::debug!("{}", metadata.logout_url());
     log::debug!("{}", metadata.redirect_url());
 
-    match metadata.base64_encoded_certificate {
-        Some(value) => context.insert("base64_encoded_certificate", &value),
-        None => log::debug!("no cert provided"),
-    }
+    let cert_pem = metadata.x509_certificate.to_pem().unwrap();
+    let cert_pem = from_utf8(&cert_pem).unwrap().to_string();
+    let base64_encoded_certificate = crate::cert::strip_cert_headers(cert_pem);
+
+    context.insert("base64_encoded_certificate", &base64_encoded_certificate);
 
     let metadata_contents = String::from(
         r#"<?xml version="1.0"?>

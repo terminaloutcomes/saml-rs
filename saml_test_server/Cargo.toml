@@ -52,3 +52,6 @@ shellexpand = "2.0"
 
 driftwood = "0.0.6"
 
+
+# html generation
+tera = "1"

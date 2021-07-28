@@ -3,6 +3,7 @@
 #![deny(unsafe_code)]
 
 use openssl;
+use openssl::x509::X509;
 
 use std::fmt;
 
@@ -57,4 +58,21 @@ pub fn strip_cert_headers(cert_string: String) -> String {
     cert_string
         .replace("-----BEGIN CERTIFICATE-----", "")
         .replace("-----END CERTIFICATE-----", "")
+}
+
+/// generates a really terrible self-signed certificate for testing purposes
+pub fn gen_self_signed_certificate(hostname: &str) -> X509 {
+    let mut x509_name = openssl::x509::X509NameBuilder::new().unwrap();
+    x509_name.append_entry_by_text("C", "AU").unwrap();
+    x509_name.append_entry_by_text("ST", "Woo").unwrap();
+    x509_name
+        .append_entry_by_text("O", "Example organization")
+        .unwrap();
+    x509_name.append_entry_by_text("CN", &hostname).unwrap();
+    let x509_name = x509_name.build();
+
+    let mut x509 = openssl::x509::X509::builder().unwrap();
+    x509.set_subject_name(&x509_name).unwrap();
+
+    x509.build()
 }
