@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["AssertionType","AssertionTypes, from http://docs.oasis-open.org/security/saml/v2.0/saml-schema-assertion-2.0.xsd `<complexType name=\"AssertionType\">`"],["StatusCode","StatusCode values"]]});

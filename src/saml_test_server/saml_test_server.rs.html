@@ -434,6 +434,8 @@
 <span id="431">431</span>
 <span id="432">432</span>
 <span id="433">433</span>
+<span id="434">434</span>
+<span id="435">435</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! A test server for running as a SAML IdP</span>
 <span class="doccomment">//!</span>
@@ -451,7 +453,6 @@
 <span class="attribute">#![<span class="ident">forbid</span>(<span class="ident">unsafe_code</span>)]</span>
 <span class="attribute">#![<span class="ident">deny</span>(<span class="ident">missing_debug_implementations</span>)]</span>
 
-<span class="comment">// use saml_rs::AuthnDecodeError;</span>
 <span class="kw">use</span> <span class="ident">saml_rs::metadata</span>::{<span class="ident">generate_metadata_xml</span>, <span class="ident">SamlMetadata</span>};
 <span class="kw">use</span> <span class="ident">saml_rs::response</span>::{<span class="ident">AuthNStatement</span>, <span class="ident">ResponseElements</span>};
 <span class="kw">use</span> <span class="ident">saml_rs::sp::ServiceProvider</span>;
@@ -473,7 +474,7 @@
 <span class="kw">use</span> <span class="ident">http_types::Mime</span>;
 
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">util</span>;
-<span class="kw">use</span> <span class="ident">util::do_nothing</span>;
+<span class="comment">// use util::do_nothing;</span>
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">AppState</span> {
@@ -539,18 +540,18 @@
     }));
 
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">saml_process</span> <span class="op">=</span> <span class="ident">app</span>.<span class="ident">at</span>(<span class="string">&quot;/SAML&quot;</span>);
+    <span class="comment">// TODO: implement support for SAML Artifact</span>
+    <span class="comment">// saml_process.at(&quot;/Artifact&quot;).get(do_nothing);</span>
     <span class="ident">saml_process</span>.<span class="ident">at</span>(<span class="string">&quot;/Metadata&quot;</span>).<span class="ident">get</span>(<span class="ident">saml_metadata_get</span>);
-    <span class="ident">saml_process</span>.<span class="ident">at</span>(<span class="string">&quot;/sign&quot;</span>).<span class="ident">get</span>(<span class="ident">test_sign</span>);
-    <span class="comment">// TODO: SAML Logout</span>
-    <span class="ident">saml_process</span>.<span class="ident">at</span>(<span class="string">&quot;/Logout&quot;</span>).<span class="ident">get</span>(<span class="ident">do_nothing</span>);
-    <span class="comment">// TODO: SAML idp, used the entityID</span>
-    <span class="ident">saml_process</span>.<span class="ident">at</span>(<span class="string">&quot;/idp&quot;</span>).<span class="ident">post</span>(<span class="ident">do_nothing</span>);
-    <span class="comment">// TODO: SAML POST</span>
-    <span class="ident">saml_process</span>.<span class="ident">at</span>(<span class="string">&quot;/POST&quot;</span>).<span class="ident">post</span>(<span class="ident">saml_post_binding</span>);
-    <span class="comment">// TODO: SAML Redirect</span>
+    <span class="comment">// saml_process.at(&quot;/sign&quot;).get(test_sign);</span>
+    <span class="comment">// TODO: implement SAML Logout</span>
+    <span class="comment">// saml_process.at(&quot;/Logout&quot;).get(do_nothing);</span>
+    <span class="comment">// TODO: implement SAML idp, used the entityID</span>
+    <span class="comment">// saml_process.at(&quot;/idp&quot;).post(do_nothing);</span>
+    <span class="comment">// TODO: implement SAML POST endpoint</span>
+    <span class="comment">// saml_process.at(&quot;/POST&quot;).post(saml_post_binding);</span>
+
     <span class="ident">saml_process</span>.<span class="ident">at</span>(<span class="string">&quot;/Redirect&quot;</span>).<span class="ident">get</span>(<span class="ident">saml_redirect_get</span>);
-    <span class="comment">// TODO: SAML Artifact</span>
-    <span class="ident">saml_process</span>.<span class="ident">at</span>(<span class="string">&quot;/Artifact&quot;</span>).<span class="ident">get</span>(<span class="ident">do_nothing</span>);
 
     <span class="kw">let</span> <span class="ident">_app</span> <span class="op">=</span> {
         <span class="kw">let</span> <span class="ident">tls_cert</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">shellexpand::tilde</span>(<span class="kw-2">&amp;</span><span class="ident">server_config</span>.<span class="ident">tls_cert_path</span>).<span class="ident">into_owned</span>();
@@ -811,7 +812,7 @@
             <span class="ident">NaiveDate::from_ymd</span>(<span class="number">2014</span>, <span class="number">7</span>, <span class="number">17</span>).<span class="ident">and_hms</span>(<span class="number">1</span>, <span class="number">1</span>, <span class="number">48</span>),
             <span class="ident">Utc</span>,
         ),
-        <span class="ident">relay_state</span>: <span class="ident">String::from</span>(<span class="string">&quot;ONELOGIN_4fee3b046395c4e751011e97f8900b5273d56685&quot;</span>),
+        <span class="ident">relay_state</span>: <span class="ident">parsed_saml_request</span>.<span class="ident">relay_state</span>,
         <span class="ident">attributes</span>: <span class="ident">responseattributes</span>,
         <span class="ident">destination</span>: <span class="ident">form_target</span>,
         <span class="ident">authnstatement</span>,
@@ -834,17 +835,20 @@
 <span class="doccomment">/// TODO: These responses have to be signed</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">generate_login_form</span>(<span class="ident">response</span>: <span class="ident">ResponseElements</span>, <span class="ident">relay_state</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">context</span> <span class="op">=</span> <span class="ident">tera::Context::new</span>();
-    <span class="ident">context</span>.<span class="ident">insert</span>(<span class="string">&quot;authn_destination&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">response</span>.<span class="ident">destination</span>);
-    <span class="ident">context</span>.<span class="ident">insert</span>(
-        <span class="string">&quot;response_destination&quot;</span>,
-        <span class="ident">from_utf8</span>(<span class="kw-2">&amp;</span><span class="ident">saml_rs::response::base64_encoded_response</span>(<span class="ident">response</span>, <span class="bool-val">false</span>)).<span class="ident">unwrap</span>(),
-    );
-    <span class="ident">context</span>.<span class="ident">insert</span>(<span class="string">&quot;relay_state&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">relay_state</span>);
+
+    <span class="ident">context</span>.<span class="ident">insert</span>(<span class="string">&quot;form_action&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">response</span>.<span class="ident">destination</span>);
+    <span class="kw">let</span> <span class="ident">saml_response</span> <span class="op">=</span> <span class="ident">from_utf8</span>(<span class="kw-2">&amp;</span><span class="ident">saml_rs::response::base64_encoded_response</span>(<span class="ident">response</span>, <span class="bool-val">false</span>))
+        .<span class="ident">unwrap</span>()
+        .<span class="ident">to_string</span>();
+    <span class="ident">context</span>.<span class="ident">insert</span>(<span class="string">&quot;SAMLResponse&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">saml_response</span>);
+    <span class="ident">context</span>.<span class="ident">insert</span>(<span class="string">&quot;RelayState&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">relay_state</span>);
+    <span class="macro">log::debug!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="ident">saml_response</span>);
 
     <span class="kw">let</span> <span class="ident">template</span> <span class="op">=</span> <span class="ident">String::from</span>(
-        <span class="string">r#&quot;&lt;form method=&quot;post&quot; action=&quot;{{authn_destination}}&quot;&gt;
-&lt;input type=&quot;hidden&quot; name=&quot;SAMLResponse&quot; value=&quot;{{response_destination}}&quot; /&gt;
-&lt;input type=&quot;hidden&quot; name=&quot;RelayState&quot; value=&quot;{{relay_state}}&quot; /&gt;
+        <span class="string">r#&quot;&lt;p&gt;{{SAMLResponse | safe}}&lt;/p&gt;
+&lt;form method=&quot;post&quot; action=&quot;{{form_action}}&quot;&gt;
+    &lt;input type=&quot;hidden&quot; name=&quot;SAMLResponse&quot; value=&quot;{{SAMLResponse | safe}}&quot; /&gt;
+    &lt;input type=&quot;hidden&quot; name=&quot;RelayState&quot; value=&quot;{{RelayState}}&quot; /&gt;
     &lt;h1&gt;Fancy example login form&lt;/h1&gt;
     &lt;p&gt;Username: &lt;input type=&#39;text&#39; name=&#39;username&#39; /&gt;&lt;/p&gt;
     &lt;p&gt;Password: &lt;input type=&#39;password&#39; name=&#39;password&#39; /&gt;&lt;/p&gt;

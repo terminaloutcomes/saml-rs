@@ -1,0 +1,1 @@
+initSidebarItems({"trait":[["DateTimeUtils","Extensions for [chrono::DateTime] for nicer functionality"]]});
