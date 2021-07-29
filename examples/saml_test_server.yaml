@@ -1,0 +1,8 @@
+---
+bind_address: 0.0.0.0
+public_hostname: saml.example.com
+tls_cert_path: /etc/letsencrypt/live/saml.example.com/fullchain.pem
+tls_key_path: /etc/letsencrypt/live/saml.example.com/privkey.pem
+sp_metadata_files:
+- /etc/saml_test_server/SPMetadata-1.xml
+default_session_lifetime: 43200 # 12 hours
