@@ -12,6 +12,7 @@
 //!
 
 #![forbid(unsafe_code)]
+#![deny(missing_debug_implementations)]
 
 // use saml_rs::AuthnDecodeError;
 use saml_rs::metadata::{generate_metadata_xml, SamlMetadata};

@@ -118,9 +118,9 @@ pub fn xml_write_key<W: Write>(
 
 /// Generates the XML For a metadata file
 ///
-/// Current response data is based on the data returned from  https://samltest.id/saml/idp
+/// Current response data is based on the data returned from  <https://samltest.id/saml/idp>
 pub fn generate_metadata_xml(metadata: SamlMetadata) -> String {
-    let base64_encoded_certificate = metadata.x509_certificate.get_as_pem_string(true);
+    let base64_encoded_certificate = metadata.x509_certificate.get_as_pem_string(false);
 
     let mut buffer = Vec::new();
     let mut writer = EmitterConfig::new()

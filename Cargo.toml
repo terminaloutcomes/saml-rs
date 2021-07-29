@@ -32,9 +32,6 @@ serde = "1.0"
 serde-xml-rs = "0.3.1"
 serde_derive = "1.0"
 
-# certificate things
-reqwest = "0.11"
-
 # testing strings
 
 difference = "2.0.0"
@@ -45,3 +42,8 @@ openssl = "0.10.35"
 
 # web things
 tide = { version="0.16" }
+
+
+[dev-dependencies]
+reqwest ={ version="0.11", features = ["blocking", "native-tls"]}
+regex = "1"

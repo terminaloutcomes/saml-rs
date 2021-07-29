@@ -189,7 +189,7 @@ impl ServiceBinding {
         }
     }
 
-    /// TODO: actually use this in ServiceProvider::fromxml()
+    /// TODO: actually use this in [ServiceProvider::from_xml]
     pub fn set_binding(self, binding: String) -> Result<Self, String> {
         match SamlBinding::from_str(&binding) {
             Err(_) => Err("Failed to match binding name".to_string()),

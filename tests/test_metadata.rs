@@ -130,14 +130,69 @@ mod tests {
 
     /// tests parsing saml_rs::test_samples::TEST_AUTHN_REQUEST_EXAMPLE_COM_BASE64_DEFLATED
     #[test]
-    #[should_panic]
+    #[should_panic] // lol
     fn test_parse_test_parse_saml_base64_authn_request() {
-        // TODO: This is silly and should be fixed
-        match saml_rs::parse_authn_request(
-            saml_rs::test_samples::TEST_AUTHN_REQUEST_EXAMPLE_COM_BASE64_DEFLATED,
-        ) {
+        let decoded = saml_rs::decode_authn_request_base64_encoded(
+            saml_rs::test_samples::TEST_AUTHN_REQUEST_EXAMPLE_COM_BASE64_DEFLATED.to_string(),
+        )
+        .unwrap();
+
+        match saml_rs::parse_authn_request(&decoded) {
             Ok(_) => panic!(),
-            Err(_) => assert_eq!(1, 1),
+            Err(error) => {
+                eprintln!("{:?}", error);
+                assert_eq!(1, 1)
+            }
+        }
+    }
+
+    #[test]
+    fn test_validate_metadata_samltool() {
+        let metadata: String = saml_rs::metadata::generate_metadata_xml(SamlMetadata::new(
+            "example.com",
+            None,
+            None,
+            None,
+            None,
+            None,
+            saml_rs::cert::gen_self_signed_certificate("example.com"),
+        ));
+
+        let params = [
+            ("xsd", "md-metadata"),
+            ("act_validate_xml", "Validate+XML+with+the+XSD+schema"),
+            ("xml", &metadata),
+        ];
+        let client = reqwest::blocking::Client::new();
+        let res = client
+            .post("https://www.samltool.com/validate_xml.php")
+            .form(&params)
+            .send();
+
+        match res {
+            Ok(value) => {
+                eprintln!("success doing post: {:?}", value);
+                // eprintln!("{:?}", value.bytes());
+
+                let content = value.text().unwrap();
+                /* looking for this
+
+                            <div class="validatexml-area3"><br>
+
+                                <div class="alert alert-success">
+                                    <h3>The XML is valid.</h3>
+                                </div>
+                            </div>
+                */
+                assert!(content.contains("The XML is valid."));
+                if !content.contains("The XML is valid.") {
+                    eprintln!("Dumping HTML result: {:?}", content);
+                }
+            }
+            Err(error) => {
+                eprintln!("error POSTing data to the SAML checker: {:?}", error);
+                assert_eq!(1, 2);
+            }
         }
     }
 }

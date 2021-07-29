@@ -42,11 +42,6 @@ pub fn init_cert_from_base64(buf: &str) -> Result<X509, CertParseError> {
             }
         },
     }
-
-    // let mut buf = Vec::new();
-    // File::open("my_cert.pem")?
-    // .read_to_end(&mut buf)?;
-    // let cert = reqwest::Certificate::from_pem(&buf)?;
 }
 
 /* cert validation things

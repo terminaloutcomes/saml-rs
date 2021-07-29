@@ -22,7 +22,7 @@
 //!
 //! # SAML 2.0 Web Browser SSO (SP Redirect Bind/ IdP POST Response) flow
 //!
-//! 1. User attempts to access the SP resource (eg https://example.com/application)
+//! 1. User attempts to access the SP resource (eg `https://example.com/application`)
 //! 2. User is HTTP 302 redirected to the IdP (that's us!)
 //!    - The URL is provided in the SAML2.0 metadata from the IdP
 //!    - There should be two query parameters, [SAMLRequest](SamlQuery::SAMLRequest) and [RelayState](SamlQuery::RelayState) details about them are available in [SamlQuery]
@@ -62,6 +62,7 @@
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
+#![deny(missing_debug_implementations)]
 
 #[macro_use]
 extern crate log;
@@ -221,7 +222,7 @@ impl fmt::Debug for AuthnDecodeError {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[allow(non_snake_case)]
 /// Used in the SAML Redirect GET request to pull out the query values
 ///
@@ -371,46 +372,56 @@ fn parse_authn_tokenizer_element_start(
 }
 
 /// Give it a string full of XML and it'll give you back a [SamlAuthnRequest] object which has the details
-pub fn parse_authn_request(request_data: &str) -> Result<SamlAuthnRequest, &'static str> {
+pub fn parse_authn_request(request_data: &str) -> Result<SamlAuthnRequest, String> {
     // more examples here
     // https://developers.onelogin.com/saml/examples/authnrequest
 
     let mut saml_request = SamlAuthnRequestParser::new();
     let tokenizer = xmlparser::Tokenizer::from(request_data);
     for token in tokenizer {
-        saml_request = match token.unwrap() {
-            Token::Attribute {
-                prefix: _,
-                local,
-                value,
-                span: _,
-            } => parse_authn_tokenizer_attribute(local, value, saml_request),
-            Token::ElementStart {
-                prefix: _,
-                local,
-                span: _,
-            } => parse_authn_tokenizer_element_start(local, saml_request),
-            Token::Text { text } => {
-                // if issuer_state == -1 { continue }
-                if saml_request.issuer_state == 1 {
-                    let issuer = text.as_str();
-                    debug!("Found issuer: {}", issuer);
-                    saml_request.issuer = Some(issuer.to_string());
-                    saml_request.issuer_state = -1; // reset the state machine so we don't try and do this again
-                } else {
-                    debug!(
-                        "Found issuer text and not at issuer_state==1 ({}) text={:?}",
-                        saml_request.issuer_state, text
-                    );
-                }
-                saml_request
+        match token {
+            Ok(token_value) => {
+                saml_request = match token_value {
+                    Token::Attribute {
+                        prefix: _,
+                        local,
+                        value,
+                        span: _,
+                    } => parse_authn_tokenizer_attribute(local, value, saml_request),
+                    Token::ElementStart {
+                        prefix: _,
+                        local,
+                        span: _,
+                    } => parse_authn_tokenizer_element_start(local, saml_request),
+                    Token::Text { text } => {
+                        // if issuer_state == -1 { continue }
+                        if saml_request.issuer_state == 1 {
+                            let issuer = text.as_str();
+                            debug!("Found issuer: {}", issuer);
+                            saml_request.issuer = Some(issuer.to_string());
+                            saml_request.issuer_state = -1; // reset the state machine so we don't try and do this again
+                        } else {
+                            debug!(
+                                "Found issuer text and not at issuer_state==1 ({}) text={:?}",
+                                saml_request.issuer_state, text
+                            );
+                        }
+                        saml_request
+                    }
+                    _ => saml_request,
+                };
             }
-            _ => saml_request,
-        };
+            Err(ref error) => {
+                return Err(format!(
+                    "Error parsing token: {:?}\n{:?}",
+                    error, request_data
+                ));
+            }
+        }
     }
     if saml_request.error {
         eprintln!("There was an error parsing the request");
-        Err("Failed to parse SAML request")
+        Err("Failed to parse SAML request".to_string())
     } else {
         println!("found relay_state={:?}", &saml_request.relay_state);
         Ok(SamlAuthnRequest::from(saml_request))
@@ -433,9 +444,6 @@ fn _get_private_key() {
 
     // println!("Length of encrypted thing: {:?}", encrypted_len);
 }
-// use std::fs::File;
-// use std::io::Read;
-// use reqwest::Certificate;
 
 // fn get_public_cert_base64(cert_path: std::string::String) -> Result<Certificate, ()> {
 //     let mut buf = Vec::new();

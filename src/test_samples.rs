@@ -19,7 +19,7 @@ pub const TEST_AUTHN_REQUEST_EXAMPLE_COM_BASE64_DEFLATED: &str = r#"fZFNr5swEEX/
 #[allow(dead_code)]
 /// AuthNRequest with embedded signature (HTTP-POST binding)
 ///
-/// from https://developers.onelogin.com/saml/examples/authnrequest
+/// from <https://developers.onelogin.com/saml/examples/authnrequest>
 pub const TEST_AUTHN_REQUEST_WITH_EMBEDDED_SIGNATURE_POST: &str = r#"<samlp:AuthnRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="pfx41d8ef22-e612-8c50-9960-1b16f15741b3" Version="2.0" ProviderName="SP test" IssueInstant="2014-07-16T23:52:45Z" Destination="http://idp.example.com/SSOService.php" ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" AssertionConsumerServiceURL="http://sp.example.com/demo1/index.php?acs">
   <saml:Issuer>http://sp.example.com/demo1/metadata.php</saml:Issuer>
   <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
