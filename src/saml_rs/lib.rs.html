@@ -478,6 +478,14 @@
 <span id="475">475</span>
 <span id="476">476</span>
 <span id="477">477</span>
+<span id="478">478</span>
+<span id="479">479</span>
+<span id="480">480</span>
+<span id="481">481</span>
+<span id="482">482</span>
+<span id="483">483</span>
+<span id="484">484</span>
+<span id="485">485</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! A library for doing SAML things, terribly, in rust.</span>
 <span class="doccomment">//!</span>
@@ -503,7 +511,7 @@
 <span class="doccomment">//!</span>
 <span class="doccomment">//! # SAML 2.0 Web Browser SSO (SP Redirect Bind/ IdP POST Response) flow</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! 1. User attempts to access the SP resource (eg https://example.com/application)</span>
+<span class="doccomment">//! 1. User attempts to access the SP resource (eg `https://example.com/application`)</span>
 <span class="doccomment">//! 2. User is HTTP 302 redirected to the IdP (that&#39;s us!)</span>
 <span class="doccomment">//!    - The URL is provided in the SAML2.0 metadata from the IdP</span>
 <span class="doccomment">//!    - There should be two query parameters, [SAMLRequest](SamlQuery::SAMLRequest) and [RelayState](SamlQuery::RelayState) details about them are available in [SamlQuery]</span>
@@ -543,6 +551,7 @@
 
 <span class="attribute">#![<span class="ident">forbid</span>(<span class="ident">unsafe_code</span>)]</span>
 <span class="attribute">#![<span class="ident">warn</span>(<span class="ident">missing_docs</span>)]</span>
+<span class="attribute">#![<span class="ident">deny</span>(<span class="ident">missing_debug_implementations</span>)]</span>
 
 <span class="attribute">#[<span class="ident">macro_use</span>]</span>
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">log</span>;
@@ -702,7 +711,7 @@
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Deserialize</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Deserialize</span>, <span class="ident">Debug</span>)]</span>
 <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">non_snake_case</span>)]</span>
 <span class="doccomment">/// Used in the SAML Redirect GET request to pull out the query values</span>
 <span class="doccomment">///</span>
@@ -852,46 +861,56 @@
 }
 
 <span class="doccomment">/// Give it a string full of XML and it&#39;ll give you back a [SamlAuthnRequest] object which has the details</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">parse_authn_request</span>(<span class="ident">request_data</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">SamlAuthnRequest</span>, <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span><span class="op">&gt;</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">parse_authn_request</span>(<span class="ident">request_data</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">SamlAuthnRequest</span>, <span class="ident">String</span><span class="op">&gt;</span> {
     <span class="comment">// more examples here</span>
     <span class="comment">// https://developers.onelogin.com/saml/examples/authnrequest</span>
 
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">saml_request</span> <span class="op">=</span> <span class="ident">SamlAuthnRequestParser::new</span>();
     <span class="kw">let</span> <span class="ident">tokenizer</span> <span class="op">=</span> <span class="ident">xmlparser::Tokenizer::from</span>(<span class="ident">request_data</span>);
     <span class="kw">for</span> <span class="ident">token</span> <span class="kw">in</span> <span class="ident">tokenizer</span> {
-        <span class="ident">saml_request</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">token</span>.<span class="ident">unwrap</span>() {
-            <span class="ident">Token::Attribute</span> {
-                <span class="ident">prefix</span>: <span class="kw">_</span>,
-                <span class="ident">local</span>,
-                <span class="ident">value</span>,
-                <span class="ident">span</span>: <span class="kw">_</span>,
-            } <span class="op">=</span><span class="op">&gt;</span> <span class="ident">parse_authn_tokenizer_attribute</span>(<span class="ident">local</span>, <span class="ident">value</span>, <span class="ident">saml_request</span>),
-            <span class="ident">Token::ElementStart</span> {
-                <span class="ident">prefix</span>: <span class="kw">_</span>,
-                <span class="ident">local</span>,
-                <span class="ident">span</span>: <span class="kw">_</span>,
-            } <span class="op">=</span><span class="op">&gt;</span> <span class="ident">parse_authn_tokenizer_element_start</span>(<span class="ident">local</span>, <span class="ident">saml_request</span>),
-            <span class="ident">Token::Text</span> { <span class="ident">text</span> } <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="comment">// if issuer_state == -1 { continue }</span>
-                <span class="kw">if</span> <span class="ident">saml_request</span>.<span class="ident">issuer_state</span> <span class="op">=</span><span class="op">=</span> <span class="number">1</span> {
-                    <span class="kw">let</span> <span class="ident">issuer</span> <span class="op">=</span> <span class="ident">text</span>.<span class="ident">as_str</span>();
-                    <span class="macro">debug!</span>(<span class="string">&quot;Found issuer: {}&quot;</span>, <span class="ident">issuer</span>);
-                    <span class="ident">saml_request</span>.<span class="ident">issuer</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">issuer</span>.<span class="ident">to_string</span>());
-                    <span class="ident">saml_request</span>.<span class="ident">issuer_state</span> <span class="op">=</span> <span class="op">-</span><span class="number">1</span>; <span class="comment">// reset the state machine so we don&#39;t try and do this again</span>
-                } <span class="kw">else</span> {
-                    <span class="macro">debug!</span>(
-                        <span class="string">&quot;Found issuer text and not at issuer_state==1 ({}) text={:?}&quot;</span>,
-                        <span class="ident">saml_request</span>.<span class="ident">issuer_state</span>, <span class="ident">text</span>
-                    );
-                }
-                <span class="ident">saml_request</span>
+        <span class="kw">match</span> <span class="ident">token</span> {
+            <span class="prelude-val">Ok</span>(<span class="ident">token_value</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="ident">saml_request</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">token_value</span> {
+                    <span class="ident">Token::Attribute</span> {
+                        <span class="ident">prefix</span>: <span class="kw">_</span>,
+                        <span class="ident">local</span>,
+                        <span class="ident">value</span>,
+                        <span class="ident">span</span>: <span class="kw">_</span>,
+                    } <span class="op">=</span><span class="op">&gt;</span> <span class="ident">parse_authn_tokenizer_attribute</span>(<span class="ident">local</span>, <span class="ident">value</span>, <span class="ident">saml_request</span>),
+                    <span class="ident">Token::ElementStart</span> {
+                        <span class="ident">prefix</span>: <span class="kw">_</span>,
+                        <span class="ident">local</span>,
+                        <span class="ident">span</span>: <span class="kw">_</span>,
+                    } <span class="op">=</span><span class="op">&gt;</span> <span class="ident">parse_authn_tokenizer_element_start</span>(<span class="ident">local</span>, <span class="ident">saml_request</span>),
+                    <span class="ident">Token::Text</span> { <span class="ident">text</span> } <span class="op">=</span><span class="op">&gt;</span> {
+                        <span class="comment">// if issuer_state == -1 { continue }</span>
+                        <span class="kw">if</span> <span class="ident">saml_request</span>.<span class="ident">issuer_state</span> <span class="op">=</span><span class="op">=</span> <span class="number">1</span> {
+                            <span class="kw">let</span> <span class="ident">issuer</span> <span class="op">=</span> <span class="ident">text</span>.<span class="ident">as_str</span>();
+                            <span class="macro">debug!</span>(<span class="string">&quot;Found issuer: {}&quot;</span>, <span class="ident">issuer</span>);
+                            <span class="ident">saml_request</span>.<span class="ident">issuer</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">issuer</span>.<span class="ident">to_string</span>());
+                            <span class="ident">saml_request</span>.<span class="ident">issuer_state</span> <span class="op">=</span> <span class="op">-</span><span class="number">1</span>; <span class="comment">// reset the state machine so we don&#39;t try and do this again</span>
+                        } <span class="kw">else</span> {
+                            <span class="macro">debug!</span>(
+                                <span class="string">&quot;Found issuer text and not at issuer_state==1 ({}) text={:?}&quot;</span>,
+                                <span class="ident">saml_request</span>.<span class="ident">issuer_state</span>, <span class="ident">text</span>
+                            );
+                        }
+                        <span class="ident">saml_request</span>
+                    }
+                    <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">saml_request</span>,
+                };
             }
-            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">saml_request</span>,
-        };
+            <span class="prelude-val">Err</span>(<span class="kw-2">ref</span> <span class="ident">error</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="macro">format!</span>(
+                    <span class="string">&quot;Error parsing token: {:?}\n{:?}&quot;</span>,
+                    <span class="ident">error</span>, <span class="ident">request_data</span>
+                ));
+            }
+        }
     }
     <span class="kw">if</span> <span class="ident">saml_request</span>.<span class="ident">error</span> {
         <span class="macro">eprintln!</span>(<span class="string">&quot;There was an error parsing the request&quot;</span>);
-        <span class="prelude-val">Err</span>(<span class="string">&quot;Failed to parse SAML request&quot;</span>)
+        <span class="prelude-val">Err</span>(<span class="string">&quot;Failed to parse SAML request&quot;</span>.<span class="ident">to_string</span>())
     } <span class="kw">else</span> {
         <span class="macro">println!</span>(<span class="string">&quot;found relay_state={:?}&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">saml_request</span>.<span class="ident">relay_state</span>);
         <span class="prelude-val">Ok</span>(<span class="ident">SamlAuthnRequest::from</span>(<span class="ident">saml_request</span>))
@@ -914,9 +933,6 @@
 
     <span class="comment">// println!(&quot;Length of encrypted thing: {:?}&quot;, encrypted_len);</span>
 }
-<span class="comment">// use std::fs::File;</span>
-<span class="comment">// use std::io::Read;</span>
-<span class="comment">// use reqwest::Certificate;</span>
 
 <span class="comment">// fn get_public_cert_base64(cert_path: std::string::String) -&gt; Result&lt;Certificate, ()&gt; {</span>
 <span class="comment">//     let mut buf = Vec::new();</span>
