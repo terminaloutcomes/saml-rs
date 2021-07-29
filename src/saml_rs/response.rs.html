@@ -381,13 +381,37 @@
 <span id="378">378</span>
 <span id="379">379</span>
 <span id="380">380</span>
+<span id="381">381</span>
+<span id="382">382</span>
+<span id="383">383</span>
+<span id="384">384</span>
+<span id="385">385</span>
+<span id="386">386</span>
+<span id="387">387</span>
+<span id="388">388</span>
+<span id="389">389</span>
+<span id="390">390</span>
+<span id="391">391</span>
+<span id="392">392</span>
+<span id="393">393</span>
+<span id="394">394</span>
+<span id="395">395</span>
+<span id="396">396</span>
+<span id="397">397</span>
+<span id="398">398</span>
+<span id="399">399</span>
+<span id="400">400</span>
+<span id="401">401</span>
+<span id="402">402</span>
+<span id="403">403</span>
+<span id="404">404</span>
+<span id="405">405</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Want to build a SAML response? Here&#39;s your module. 🥳</span>
 
 <span class="comment">// #![deny(unsafe_code)]</span>
 
 <span class="kw">use</span> <span class="ident">chrono</span>::{<span class="ident">DateTime</span>, <span class="ident">NaiveDate</span>, <span class="ident">SecondsFormat</span>, <span class="ident">Utc</span>};
-
 <span class="kw">use</span> <span class="ident">std::io::Write</span>;
 
 <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::utils</span>::<span class="kw-2">*</span>;
@@ -425,6 +449,162 @@
 
     <span class="doccomment">/// ID Of the assertion</span>
     <span class="kw">pub</span> <span class="ident">assertion_id</span>: <span class="ident">String</span>,
+
+    <span class="doccomment">/// [crate::sp::ServiceProvider]</span>
+    <span class="kw">pub</span> <span class="ident">service_provider</span>: <span class="kw">crate</span><span class="ident">::sp::ServiceProvider</span>,
+}
+
+<span class="kw">use</span> <span class="ident">uuid::Uuid</span>;
+
+<span class="kw">impl</span> <span class="ident">ResponseElements</span> {
+    <span class="doccomment">/// returns the base64 encoded version of a [ResponseElements]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">base64_encoded_response</span>(<span class="self">self</span>, <span class="ident">signed</span>: <span class="ident">bool</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> {
+        <span class="kw">if</span> <span class="ident">signed</span> {
+            <span class="macro">unimplemented!</span>(<span class="string">&quot;Still need to do this bit.&quot;</span>);
+        }
+        <span class="kw">let</span> <span class="ident">buffer</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">into</span>();
+        <span class="ident">base64::encode</span>(<span class="ident">buffer</span>).<span class="ident">into</span>()
+    }
+
+    <span class="doccomment">/// generate a response ID, which will be the issuer and uuid concatentated</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">regenerate_response_id</span>(<span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="kw">let</span> <span class="ident">response_id</span> <span class="op">=</span> <span class="macro">format!</span>(<span class="string">&quot;{}-{}&quot;</span>, <span class="self">self</span>.<span class="ident">issuer</span>, <span class="ident">Uuid::new_v4</span>().<span class="ident">to_string</span>());
+        <span class="self">Self</span> {
+            <span class="ident">assertion_id</span>: <span class="self">self</span>.<span class="ident">assertion_id</span>,
+            <span class="ident">attributes</span>: <span class="self">self</span>.<span class="ident">attributes</span>,
+            <span class="ident">authnstatement</span>: <span class="self">self</span>.<span class="ident">authnstatement</span>,
+            <span class="ident">destination</span>: <span class="self">self</span>.<span class="ident">destination</span>,
+            <span class="ident">issuer</span>: <span class="self">self</span>.<span class="ident">issuer</span>.<span class="ident">to_string</span>(),
+            <span class="ident">relay_state</span>: <span class="self">self</span>.<span class="ident">relay_state</span>,
+            <span class="ident">issue_instant</span>: <span class="self">self</span>.<span class="ident">issue_instant</span>,
+            <span class="ident">service_provider</span>: <span class="self">self</span>.<span class="ident">service_provider</span>,
+            <span class="ident">response_id</span>,
+        }
+    }
+}
+
+<span class="doccomment">/// Creates a String full of XML based on the ResponsElements</span>
+<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::from_over_into</span>)]</span>
+<span class="kw">impl</span> <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ResponseElements</span> {
+    <span class="kw">fn</span> <span class="ident">into</span>(<span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> {
+        <span class="comment">// TODO set up all these values</span>
+        <span class="kw">let</span> <span class="ident">audience</span> <span class="op">=</span> <span class="ident">String::from</span>(<span class="string">&quot;http://sp.example.com/demo1/metadata.php&quot;</span>);
+
+        <span class="kw">let</span> <span class="ident">conditions_not_before</span> <span class="op">=</span> <span class="ident">String::from</span>(<span class="string">&quot;2014-07-17T01:01:18Z&quot;</span>);
+        <span class="kw">let</span> <span class="ident">conditions_not_after</span> <span class="op">=</span> <span class="ident">String::from</span>(<span class="string">&quot;2024-01-18T06:21:48Z&quot;</span>);
+
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buffer</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">writer</span> <span class="op">=</span> <span class="ident">EmitterConfig::new</span>()
+            .<span class="ident">perform_indent</span>(<span class="bool-val">true</span>)
+            .<span class="ident">write_document_declaration</span>(<span class="bool-val">false</span>)
+            .<span class="ident">create_writer</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">buffer</span>);
+
+        <span class="comment">// start of the response</span>
+        <span class="ident">write_event</span>(
+            <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;samlp&quot;</span>, <span class="string">&quot;Response&quot;</span>))
+                .<span class="ident">attr</span>(<span class="string">&quot;xmlns:samlp&quot;</span>, <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:protocol&quot;</span>)
+                .<span class="ident">attr</span>(<span class="string">&quot;xmlns:saml&quot;</span>, <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:assertion&quot;</span>)
+                .<span class="ident">attr</span>(<span class="string">&quot;ID&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">response_id</span>)
+                .<span class="ident">attr</span>(<span class="string">&quot;Version&quot;</span>, <span class="string">&quot;2.0&quot;</span>)
+                .<span class="ident">attr</span>(
+                    <span class="string">&quot;IssueInstant&quot;</span>,
+                    <span class="kw-2">&amp;</span><span class="self">self</span>
+                        .<span class="ident">issue_instant</span>
+                        .<span class="ident">to_rfc3339_opts</span>(<span class="ident">SecondsFormat::Secs</span>, <span class="bool-val">true</span>),
+                )
+                .<span class="ident">attr</span>(<span class="string">&quot;Destination&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">destination</span>)
+                .<span class="ident">attr</span>(<span class="string">&quot;InResponseTo&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">relay_state</span>)
+                .<span class="ident">into</span>(),
+            <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>,
+        );
+
+        <span class="comment">// issuer</span>
+        <span class="ident">add_issuer</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">issuer</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
+
+        <span class="kw">let</span> <span class="ident">subjectdata</span> <span class="op">=</span> <span class="ident">SubjectData</span> {
+            <span class="ident">relay_state</span>: <span class="self">self</span>.<span class="ident">relay_state</span>,
+            <span class="ident">qualifier</span>: <span class="prelude-val">Some</span>(<span class="ident">BaseIDAbstractType::SPNameQualifier</span>),
+            <span class="ident">qualifier_value</span>: <span class="prelude-val">Some</span>(<span class="ident">String::from</span>(<span class="string">&quot;http://sp.example.com/demo1/metadata.php&quot;</span>)),
+            <span class="ident">nameid_format</span>: <span class="kw">crate</span><span class="ident">::sp::NameIdFormat::Transient</span>,
+            <span class="comment">// in the unsigned response example this was a transient value _ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7</span>
+            <span class="ident">nameid_value</span>: <span class="string">&quot;_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7&quot;</span>,
+            <span class="ident">acs</span>: <span class="string">&quot;http://sp.example.com/demo1/index.php?acs&quot;</span>,
+            <span class="ident">subject_not_on_or_after</span>: <span class="ident">DateTime</span>::<span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span><span class="ident">::from_utc</span>(
+                <span class="ident">NaiveDate::from_ymd</span>(<span class="number">2024</span>, <span class="number">1</span>, <span class="number">18</span>).<span class="ident">and_hms</span>(<span class="number">6</span>, <span class="number">21</span>, <span class="number">48</span>),
+                <span class="ident">Utc</span>,
+            ),
+        };
+
+        <span class="comment">// status</span>
+        <span class="ident">add_status</span>(<span class="string">&quot;Success&quot;</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
+
+        <span class="comment">// start the assertion</span>
+        <span class="ident">write_event</span>(
+            <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Assertion&quot;</span>))
+                .<span class="ident">attr</span>(<span class="string">&quot;xmlns:xsi&quot;</span>, <span class="string">&quot;http://www.w3.org/2001/XMLSchema-instance&quot;</span>)
+                .<span class="ident">attr</span>(<span class="string">&quot;xmlns:xs&quot;</span>, <span class="string">&quot;http://www.w3.org/2001/XMLSchema&quot;</span>)
+                .<span class="ident">attr</span>(<span class="string">&quot;ID&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">assertion_id</span>)
+                .<span class="ident">attr</span>(<span class="string">&quot;Version&quot;</span>, <span class="string">&quot;2.0&quot;</span>) <span class="comment">// yeah, not going to support anything but 2.0 here. 😅</span>
+                .<span class="ident">attr</span>(
+                    <span class="string">&quot;IssueInstant&quot;</span>,
+                    <span class="kw-2">&amp;</span><span class="self">self</span>
+                        .<span class="ident">issue_instant</span>
+                        .<span class="ident">to_rfc3339_opts</span>(<span class="ident">SecondsFormat::Secs</span>, <span class="bool-val">true</span>),
+                )
+                .<span class="ident">into</span>(),
+            <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>,
+        );
+
+        <span class="comment">// do the issuer inside the assertion</span>
+        <span class="ident">add_issuer</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">issuer</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
+        <span class="ident">add_subject</span>(<span class="kw-2">&amp;</span><span class="ident">subjectdata</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
+
+        <span class="comment">// start conditions statement</span>
+        <span class="ident">write_event</span>(
+            <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Conditions&quot;</span>))
+                <span class="comment">// TODO: conditions_not_before</span>
+                .<span class="ident">attr</span>(<span class="string">&quot;NotBefore&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">conditions_not_before</span>)
+                <span class="comment">// TODO: conditions_not_after</span>
+                .<span class="ident">attr</span>(<span class="string">&quot;NotOnOrAfter&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">conditions_not_after</span>)
+                .<span class="ident">into</span>(),
+            <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>,
+        );
+
+        <span class="ident">write_event</span>(
+            <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;AudienceRestriction&quot;</span>)).<span class="ident">into</span>(),
+            <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>,
+        );
+        <span class="ident">write_event</span>(
+            <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Audience&quot;</span>)).<span class="ident">into</span>(),
+            <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>,
+        );
+        <span class="ident">write_event</span>(<span class="ident">XmlEvent::characters</span>(<span class="kw-2">&amp;</span><span class="ident">audience</span>), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
+        <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
+        <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
+        <span class="comment">// end conditions statement</span>
+        <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
+
+        <span class="comment">// To do an expiry in an hour, do this</span>
+        <span class="comment">// let session_expiry = Utc::now().checked_add_signed(Duration::seconds(3600));</span>
+
+        <span class="self">self</span>.<span class="ident">authnstatement</span>.<span class="ident">add_to_xmlevent</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
+
+        <span class="kw">for</span> <span class="ident">attribute</span> <span class="kw">in</span> <span class="self">self</span>.<span class="ident">attributes</span> {
+            <span class="kw">crate</span><span class="ident">::xml::add_attribute</span>(<span class="ident">attribute</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
+        }
+
+        <span class="comment">// end attribute statement</span>
+        <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
+
+        <span class="comment">// end the assertion</span>
+        <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
+
+        <span class="comment">// end the response</span>
+        <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
+
+        <span class="comment">// finally we return the response</span>
+        <span class="ident">buffer</span>
+    }
 }
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
@@ -631,136 +811,6 @@
     );
     <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
     <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
-}
-
-<span class="doccomment">/// returns the base64 encoded version of [create_response]</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">base64_encoded_response</span>(<span class="ident">data</span>: <span class="ident">ResponseElements</span>, <span class="ident">signed</span>: <span class="ident">bool</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> {
-    <span class="kw">if</span> <span class="ident">signed</span> {
-        <span class="macro">unimplemented!</span>(<span class="string">&quot;Still need to do this bit.&quot;</span>);
-    }
-    <span class="kw">let</span> <span class="ident">buffer</span> <span class="op">=</span> <span class="ident">create_response</span>(<span class="ident">data</span>);
-    <span class="ident">base64::encode</span>(<span class="ident">buffer</span>).<span class="ident">into</span>()
-}
-
-<span class="doccomment">/// Creates a `samlp:Response` objects based on the input data ([ResponseElements]) you provide</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_response</span>(<span class="ident">data</span>: <span class="ident">ResponseElements</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> {
-    <span class="comment">// TODO set up all these values</span>
-    <span class="kw">let</span> <span class="ident">audience</span> <span class="op">=</span> <span class="ident">String::from</span>(<span class="string">&quot;http://sp.example.com/demo1/metadata.php&quot;</span>);
-
-    <span class="kw">let</span> <span class="ident">conditions_not_before</span> <span class="op">=</span> <span class="ident">String::from</span>(<span class="string">&quot;2014-07-17T01:01:18Z&quot;</span>);
-    <span class="kw">let</span> <span class="ident">conditions_not_after</span> <span class="op">=</span> <span class="ident">String::from</span>(<span class="string">&quot;2024-01-18T06:21:48Z&quot;</span>);
-
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buffer</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">writer</span> <span class="op">=</span> <span class="ident">EmitterConfig::new</span>()
-        .<span class="ident">perform_indent</span>(<span class="bool-val">true</span>)
-        .<span class="ident">write_document_declaration</span>(<span class="bool-val">false</span>)
-        .<span class="ident">create_writer</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">buffer</span>);
-
-    <span class="comment">// start of the response</span>
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;samlp&quot;</span>, <span class="string">&quot;Response&quot;</span>))
-            .<span class="ident">attr</span>(<span class="string">&quot;xmlns:samlp&quot;</span>, <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:protocol&quot;</span>)
-            .<span class="ident">attr</span>(<span class="string">&quot;xmlns:saml&quot;</span>, <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:assertion&quot;</span>)
-            .<span class="ident">attr</span>(<span class="string">&quot;ID&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">data</span>.<span class="ident">response_id</span>)
-            .<span class="ident">attr</span>(<span class="string">&quot;Version&quot;</span>, <span class="string">&quot;2.0&quot;</span>)
-            .<span class="ident">attr</span>(
-                <span class="string">&quot;IssueInstant&quot;</span>,
-                <span class="kw-2">&amp;</span><span class="ident">data</span>
-                    .<span class="ident">issue_instant</span>
-                    .<span class="ident">to_rfc3339_opts</span>(<span class="ident">SecondsFormat::Secs</span>, <span class="bool-val">true</span>),
-            )
-            .<span class="ident">attr</span>(<span class="string">&quot;Destination&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">data</span>.<span class="ident">destination</span>)
-            .<span class="ident">attr</span>(<span class="string">&quot;InResponseTo&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">data</span>.<span class="ident">relay_state</span>)
-            .<span class="ident">into</span>(),
-        <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>,
-    );
-
-    <span class="comment">// issuer</span>
-    <span class="ident">add_issuer</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>.<span class="ident">issuer</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
-
-    <span class="kw">let</span> <span class="ident">subjectdata</span> <span class="op">=</span> <span class="ident">SubjectData</span> {
-        <span class="ident">relay_state</span>: <span class="ident">data</span>.<span class="ident">relay_state</span>,
-        <span class="ident">qualifier</span>: <span class="prelude-val">Some</span>(<span class="ident">BaseIDAbstractType::SPNameQualifier</span>),
-        <span class="ident">qualifier_value</span>: <span class="prelude-val">Some</span>(<span class="ident">String::from</span>(<span class="string">&quot;http://sp.example.com/demo1/metadata.php&quot;</span>)),
-        <span class="ident">nameid_format</span>: <span class="kw">crate</span><span class="ident">::sp::NameIdFormat::Transient</span>,
-        <span class="comment">// in the unsigned response example this was a transient value _ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7</span>
-        <span class="ident">nameid_value</span>: <span class="string">&quot;_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7&quot;</span>,
-        <span class="ident">acs</span>: <span class="string">&quot;http://sp.example.com/demo1/index.php?acs&quot;</span>,
-        <span class="ident">subject_not_on_or_after</span>: <span class="ident">DateTime</span>::<span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span><span class="ident">::from_utc</span>(
-            <span class="ident">NaiveDate::from_ymd</span>(<span class="number">2024</span>, <span class="number">1</span>, <span class="number">18</span>).<span class="ident">and_hms</span>(<span class="number">6</span>, <span class="number">21</span>, <span class="number">48</span>),
-            <span class="ident">Utc</span>,
-        ),
-    };
-
-    <span class="comment">// status</span>
-    <span class="ident">add_status</span>(<span class="string">&quot;Success&quot;</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
-
-    <span class="comment">// start the assertion</span>
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Assertion&quot;</span>))
-            .<span class="ident">attr</span>(<span class="string">&quot;xmlns:xsi&quot;</span>, <span class="string">&quot;http://www.w3.org/2001/XMLSchema-instance&quot;</span>)
-            .<span class="ident">attr</span>(<span class="string">&quot;xmlns:xs&quot;</span>, <span class="string">&quot;http://www.w3.org/2001/XMLSchema&quot;</span>)
-            .<span class="ident">attr</span>(<span class="string">&quot;ID&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">data</span>.<span class="ident">assertion_id</span>)
-            .<span class="ident">attr</span>(<span class="string">&quot;Version&quot;</span>, <span class="string">&quot;2.0&quot;</span>) <span class="comment">// yeah, not going to support anything but 2.0 here. 😅</span>
-            .<span class="ident">attr</span>(
-                <span class="string">&quot;IssueInstant&quot;</span>,
-                <span class="kw-2">&amp;</span><span class="ident">data</span>
-                    .<span class="ident">issue_instant</span>
-                    .<span class="ident">to_rfc3339_opts</span>(<span class="ident">SecondsFormat::Secs</span>, <span class="bool-val">true</span>),
-            )
-            .<span class="ident">into</span>(),
-        <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>,
-    );
-
-    <span class="comment">// do the issuer inside the assertion</span>
-    <span class="ident">add_issuer</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>.<span class="ident">issuer</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
-    <span class="ident">add_subject</span>(<span class="kw-2">&amp;</span><span class="ident">subjectdata</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
-
-    <span class="comment">// start conditions statement</span>
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Conditions&quot;</span>))
-            <span class="comment">// TODO: conditions_not_before</span>
-            .<span class="ident">attr</span>(<span class="string">&quot;NotBefore&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">conditions_not_before</span>)
-            <span class="comment">// TODO: conditions_not_after</span>
-            .<span class="ident">attr</span>(<span class="string">&quot;NotOnOrAfter&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">conditions_not_after</span>)
-            .<span class="ident">into</span>(),
-        <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>,
-    );
-
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;AudienceRestriction&quot;</span>)).<span class="ident">into</span>(),
-        <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>,
-    );
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Audience&quot;</span>)).<span class="ident">into</span>(),
-        <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>,
-    );
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::characters</span>(<span class="kw-2">&amp;</span><span class="ident">audience</span>), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
-    <span class="comment">// end conditions statement</span>
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
-
-    <span class="comment">// To do an expiry in an hour, do this</span>
-    <span class="comment">// let session_expiry = Utc::now().checked_add_signed(Duration::seconds(3600));</span>
-
-    <span class="ident">data</span>.<span class="ident">authnstatement</span>.<span class="ident">add_to_xmlevent</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
-
-    <span class="kw">for</span> <span class="ident">attribute</span> <span class="kw">in</span> <span class="ident">data</span>.<span class="ident">attributes</span> {
-        <span class="kw">crate</span><span class="ident">::xml::add_attribute</span>(<span class="ident">attribute</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
-    }
-
-    <span class="comment">// end attribute statement</span>
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
-
-    <span class="comment">// end the assertion</span>
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
-
-    <span class="comment">// end the response</span>
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
-
-    <span class="comment">// finally we return the response</span>
-    <span class="ident">buffer</span>
 }
 </pre></div>
 </section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="saml_rs" data-search-index-js="../../search-index.js" data-search-js="../../search.js"></div>
