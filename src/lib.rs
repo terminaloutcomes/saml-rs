@@ -75,12 +75,14 @@ use xmlparser::{StrSpan, Token};
 use inflate::inflate_bytes;
 use std::str::from_utf8;
 
+pub mod assertion;
 pub mod cert;
 pub mod metadata;
 pub mod response;
 pub mod sign;
 pub mod sp;
 pub mod test_samples;
+pub mod utils;
 pub mod xml;
 
 // #[cfg(feature = "enable_tide")]
@@ -110,7 +112,8 @@ pub struct SamlAuthnRequest {
     /// This better be 2.0!
     pub version: String,
     #[serde(rename = "Destination")]
-    /// Destination... TODO: work out if/why this is different to the ACS
+    /// Destination...
+    /// TODO: work out if/why this is different to the ACS
     pub destination: String,
 
     // Example value http%3A%2F%2Fwww.w3.org%2F2001%2F04%2Fxmldsig-more%23rsa-sha256

@@ -2,10 +2,11 @@
 
 // #![deny(unsafe_code)]
 
-use chrono::{DateTime, SecondsFormat, Utc};
+use chrono::{DateTime, NaiveDate, SecondsFormat, Utc};
 
 use std::io::Write;
 
+use crate::utils::*;
 use crate::xml::{write_event, ResponseAttribute};
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
@@ -55,32 +56,14 @@ pub struct AuthNStatement {
     /// TODO: do we need to respond with multiple context class refs?
     pub classref: String,
     /// Expiry of the statement,
-    /// TODO: findd out if this is optional
+    /// TODO: find out if this is optional
     pub expiry: Option<DateTime<Utc>>,
 }
 
 impl AuthNStatement {
     #[allow(clippy::inherent_to_string)]
-    /// Formats it all pretty-like, in XML
-    pub fn to_string(&self) -> String {
-        // TODO: change this to a display thing, or remove it?
-        let expiry: String = match self.expiry {
-            Some(value) => format!(" SessionNotOnOrAfter=\"{}\"", value),
-            _ => "".to_string(),
-        };
-        format!(
-            r#"<saml:AuthnStatement
-    AuthnInstant="{}"
-    SessionIndex="{}"{}>
-  <saml:AuthnContext>
-    <saml:AuthnContextClassRef>{}</saml:AuthnContextClassRef>
-  </saml:AuthnContext>
-</saml:AuthnStatement>"#,
-            self.instant, self.session_index, expiry, self.classref
-        )
-    }
 
-    /// Used elsewhere in the API to add it to the Response XML
+    /// Used elsewhere in the API to add an AuthNStatement to the Response XML
     pub fn add_to_xmlevent<W: Write>(&self, writer: &mut EventWriter<W>) {
         // start authn statement
         let _ = match self.expiry {
@@ -140,6 +123,108 @@ fn add_issuer<W: Write>(issuer: &str, writer: &mut EventWriter<W>) {
     write_event(XmlEvent::end_element().into(), writer);
 }
 
+#[derive(Debug, Copy, Clone)]
+enum BaseIDAbstractType {
+    NameQualifier,
+    SPNameQualifier,
+}
+
+impl From<String> for BaseIDAbstractType {
+    fn from(name: String) -> Self {
+        let name = name.as_str();
+        match name {
+            "NameQualifier" => BaseIDAbstractType::NameQualifier,
+            "SPNameQualifier" => BaseIDAbstractType::SPNameQualifier,
+            _ => panic!("how did you even get here"),
+        }
+    }
+}
+
+impl ToString for BaseIDAbstractType {
+    fn to_string(&self) -> String {
+        match self {
+            BaseIDAbstractType::NameQualifier => String::from("NameQualifier"),
+            BaseIDAbstractType::SPNameQualifier => String::from("SPNameQualifier"),
+        }
+    }
+}
+
+// // use xml::name::Name;
+// use std::convert::From;
+
+// impl From<xml::name::Name> for BaseIDAbstractType{
+//     fn from(name: Name) -> Self {
+//         self.from_string(name.to_string())
+//     }
+// }
+
+#[derive(Debug)]
+/// Data type for passing subject data in because yeaaaaah, specs
+///
+/// TODO: Justify this better
+struct SubjectData {
+    relay_state: String,
+    qualifier: Option<BaseIDAbstractType>,
+    qualifier_value: Option<String>,
+    nameid_format: crate::sp::NameIdFormat,
+    nameid_value: &'static str,
+    acs: &'static str,
+    subject_not_on_or_after: DateTime<Utc>,
+}
+
+/// Adds the Subject statement to an assertion
+fn add_subject<W: Write>(subjectdata: &SubjectData, writer: &mut EventWriter<W>) {
+    // start subject statement
+    write_event(XmlEvent::start_element(("saml", "Subject")).into(), writer);
+    // start nameid statement
+    // TODO: nameid can be 0 or more of NameQualifier or SPNameQualifier
+    write_event(
+        XmlEvent::start_element(("saml", "NameID"))
+            .attr(
+                subjectdata.qualifier.unwrap().to_string().as_str(),
+                subjectdata.qualifier_value.as_ref().unwrap(),
+            )
+            .attr("Format", &subjectdata.nameid_format.to_string())
+            .into(),
+        writer,
+    );
+
+    write_event(XmlEvent::characters(&subjectdata.nameid_value), writer);
+    // end nameid statement
+    write_event(XmlEvent::end_element().into(), writer);
+
+    //start subjectconfirmation
+    write_event(
+        XmlEvent::start_element(("saml", "SubjectConfirmation"))
+            .attr("Method", "urn:oasis:names:tc:SAML:2.0:cm:bearer")
+            .into(),
+        writer,
+    );
+
+    //start subjectconfirmationdata
+    write_event(
+        XmlEvent::start_element(("saml", "SubjectConfirmationData"))
+            .attr(
+                "NotOnOrAfter",
+                &subjectdata
+                    .subject_not_on_or_after
+                    .to_saml_datetime_string(),
+            )
+            .attr("Recipient", &subjectdata.acs)
+            .attr("InResponseTo", &subjectdata.relay_state)
+            .into(),
+        writer,
+    );
+
+    //end subjectconfirmationdata
+    write_event(XmlEvent::end_element().into(), writer);
+    //end subjectconfirmation
+    write_event(XmlEvent::end_element().into(), writer);
+
+    write_event(XmlEvent::end_element().into(), writer);
+    // end subject statement
+}
+
 /// Adds a set of status tags to a response
 ///
 /// Using the command thusly: `add_status("Success", &mut writer);` Will add this:
@@ -175,6 +260,12 @@ pub fn base64_encoded_response(data: ResponseElements, signed: bool) -> Vec<u8> 
 
 /// Creates a `samlp:Response` objects based on the input data ([ResponseElements]) you provide
 pub fn create_response(data: ResponseElements) -> Vec<u8> {
+    // TODO set up all these values
+    let audience = String::from("http://sp.example.com/demo1/metadata.php");
+
+    let conditions_not_before = String::from("2014-07-17T01:01:18Z");
+    let conditions_not_after = String::from("2024-01-18T06:21:48Z");
+
     let mut buffer = Vec::new();
     let mut writer = EmitterConfig::new()
         .perform_indent(true)
@@ -203,6 +294,20 @@ pub fn create_response(data: ResponseElements) -> Vec<u8> {
     // issuer
     add_issuer(&data.issuer, &mut writer);
 
+    let subjectdata = SubjectData {
+        relay_state: data.relay_state,
+        qualifier: Some(BaseIDAbstractType::SPNameQualifier),
+        qualifier_value: Some(String::from("http://sp.example.com/demo1/metadata.php")),
+        nameid_format: crate::sp::NameIdFormat::Transient,
+        // in the unsigned response example this was a transient value _ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7
+        nameid_value: "_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7",
+        acs: "http://sp.example.com/demo1/index.php?acs",
+        subject_not_on_or_after: DateTime::<Utc>::from_utc(
+            NaiveDate::from_ymd(2024, 1, 18).and_hms(6, 21, 48),
+            Utc,
+        ),
+    };
+
     // status
     add_status("Success", &mut writer);
 
@@ -212,7 +317,7 @@ pub fn create_response(data: ResponseElements) -> Vec<u8> {
             .attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
             .attr("xmlns:xs", "http://www.w3.org/2001/XMLSchema")
             .attr("ID", &data.assertion_id)
-            .attr("Version", "2.0")
+            .attr("Version", "2.0") // yeah, not going to support anything but 2.0 here. 😅
             .attr(
                 "IssueInstant",
                 &data
@@ -225,67 +330,15 @@ pub fn create_response(data: ResponseElements) -> Vec<u8> {
 
     // do the issuer inside the assertion
     add_issuer(&data.issuer, &mut writer);
-
-    // start subject statement
-    write_event(
-        XmlEvent::start_element(("saml", "Subject")).into(),
-        &mut writer,
-    );
-    // start nameid statement
-    write_event(
-        XmlEvent::start_element(("saml", "NameID"))
-            .attr(
-                "SPNameQualifier",
-                "http://sp.example.com/demo1/metadata.php",
-            )
-            .attr(
-                "Format",
-                "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
-            )
-            .into(),
-        &mut writer,
-    );
-
-    write_event(
-        XmlEvent::characters("_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7"),
-        &mut writer,
-    );
-    // end nameid statement
-    write_event(XmlEvent::end_element().into(), &mut writer);
-
-    //start subjectconfirmation
-    write_event(
-        XmlEvent::start_element(("saml", "SubjectConfirmation"))
-            .attr("Method", "urn:oasis:names:tc:SAML:2.0:cm:bearer")
-            .into(),
-        &mut writer,
-    );
-
-    //start subjectconfirmationdata
-    write_event(
-        XmlEvent::start_element(("saml", "SubjectConfirmationData"))
-            .attr("NotOnOrAfter", "2024-01-18T06:21:48Z")
-            .attr("Recipient", "http://sp.example.com/demo1/index.php?acs")
-            .attr("InResponseTo", &data.relay_state)
-            .into(),
-        &mut writer,
-    );
-
-    //end subjectconfirmationdata
-    write_event(XmlEvent::end_element().into(), &mut writer);
-    //end subjectconfirmation
-    write_event(XmlEvent::end_element().into(), &mut writer);
-
-    write_event(XmlEvent::end_element().into(), &mut writer);
-    // end subject statement
+    add_subject(&subjectdata, &mut writer);
 
     // start conditions statement
     write_event(
         XmlEvent::start_element(("saml", "Conditions"))
             // TODO: conditions_not_before
-            .attr("NotBefore", "2014-07-17T01:01:18Z")
+            .attr("NotBefore", &conditions_not_before)
             // TODO: conditions_not_after
-            .attr("NotOnOrAfter", "2024-01-18T06:21:48Z")
+            .attr("NotOnOrAfter", &conditions_not_after)
             .into(),
         &mut writer,
     );
@@ -298,10 +351,7 @@ pub fn create_response(data: ResponseElements) -> Vec<u8> {
         XmlEvent::start_element(("saml", "Audience")).into(),
         &mut writer,
     );
-    write_event(
-        XmlEvent::characters("http://sp.example.com/demo1/metadata.php"),
-        &mut writer,
-    );
+    write_event(XmlEvent::characters(&audience), &mut writer);
     write_event(XmlEvent::end_element().into(), &mut writer);
     write_event(XmlEvent::end_element().into(), &mut writer);
     // end conditions statement

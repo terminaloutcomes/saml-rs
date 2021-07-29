@@ -14,7 +14,6 @@
 #![forbid(unsafe_code)]
 #![deny(missing_debug_implementations)]
 
-// use saml_rs::AuthnDecodeError;
 use saml_rs::metadata::{generate_metadata_xml, SamlMetadata};
 use saml_rs::response::{AuthNStatement, ResponseElements};
 use saml_rs::sp::ServiceProvider;
@@ -36,7 +35,7 @@ use std::str::{from_utf8, FromStr};
 use http_types::Mime;
 
 pub mod util;
-use util::do_nothing;
+// use util::do_nothing;
 
 #[derive(Clone, Debug)]
 pub struct AppState {
@@ -102,18 +101,18 @@ async fn main() -> tide::Result<()> {
     }));
 
     let mut saml_process = app.at("/SAML");
+    // TODO: implement support for SAML Artifact
+    // saml_process.at("/Artifact").get(do_nothing);
     saml_process.at("/Metadata").get(saml_metadata_get);
-    saml_process.at("/sign").get(test_sign);
-    // TODO: SAML Logout
-    saml_process.at("/Logout").get(do_nothing);
-    // TODO: SAML idp, used the entityID
-    saml_process.at("/idp").post(do_nothing);
-    // TODO: SAML POST
-    saml_process.at("/POST").post(saml_post_binding);
-    // TODO: SAML Redirect
+    // saml_process.at("/sign").get(test_sign);
+    // TODO: implement SAML Logout
+    // saml_process.at("/Logout").get(do_nothing);
+    // TODO: implement SAML idp, used the entityID
+    // saml_process.at("/idp").post(do_nothing);
+    // TODO: implement SAML POST endpoint
+    // saml_process.at("/POST").post(saml_post_binding);
+
     saml_process.at("/Redirect").get(saml_redirect_get);
-    // TODO: SAML Artifact
-    saml_process.at("/Artifact").get(do_nothing);
 
     let _app = {
         let tls_cert: String = shellexpand::tilde(&server_config.tls_cert_path).into_owned();
@@ -374,7 +373,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
             NaiveDate::from_ymd(2014, 7, 17).and_hms(1, 1, 48),
             Utc,
         ),
-        relay_state: String::from("ONELOGIN_4fee3b046395c4e751011e97f8900b5273d56685"),
+        relay_state: parsed_saml_request.relay_state,
         attributes: responseattributes,
         destination: form_target,
         authnstatement,
@@ -397,17 +396,20 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
 /// TODO: These responses have to be signed
 pub fn generate_login_form(response: ResponseElements, relay_state: String) -> String {
     let mut context = tera::Context::new();
-    context.insert("authn_destination", &response.destination);
-    context.insert(
-        "response_destination",
-        from_utf8(&saml_rs::response::base64_encoded_response(response, false)).unwrap(),
-    );
-    context.insert("relay_state", &relay_state);
+
+    context.insert("form_action", &response.destination);
+    let saml_response = from_utf8(&saml_rs::response::base64_encoded_response(response, false))
+        .unwrap()
+        .to_string();
+    context.insert("SAMLResponse", &saml_response);
+    context.insert("RelayState", &relay_state);
+    log::debug!("{:?}", saml_response);
 
     let template = String::from(
-        r#"<form method="post" action="{{authn_destination}}">
-<input type="hidden" name="SAMLResponse" value="{{response_destination}}" />
-<input type="hidden" name="RelayState" value="{{relay_state}}" />
+        r#"<p>{{SAMLResponse | safe}}</p>
+<form method="post" action="{{form_action}}">
+    <input type="hidden" name="SAMLResponse" value="{{SAMLResponse | safe}}" />
+    <input type="hidden" name="RelayState" value="{{RelayState}}" />
     <h1>Fancy example login form</h1>
     <p>Username: <input type='text' name='username' /></p>
     <p>Password: <input type='password' name='password' /></p>
