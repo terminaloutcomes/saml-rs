@@ -3,7 +3,6 @@
 // #![deny(unsafe_code)]
 
 use chrono::{DateTime, NaiveDate, SecondsFormat, Utc};
-
 use std::io::Write;
 
 use crate::utils::*;
@@ -41,6 +40,162 @@ pub struct ResponseElements {
 
     /// ID Of the assertion
     pub assertion_id: String,
+
+    /// [crate::sp::ServiceProvider]
+    pub service_provider: crate::sp::ServiceProvider,
+}
+
+use uuid::Uuid;
+
+impl ResponseElements {
+    /// returns the base64 encoded version of a [ResponseElements]
+    pub fn base64_encoded_response(self, signed: bool) -> Vec<u8> {
+        if signed {
+            unimplemented!("Still need to do this bit.");
+        }
+        let buffer: Vec<u8> = self.into();
+        base64::encode(buffer).into()
+    }
+
+    /// generate a response ID, which will be the issuer and uuid concatentated
+    pub fn regenerate_response_id(self) -> Self {
+        let response_id = format!("{}-{}", self.issuer, Uuid::new_v4().to_string());
+        Self {
+            assertion_id: self.assertion_id,
+            attributes: self.attributes,
+            authnstatement: self.authnstatement,
+            destination: self.destination,
+            issuer: self.issuer.to_string(),
+            relay_state: self.relay_state,
+            issue_instant: self.issue_instant,
+            service_provider: self.service_provider,
+            response_id,
+        }
+    }
+}
+
+/// Creates a String full of XML based on the ResponsElements
+#[allow(clippy::from_over_into)]
+impl Into<Vec<u8>> for ResponseElements {
+    fn into(self) -> Vec<u8> {
+        // TODO set up all these values
+        let audience = String::from("http://sp.example.com/demo1/metadata.php");
+
+        let conditions_not_before = String::from("2014-07-17T01:01:18Z");
+        let conditions_not_after = String::from("2024-01-18T06:21:48Z");
+
+        let mut buffer = Vec::new();
+        let mut writer = EmitterConfig::new()
+            .perform_indent(true)
+            .write_document_declaration(false)
+            .create_writer(&mut buffer);
+
+        // start of the response
+        write_event(
+            XmlEvent::start_element(("samlp", "Response"))
+                .attr("xmlns:samlp", "urn:oasis:names:tc:SAML:2.0:protocol")
+                .attr("xmlns:saml", "urn:oasis:names:tc:SAML:2.0:assertion")
+                .attr("ID", &self.response_id)
+                .attr("Version", "2.0")
+                .attr(
+                    "IssueInstant",
+                    &self
+                        .issue_instant
+                        .to_rfc3339_opts(SecondsFormat::Secs, true),
+                )
+                .attr("Destination", &self.destination)
+                .attr("InResponseTo", &self.relay_state)
+                .into(),
+            &mut writer,
+        );
+
+        // issuer
+        add_issuer(&self.issuer, &mut writer);
+
+        let subjectdata = SubjectData {
+            relay_state: self.relay_state,
+            qualifier: Some(BaseIDAbstractType::SPNameQualifier),
+            qualifier_value: Some(String::from("http://sp.example.com/demo1/metadata.php")),
+            nameid_format: crate::sp::NameIdFormat::Transient,
+            // in the unsigned response example this was a transient value _ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7
+            nameid_value: "_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7",
+            acs: "http://sp.example.com/demo1/index.php?acs",
+            subject_not_on_or_after: DateTime::<Utc>::from_utc(
+                NaiveDate::from_ymd(2024, 1, 18).and_hms(6, 21, 48),
+                Utc,
+            ),
+        };
+
+        // status
+        add_status("Success", &mut writer);
+
+        // start the assertion
+        write_event(
+            XmlEvent::start_element(("saml", "Assertion"))
+                .attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
+                .attr("xmlns:xs", "http://www.w3.org/2001/XMLSchema")
+                .attr("ID", &self.assertion_id)
+                .attr("Version", "2.0") // yeah, not going to support anything but 2.0 here. 😅
+                .attr(
+                    "IssueInstant",
+                    &self
+                        .issue_instant
+                        .to_rfc3339_opts(SecondsFormat::Secs, true),
+                )
+                .into(),
+            &mut writer,
+        );
+
+        // do the issuer inside the assertion
+        add_issuer(&self.issuer, &mut writer);
+        add_subject(&subjectdata, &mut writer);
+
+        // start conditions statement
+        write_event(
+            XmlEvent::start_element(("saml", "Conditions"))
+                // TODO: conditions_not_before
+                .attr("NotBefore", &conditions_not_before)
+                // TODO: conditions_not_after
+                .attr("NotOnOrAfter", &conditions_not_after)
+                .into(),
+            &mut writer,
+        );
+
+        write_event(
+            XmlEvent::start_element(("saml", "AudienceRestriction")).into(),
+            &mut writer,
+        );
+        write_event(
+            XmlEvent::start_element(("saml", "Audience")).into(),
+            &mut writer,
+        );
+        write_event(XmlEvent::characters(&audience), &mut writer);
+        write_event(XmlEvent::end_element().into(), &mut writer);
+        write_event(XmlEvent::end_element().into(), &mut writer);
+        // end conditions statement
+        write_event(XmlEvent::end_element().into(), &mut writer);
+
+        // To do an expiry in an hour, do this
+        // let session_expiry = Utc::now().checked_add_signed(Duration::seconds(3600));
+
+        self.authnstatement.add_to_xmlevent(&mut writer);
+
+        for attribute in self.attributes {
+            crate::xml::add_attribute(attribute, &mut writer);
+        }
+
+        // end attribute statement
+        write_event(XmlEvent::end_element().into(), &mut writer);
+
+        // end the assertion
+        write_event(XmlEvent::end_element().into(), &mut writer);
+
+        // end the response
+        write_event(XmlEvent::end_element().into(), &mut writer);
+
+        // finally we return the response
+        buffer
+    }
 }
 
 #[derive(Debug)]
@@ -247,134 +402,4 @@ fn add_status<W: Write>(status: &str, writer: &mut EventWriter<W>) {
     );
     write_event(XmlEvent::end_element().into(), writer);
     write_event(XmlEvent::end_element().into(), writer);
-}
-
-/// returns the base64 encoded version of [create_response]
-pub fn base64_encoded_response(data: ResponseElements, signed: bool) -> Vec<u8> {
-    if signed {
-        unimplemented!("Still need to do this bit.");
-    }
-    let buffer = create_response(data);
-    base64::encode(buffer).into()
-}
-
-/// Creates a `samlp:Response` objects based on the input data ([ResponseElements]) you provide
-pub fn create_response(data: ResponseElements) -> Vec<u8> {
-    // TODO set up all these values
-    let audience = String::from("http://sp.example.com/demo1/metadata.php");
-
-    let conditions_not_before = String::from("2014-07-17T01:01:18Z");
-    let conditions_not_after = String::from("2024-01-18T06:21:48Z");
-
-    let mut buffer = Vec::new();
-    let mut writer = EmitterConfig::new()
-        .perform_indent(true)
-        .write_document_declaration(false)
-        .create_writer(&mut buffer);
-
-    // start of the response
-    write_event(
-        XmlEvent::start_element(("samlp", "Response"))
-            .attr("xmlns:samlp", "urn:oasis:names:tc:SAML:2.0:protocol")
-            .attr("xmlns:saml", "urn:oasis:names:tc:SAML:2.0:assertion")
-            .attr("ID", &data.response_id)
-            .attr("Version", "2.0")
-            .attr(
-                "IssueInstant",
-                &data
-                    .issue_instant
-                    .to_rfc3339_opts(SecondsFormat::Secs, true),
-            )
-            .attr("Destination", &data.destination)
-            .attr("InResponseTo", &data.relay_state)
-            .into(),
-        &mut writer,
-    );
-
-    // issuer
-    add_issuer(&data.issuer, &mut writer);
-
-    let subjectdata = SubjectData {
-        relay_state: data.relay_state,
-        qualifier: Some(BaseIDAbstractType::SPNameQualifier),
-        qualifier_value: Some(String::from("http://sp.example.com/demo1/metadata.php")),
-        nameid_format: crate::sp::NameIdFormat::Transient,
-        // in the unsigned response example this was a transient value _ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7
-        nameid_value: "_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7",
-        acs: "http://sp.example.com/demo1/index.php?acs",
-        subject_not_on_or_after: DateTime::<Utc>::from_utc(
-            NaiveDate::from_ymd(2024, 1, 18).and_hms(6, 21, 48),
-            Utc,
-        ),
-    };
-
-    // status
-    add_status("Success", &mut writer);
-
-    // start the assertion
-    write_event(
-        XmlEvent::start_element(("saml", "Assertion"))
-            .attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
-            .attr("xmlns:xs", "http://www.w3.org/2001/XMLSchema")
-            .attr("ID", &data.assertion_id)
-            .attr("Version", "2.0") // yeah, not going to support anything but 2.0 here. 😅
-            .attr(
-                "IssueInstant",
-                &data
-                    .issue_instant
-                    .to_rfc3339_opts(SecondsFormat::Secs, true),
-            )
-            .into(),
-        &mut writer,
-    );
-
-    // do the issuer inside the assertion
-    add_issuer(&data.issuer, &mut writer);
-    add_subject(&subjectdata, &mut writer);
-
-    // start conditions statement
-    write_event(
-        XmlEvent::start_element(("saml", "Conditions"))
-            // TODO: conditions_not_before
-            .attr("NotBefore", &conditions_not_before)
-            // TODO: conditions_not_after
-            .attr("NotOnOrAfter", &conditions_not_after)
-            .into(),
-        &mut writer,
-    );
-
-    write_event(
-        XmlEvent::start_element(("saml", "AudienceRestriction")).into(),
-        &mut writer,
-    );
-    write_event(
-        XmlEvent::start_element(("saml", "Audience")).into(),
-        &mut writer,
-    );
-    write_event(XmlEvent::characters(&audience), &mut writer);
-    write_event(XmlEvent::end_element().into(), &mut writer);
-    write_event(XmlEvent::end_element().into(), &mut writer);
-    // end conditions statement
-    write_event(XmlEvent::end_element().into(), &mut writer);
-
-    // To do an expiry in an hour, do this
-    // let session_expiry = Utc::now().checked_add_signed(Duration::seconds(3600));
-
-    data.authnstatement.add_to_xmlevent(&mut writer);
-
-    for attribute in data.attributes {
-        crate::xml::add_attribute(attribute, &mut writer);
-    }
-
-    // end attribute statement
-    write_event(XmlEvent::end_element().into(), &mut writer);
-
-    // end the assertion
-    write_event(XmlEvent::end_element().into(), &mut writer);
-
-    // end the response
-    write_event(XmlEvent::end_element().into(), &mut writer);
-
-    // finally we return the response
-    buffer
 }

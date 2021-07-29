@@ -251,43 +251,49 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
             }
         };
 
-    // match the issuer to the authn request
-    let mut form_target = String::from("example.com");
-
-    if req
+    let service_provider = match req
         .state()
         .service_providers
         .contains_key(&parsed_saml_request.issuer)
     {
-        let sp = req
-            .state()
-            .service_providers
-            .get(&parsed_saml_request.issuer)
-            .unwrap();
-        response_body.push_str("<p style='color: darkgreen'>found SP in state!</p>");
-        response_body.push_str(&format!("<p>{:?}</p>", sp));
-        // find teh consumer
-        for service in &sp.services {
-            match service.servicetype {
-                saml_rs::sp::SamlBindingType::AssertionConsumerService => {
-                    log::debug!("acs: {:?}", service);
-                    match &service.binding {
-                        saml_rs::sp::SamlBinding::HttpRedirect => {
-                            log::debug!("Found it!");
-                            form_target = service.location.to_string();
-                        }
-                        _ => {
-                            log::debug!("not it!");
-                        }
+        true => {
+            let value = req
+                .state()
+                .service_providers
+                .get(&parsed_saml_request.issuer);
+            value
+        }
+        false => {
+            return Err(tide::Error::from_str(
+                tide::StatusCode::BadRequest,
+                "Unable to find SP for request.".to_string(),
+            ))
+        }
+    };
+
+    let mut form_target = String::new();
+
+    response_body.push_str("<p style='color: darkgreen'>found SP in state!</p>");
+    response_body.push_str(&format!("<p>{:?}</p>", service_provider));
+    // find the consumer
+    for service in &service_provider.unwrap().services {
+        match service.servicetype {
+            saml_rs::sp::SamlBindingType::AssertionConsumerService => {
+                log::debug!("acs: {:?}", service);
+                match &service.binding {
+                    saml_rs::sp::SamlBinding::HttpRedirect => {
+                        log::debug!("Found it!");
+                        form_target = service.location.to_string();
+                    }
+                    _ => {
+                        log::debug!("not it!");
                     }
                 }
-                saml_rs::sp::SamlBindingType::SingleLogoutService => {
-                    log::debug!("sso");
-                }
+            }
+            saml_rs::sp::SamlBindingType::SingleLogoutService => {
+                log::debug!("sso");
             }
         }
-    } else {
-        response_body.push_str("<p style='color: red'>Didn't find SP in state!</p>");
     }
 
     response_body.push_str("<h2>Known issuers</h2><ul>");
@@ -378,6 +384,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         destination: form_target,
         authnstatement,
         assertion_id: String::from("_d71a3a8e9fcc45c9e9d248ef7049393fc8f04e5f75"),
+        service_provider: service_provider.unwrap().to_owned(),
     };
 
     response_body.push_str(&generate_login_form(response, relay_state));
@@ -398,12 +405,10 @@ pub fn generate_login_form(response: ResponseElements, relay_state: String) -> S
     let mut context = tera::Context::new();
 
     context.insert("form_action", &response.destination);
-    let saml_response = from_utf8(&saml_rs::response::base64_encoded_response(response, false))
-        .unwrap()
-        .to_string();
+    let response_data = response.base64_encoded_response(false);
+    let saml_response = from_utf8(&response_data).unwrap().to_string();
     context.insert("SAMLResponse", &saml_response);
     context.insert("RelayState", &relay_state);
-    log::debug!("{:?}", saml_response);
 
     let template = String::from(
         r#"<p>{{SAMLResponse | safe}}</p>

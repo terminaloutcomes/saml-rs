@@ -224,6 +224,21 @@ pub struct ServiceProvider {
     pub nameid_format: NameIdFormat,
 }
 
+impl ServiceProvider {
+    /// Generate a test generic ServiceProvider with nonsense values for testing
+    pub fn test_generic(entity_id: &str) -> Self {
+        ServiceProvider {
+            entity_id: entity_id.to_string(),
+            authn_requests_signed: false,
+            want_assertions_signed: false,
+            x509_certificate: None,
+            services: Vec::new(),
+            protocol_support_enumeration: None,
+            nameid_format: NameIdFormat::Transient,
+        }
+    }
+}
+
 /// Used for showing the details of the SP Metadata XML file
 fn xml_indent(size: usize) -> String {
     const INDENT: &str = "    ";
