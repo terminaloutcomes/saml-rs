@@ -2,11 +2,11 @@
 
 // #![deny(unsafe_code)]
 
-use chrono::{DateTime, NaiveDate, SecondsFormat, Utc};
-use std::io::Write;
-
 use crate::utils::*;
 use crate::xml::{write_event, ResponseAttribute};
+use chrono::{DateTime, NaiveDate, SecondsFormat, Utc};
+use std::io::Write;
+use std::str::from_utf8;
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
 #[derive(Debug)]
@@ -90,6 +90,29 @@ impl Into<Vec<u8>> for ResponseElements {
             .write_document_declaration(false)
             .create_writer(&mut buffer);
 
+        let assertion_data = crate::xml::AssertionData {
+            assertion_id: self.assertion_id.to_string(),
+            signing_algorithm: crate::xml::SigningAlgorithm::Sha1,
+            digest_algorithm: crate::xml::SigningAlgorithm::Sha1,
+            digest_value: Some(String::from("eACxbv4QcKTz/p8ir/fKxzHHUpA=")),
+            signature_value: Some(String::from("ENpWB3CIRUdvMP6pvYmpHIfJYnLmBxqqnBiwUBDh6N8FjiFC+wM0HDQdGn3Nchap7aQj84PCZu3+/0+v9RldfIe7EwSpt7B9HXr7yYMOdncki/ksEWyxY6nfNMNctvwDXa8pv7257OslGNNlo/XVeAOyiPvQ1f89wHsKGgkRn4w=")),
+            certificate: crate::cert::gen_self_signed_certificate(&self.issuer),
+        };
+
+        let subjectdata = SubjectData {
+            relay_state: self.relay_state.clone(),
+            qualifier: Some(BaseIDAbstractType::SPNameQualifier),
+            qualifier_value: Some(String::from("http://sp.example.com/demo1/metadata.php")),
+            nameid_format: crate::sp::NameIdFormat::Transient,
+            // in the unsigned response example this was a transient value _ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7
+            nameid_value: "_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7",
+            acs: "http://sp.example.com/demo1/index.php?acs",
+            subject_not_on_or_after: DateTime::<Utc>::from_utc(
+                NaiveDate::from_ymd(2024, 1, 18).and_hms(6, 21, 48),
+                Utc,
+            ),
+        };
+
         // start of the response
         write_event(
             XmlEvent::start_element(("samlp", "Response"))
@@ -109,22 +132,11 @@ impl Into<Vec<u8>> for ResponseElements {
             &mut writer,
         );
 
-        // issuer
-        add_issuer(&self.issuer, &mut writer);
+        // do the issuer inside the assertion
+        // add_issuer(&self.issuer, &mut writer);
 
-        let subjectdata = SubjectData {
-            relay_state: self.relay_state,
-            qualifier: Some(BaseIDAbstractType::SPNameQualifier),
-            qualifier_value: Some(String::from("http://sp.example.com/demo1/metadata.php")),
-            nameid_format: crate::sp::NameIdFormat::Transient,
-            // in the unsigned response example this was a transient value _ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7
-            nameid_value: "_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7",
-            acs: "http://sp.example.com/demo1/index.php?acs",
-            subject_not_on_or_after: DateTime::<Utc>::from_utc(
-                NaiveDate::from_ymd(2024, 1, 18).and_hms(6, 21, 48),
-                Utc,
-            ),
-        };
+        // add the signing block
+        crate::xml::add_signature(assertion_data, &mut writer);
 
         // status
         add_status("Success", &mut writer);
@@ -148,6 +160,8 @@ impl Into<Vec<u8>> for ResponseElements {
 
         // do the issuer inside the assertion
         add_issuer(&self.issuer, &mut writer);
+
+        // subject
         add_subject(&subjectdata, &mut writer);
 
         // start conditions statement
@@ -194,6 +208,8 @@ impl Into<Vec<u8>> for ResponseElements {
         write_event(XmlEvent::end_element().into(), &mut writer);
 
         // finally we return the response
+        log::debug!("OUTPUT RESPONSE");
+        log::debug!("{}", from_utf8(&buffer).unwrap());
         buffer
     }
 }

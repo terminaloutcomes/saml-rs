@@ -6,6 +6,7 @@
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
+use openssl;
 use openssl::x509::X509;
 use std::io::Cursor;
 
@@ -189,7 +190,7 @@ impl ServiceBinding {
         }
     }
 
-    /// TODO: actually use this in [ServiceProvider::from_xml]
+    /// TODO: actually use this in ServiceProvider from_xml or something
     pub fn set_binding(self, binding: String) -> Result<Self, String> {
         match SamlBinding::from_str(&binding) {
             Err(_) => Err("Failed to match binding name".to_string()),
@@ -203,7 +204,13 @@ impl ServiceBinding {
     }
 }
 
-use openssl;
+/// Used for showing the details of the SP Metadata XML file
+fn xml_indent(size: usize) -> String {
+    const INDENT: &str = "    ";
+    (0..size)
+        .map(|_| INDENT)
+        .fold(String::with_capacity(size * INDENT.len()), |r, s| r + s)
+}
 
 #[derive(Debug, Clone)]
 /// SP metadata object, used for being able to find one when an AuthN request comes in (or IdP-initiated, eventually, maymbe?)
@@ -224,6 +231,90 @@ pub struct ServiceProvider {
     pub nameid_format: NameIdFormat,
 }
 
+impl FromStr for ServiceProvider {
+    type Err = &'static str;
+
+    fn from_str(source_xml: &str) -> Result<Self, Self::Err> {
+        let bufreader = Cursor::new(source_xml);
+        let parser = EventReader::new(bufreader);
+        let mut depth = 0;
+        let mut tag_name = "###INVALID###".to_string();
+        let mut certificate_data = None::<X509>;
+
+        let mut meta = ServiceProvider {
+            entity_id: "".to_string(),
+            authn_requests_signed: false,
+            want_assertions_signed: false,
+            x509_certificate: None,
+            services: vec![],
+            protocol_support_enumeration: None,
+            nameid_format: NameIdFormat::default(),
+        };
+
+        for e in parser {
+            match e {
+                Ok(XmlEvent::StartElement {
+                    name, attributes, ..
+                }) => {
+                    // println!("{}+{}", xml_indent(depth), name);
+                    tag_name = name.local_name.to_string();
+
+                    meta.attrib_parser(&tag_name, attributes);
+                    depth += 1;
+                }
+                Ok(XmlEvent::EndElement { .. /* name */ }) => {
+                    depth -= 1;
+                    // println!("{}-{}", xml_indent(depth), name);
+                }
+                Ok(XmlEvent::Characters(s)) => {
+                    match tag_name.as_str() {
+                        "NameIDFormat" => {
+                            debug!("Found NameIDFormat!");
+                            match NameIdFormat::from_str(&s) {
+                                Err(error) => eprintln!("Failed to parse NameIDFormat: {} {:?}", s, error),
+                                Ok(value) => meta.nameid_format = value
+                            }
+
+                        }
+                        "X509Certificate" => {
+                            debug!("Found certificate!");
+                            // certificate_data = s.to_string();
+                            let certificate = crate::cert::init_cert_from_base64(&s);
+                            match certificate {
+                                Ok(value) => {
+                                    log::debug!("Parsed cert successfully.");
+                                    certificate_data = Some(value);
+                                }
+                                Err(error) => {
+                                    eprintln!("error! {:?}", error)
+                                }
+                            };
+                            tag_name = "###INVALID###".to_string();
+                        }
+                        _ => {
+                            println!("Characters: {}{}", xml_indent(depth + 1), s);
+                        }
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to parse token: {:?}", e);
+                }
+                _ => {}
+            }
+        }
+
+        match certificate_data {
+            Some(value) => {
+                meta.x509_certificate = Some(value);
+            }
+            None => {
+                eprintln!("Didn't find a certificate");
+            }
+        }
+        Ok(meta)
+    }
+}
+
 impl ServiceProvider {
     /// Generate a test generic ServiceProvider with nonsense values for testing
     pub fn test_generic(entity_id: &str) -> Self {
@@ -237,17 +328,6 @@ impl ServiceProvider {
             nameid_format: NameIdFormat::Transient,
         }
     }
-}
-
-/// Used for showing the details of the SP Metadata XML file
-fn xml_indent(size: usize) -> String {
-    const INDENT: &str = "    ";
-    (0..size)
-        .map(|_| INDENT)
-        .fold(String::with_capacity(size * INDENT.len()), |r, s| r + s)
-}
-
-impl ServiceProvider {
     /// Used for handling the attributes of services in the tags of an SP Metadata XML file
     ///
     /// Types tested (poorly):
@@ -398,89 +478,6 @@ impl ServiceProvider {
     //     meta: &mut ServiceProvider ) {
 
     // }
-
-    /// Hand this a bucket of string data and you should get a struct with all the SP's metadata.
-    ///
-    pub fn from_xml(source_xml: &str) -> ServiceProvider {
-        let bufreader = Cursor::new(source_xml);
-        let parser = EventReader::new(bufreader);
-        let mut depth = 0;
-        let mut tag_name = "###INVALID###".to_string();
-        let mut certificate_data = None::<X509>;
-
-        let mut meta = ServiceProvider {
-            entity_id: "".to_string(),
-            authn_requests_signed: false,
-            want_assertions_signed: false,
-            x509_certificate: None,
-            services: vec![],
-            protocol_support_enumeration: None,
-            nameid_format: NameIdFormat::default(),
-        };
-
-        for e in parser {
-            match e {
-                Ok(XmlEvent::StartElement {
-                    name, attributes, ..
-                }) => {
-                    // println!("{}+{}", xml_indent(depth), name);
-                    tag_name = name.local_name.to_string();
-
-                    meta.attrib_parser(&tag_name, attributes);
-                    depth += 1;
-                }
-                Ok(XmlEvent::EndElement { .. /* name */ }) => {
-                    depth -= 1;
-                    // println!("{}-{}", xml_indent(depth), name);
-                }
-                Ok(XmlEvent::Characters(s)) => {
-                    match tag_name.as_str() {
-                        "NameIDFormat" => {
-                            debug!("Found NameIDFormat!");
-                            match NameIdFormat::from_str(&s) {
-                                Err(error) => eprintln!("Failed to parse NameIDFormat: {} {:?}", s, error),
-                                Ok(value) => meta.nameid_format = value
-                            }
-
-                        }
-                        "X509Certificate" => {
-                            debug!("Found certificate!");
-                            // certificate_data = s.to_string();
-                            let certificate = crate::cert::init_cert_from_base64(&s);
-                            match certificate {
-                                Ok(value) => {
-                                    log::debug!("Parsed cert successfully.");
-                                    certificate_data = Some(value);
-                                }
-                                Err(error) => {
-                                    eprintln!("error! {:?}", error)
-                                }
-                            };
-                            tag_name = "###INVALID###".to_string();
-                        }
-                        _ => {
-                            println!("Characters: {}{}", xml_indent(depth + 1), s);
-                        }
-                    }
-                }
-                Err(e) => {
-                    println!("Error: {}", e);
-                    break;
-                }
-                _ => {}
-            }
-        }
-
-        match certificate_data {
-            Some(value) => {
-                meta.x509_certificate = Some(value);
-            }
-            None => {
-                eprintln!("Didn't find a certificate");
-            }
-        }
-        meta
-    }
 }
 
 /*

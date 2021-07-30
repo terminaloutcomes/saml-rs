@@ -16,18 +16,17 @@
 
 use saml_rs::metadata::{generate_metadata_xml, SamlMetadata};
 use saml_rs::response::{AuthNStatement, ResponseElements};
-use saml_rs::sp::ServiceProvider;
+
 use saml_rs::xml::ResponseAttribute;
 use saml_rs::SamlQuery;
 
 use chrono::{DateTime, Duration, NaiveDate, Utc};
 
 use tide::log;
-use tide::utils::{After, Before};
+use tide::utils::After;
 use tide::{Request, Response};
 use tide_rustls::TlsListener;
 
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::ErrorKind;
 use std::str::{from_utf8, FromStr};
@@ -35,16 +34,9 @@ use std::str::{from_utf8, FromStr};
 use http_types::Mime;
 
 pub mod util;
-// use util::do_nothing;
 
-#[derive(Clone, Debug)]
-pub struct AppState {
-    pub hostname: String,
-    pub issuer: String,
-    pub service_providers: HashMap<String, ServiceProvider>,
-    pub tls_cert_path: String,
-    pub tls_key_path: String,
-}
+use util::*;
+// use util::do_nothing;
 
 #[async_std::main]
 /// Spins up a test server
@@ -55,13 +47,7 @@ async fn main() -> tide::Result<()> {
 
     let server_config = util::ServerConfig::from_filename_and_env(config_path);
 
-    let app_state = AppState {
-        hostname: server_config.public_hostname,
-        issuer: server_config.entity_id,
-        service_providers: server_config.sp_metadata,
-        tls_cert_path: server_config.tls_cert_path.to_string(),
-        tls_key_path: server_config.tls_key_path.to_string(),
-    };
+    let app_state: AppState = server_config.clone().into();
 
     let mut app = tide::with_state(app_state);
 
@@ -69,21 +55,6 @@ async fn main() -> tide::Result<()> {
 
     // driftwood adds simple Apache-Style logs
     app.with(driftwood::ApacheCombinedLogger);
-
-    app.with(Before(|request: Request<AppState>| async move {
-        // request.set_ext(Instant::now());
-
-        // if you want to log all the things use this
-        // log::debug!("{:?}", request);
-
-        // my very terrible way of doing logs
-        // log::debug!("client={:?} url={} method={} length={}",
-        //     request.remote().unwrap_or("-"),
-        //     request.url(),
-        //     request.method(),
-        //     request.len().unwrap_or(0));
-        request
-    }));
 
     app.with(After(|mut res: Response| async {
         if let Some(err) = res.downcast_error::<async_std::io::Error>() {
@@ -115,8 +86,9 @@ async fn main() -> tide::Result<()> {
     saml_process.at("/Redirect").get(saml_redirect_get);
 
     let _app = {
-        let tls_cert: String = shellexpand::tilde(&server_config.tls_cert_path).into_owned();
-        let tls_key: String = shellexpand::tilde(&server_config.tls_key_path).into_owned();
+        let tls_cert: String =
+            shellexpand::tilde(&server_config.tls_cert_path.as_str()).into_owned();
+        let tls_key: String = shellexpand::tilde(&server_config.tls_key_path.as_str()).into_owned();
         match File::open(&tls_cert) {
             Ok(_) => log::info!("Successfully loaded cert from {:?}", tls_cert),
             Err(error) => {
@@ -139,9 +111,11 @@ async fn main() -> tide::Result<()> {
                 std::process::exit(1);
             }
         }
+        log::info!("Starting up server");
+        log::debug!("Server config: {:?}", server_config);
         app.listen(
             TlsListener::build()
-                .addrs(format!("{}:443", server_config.bind_address))
+                .addrs(format!("{}:443", &server_config.bind_address))
                 .cert(tls_cert)
                 .key(tls_key),
         )

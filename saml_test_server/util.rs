@@ -1,7 +1,6 @@
 // use tide::log;
 use tide::Request;
 
-use crate::AppState;
 use http_types::Mime;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -20,15 +19,20 @@ pub async fn do_nothing(mut _req: Request<AppState>) -> tide::Result {
 }
 
 // #[derive(serde_deserialize, Debug)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ServerConfig {
     pub bind_address: String,
     pub public_hostname: String,
     pub tls_cert_path: String,
     pub tls_key_path: String,
     pub entity_id: String,
-    pub sp_metadata_files: Option<Vec<String>>,
+    pub sp_metadata_files: Option<Vec<&'static str>>,
     pub sp_metadata: HashMap<String, ServiceProvider>,
+    // Default session lifetime across SPs
+    pub session_lifetime: u128,
+
+    pub saml_cert_path: String,
+    pub saml_key_path: String,
 }
 
 fn load_sp_metadata(filenames: Vec<String>) -> HashMap<String, ServiceProvider> {
@@ -51,7 +55,7 @@ fn load_sp_metadata(filenames: Vec<String>) -> HashMap<String, ServiceProvider> 
                 Ok(value) => value,
             };
             // parse the XML
-            let parsed_sp = saml_rs::sp::ServiceProvider::from_xml(&filecontents);
+            let parsed_sp = saml_rs::sp::ServiceProvider::from_str(&filecontents).unwrap();
             eprintln!("SP Metadata loaded: {:?}", parsed_sp);
             sp_metadata.insert(parsed_sp.entity_id.to_string(), parsed_sp);
         } else {
@@ -67,13 +71,18 @@ fn load_sp_metadata(filenames: Vec<String>) -> HashMap<String, ServiceProvider> 
 impl ServerConfig {
     pub fn default() -> Self {
         ServerConfig {
-            bind_address: String::from("127.0.0.1"),
-            public_hostname: String::from("example.com"),
-            tls_cert_path: String::from("Need to set this"),
-            tls_key_path: String::from("Need to set this"),
-            entity_id: String::from("https://example.com/idp/"),
+            bind_address: "127.0.0.1".to_string(),
+            public_hostname: "example.com".to_string(),
+            tls_cert_path: "Need to set this".to_string(),
+            tls_key_path: "Need to set this".to_string(),
+
+            entity_id: "https://example.com/idp/".to_string(),
             sp_metadata_files: None,
             sp_metadata: HashMap::new(),
+            session_lifetime: 43200, // 12 hours
+
+            saml_cert_path: "Need to set this".to_string(),
+            saml_key_path: "Need to set this".to_string(),
         }
     }
 
@@ -94,22 +103,53 @@ impl ServerConfig {
 
         let sp_metadata = load_sp_metadata(filenames);
 
-        let tilde_cert_path: String = settings.get("tls_cert_path").unwrap();
-        let tilde_key_path: String = settings.get("tls_key_path").unwrap();
-        eprintln!("tilde_cert_path: {}", tilde_key_path);
-        eprintln!("tilde_key_path: {}", tilde_key_path);
+        let tilde_cert_path: String = settings.get("tls_cert_path").unwrap_or_else(|error| {
+            eprintln!(
+                "You need to specify 'tls_cert_path' in configuration, quitting. ({:?})",
+                error
+            );
+            std::process::exit(1)
+        });
+        let tilde_key_path: String = settings.get("tls_key_path").unwrap_or_else(|error| {
+            eprintln!(
+                "You need to specify 'tls_key_path' in configuration, quitting. ({:?})",
+                error
+            );
+            std::process::exit(1)
+        });
 
-        let tls_cert_path: String = shellexpand::tilde(&tilde_cert_path).into();
-        let tls_key_path: String = shellexpand::tilde(&tilde_key_path).into();
+        let tilde_saml_cert_path: String = settings.get("saml_cert_path").unwrap_or_else(|error| {
+            eprintln!(
+                "You need to specify 'saml_cert_path' in configuration, quitting. ({:?})",
+                error
+            );
+            std::process::exit(1)
+        });
+        let tilde_saml_key_path: String = settings.get("saml_key_path").unwrap_or_else(|error| {
+            eprintln!(
+                "You need to specify 'saml_key_path' in configuration, quitting. ({:?})",
+                error
+            );
+            std::process::exit(1)
+        });
+        let bind_address: String = settings.get("bind_address").unwrap_or_else(|error| {
+            eprintln!(
+                "You need to specify 'bind_address' in configuration, quitting. ({:?})",
+                error
+            );
+            std::process::exit(1)
+        });
+        let tls_cert_path = shellexpand::tilde(&tilde_cert_path).into_owned();
+        let tls_key_path = shellexpand::tilde(&tilde_key_path).into_owned();
+        let saml_cert_path = shellexpand::tilde(&tilde_saml_cert_path).into_owned();
+        let saml_key_path = shellexpand::tilde(&tilde_saml_key_path).into_owned();
 
-        eprintln!("{:?}", settings);
-        Self {
+        eprintln!("SETTINGS\n{:?}", settings);
+        ServerConfig {
             public_hostname: settings
                 .get("public_hostname")
                 .unwrap_or(ServerConfig::default().public_hostname),
-            bind_address: settings
-                .get("bind_address")
-                .unwrap_or(ServerConfig::default().bind_address),
+            bind_address,
             tls_cert_path,
             tls_key_path,
             entity_id: settings
@@ -119,6 +159,40 @@ impl ServerConfig {
                 .get("sp_metadata_files")
                 .unwrap_or(ServerConfig::default().sp_metadata_files),
             sp_metadata,
+            session_lifetime: settings
+                .get("default_session_lifetime")
+                .unwrap_or(ServerConfig::default().session_lifetime),
+            saml_cert_path,
+            saml_key_path,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct AppState {
+    pub hostname: String,
+    pub issuer: String,
+    pub service_providers: HashMap<String, ServiceProvider>,
+    pub tls_cert_path: String,
+    pub tls_key_path: String,
+
+    pub saml_cert_path: String,
+    pub saml_key_path: String,
+}
+
+use std::convert::From;
+
+impl From<ServerConfig> for AppState {
+    fn from(server_config: ServerConfig) -> AppState {
+        AppState {
+            hostname: server_config.public_hostname.to_string(),
+            issuer: server_config.entity_id.to_string(),
+            service_providers: server_config.sp_metadata,
+            tls_cert_path: server_config.tls_cert_path.to_string(),
+            tls_key_path: server_config.tls_key_path.to_string(),
+
+            saml_cert_path: server_config.saml_cert_path,
+            saml_key_path: server_config.saml_key_path,
         }
     }
 }

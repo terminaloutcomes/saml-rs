@@ -2,6 +2,24 @@
 //!
 //! Here be crypto-dragons.
 //!
+//! - <https://stackoverflow.com/questions/6960886/sign-saml-response-with-or-without-assertion-signature/7073749#7073749>
+//!
+//! SAML is awful, every time I read answer they are almost correct, here is the correct algorithm distilled:
+//! 1. SHA1 the canonical version of the Assertion.
+//! 2. Generate a SignedInfo XML fragment with the SHA1 signature
+//! 3. Sign the SignedInfo XML fragment, again the canonical form
+//! 4. Take the SignedInfo, the Signature and the key info and create a Signature XML fragment
+//! 5. Insert this SignatureXML into the Assertion ( should go right before the saml:subject)
+//! 6. Now take the assertion(with the signature included) and insert it into the Response
+//! 7. SHA1 this response
+//! 8. Generate a SignedInfo XML fragment with the SHA1 signature
+//! 9. Sign the SignedInfo XML fragment, again the canonical form
+//! 10. Take the SignedInfo, the Signature and the key info and create a Signature XML fragment
+//! 11. Insert this SignatureXML into the Response
+//! 12. Add the XML version info to the response.
+//!
+//! Thats it. SAML is completely awful. There are tons of little subtleties that make implementing SAML a nightmare(like calculating the canonical form of a subset of the XML(the assertion), also the XML version of XML documents is not included.
+//!
 
 use openssl::hash::MessageDigest;
 use openssl::pkey::PKey;
@@ -10,6 +28,7 @@ use openssl::sign::{Signer, Verifier};
 
 // use std::io;
 use openssl::pkey::Private;
+use openssl::x509::X509;
 use std::fs::File;
 use std::io::prelude::*;
 
@@ -42,8 +61,6 @@ pub fn load_key_from_filename(key_filename: &str) -> Result<PKey<Private>, Strin
         Err(error) => Err(format!("Failed to convert into PKey object: {:?}", error)),
     }
 }
-
-use openssl::x509::X509;
 
 /// Loads a public cert from a PEM file into an X509 object
 pub fn load_public_cert_from_filename(cert_filename: &str) -> Result<X509, String> {
