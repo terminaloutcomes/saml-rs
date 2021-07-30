@@ -1,7 +1,6 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `saml_test_server/saml_test_server.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>saml_test_server.rs - source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script id="default-settings"></script><script src="../../storage.js"></script><script src="../../crates.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../favicon.svg">
 <link rel="alternate icon" type="image/png" href="../../favicon-16x16.png">
-<link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu" role="button">&#9776;</div><a href='../../saml_test_server/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu"><img src="../../brush.svg" width="18" height="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" class="help-button">?</button>
-                <a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" height="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
+<link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu" role="button">&#9776;</div><a href='../../saml_test_server/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu" title="themes"><img src="../../brush.svg" width="18" height="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" id="help-button" title="help">?</button><a id="settings-menu" href="../../settings.html" title="settings"><img src="../../wheel.svg" width="18" height="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
 <span id="4">  4</span>
@@ -415,33 +414,7 @@
 <span id="412">412</span>
 <span id="413">413</span>
 <span id="414">414</span>
-<span id="415">415</span>
-<span id="416">416</span>
-<span id="417">417</span>
-<span id="418">418</span>
-<span id="419">419</span>
-<span id="420">420</span>
-<span id="421">421</span>
-<span id="422">422</span>
-<span id="423">423</span>
-<span id="424">424</span>
-<span id="425">425</span>
-<span id="426">426</span>
-<span id="427">427</span>
-<span id="428">428</span>
-<span id="429">429</span>
-<span id="430">430</span>
-<span id="431">431</span>
-<span id="432">432</span>
-<span id="433">433</span>
-<span id="434">434</span>
-<span id="435">435</span>
-<span id="436">436</span>
-<span id="437">437</span>
-<span id="438">438</span>
-<span id="439">439</span>
-<span id="440">440</span>
-</pre><div class="example-wrap"><pre class="rust ">
+</pre><pre class="rust">
 <span class="doccomment">//! A test server for running as a SAML IdP</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! Example configuration file:</span>
@@ -460,18 +433,17 @@
 
 <span class="kw">use</span> <span class="ident">saml_rs::metadata</span>::{<span class="ident">generate_metadata_xml</span>, <span class="ident">SamlMetadata</span>};
 <span class="kw">use</span> <span class="ident">saml_rs::response</span>::{<span class="ident">AuthNStatement</span>, <span class="ident">ResponseElements</span>};
-<span class="kw">use</span> <span class="ident">saml_rs::sp::ServiceProvider</span>;
+
 <span class="kw">use</span> <span class="ident">saml_rs::xml::ResponseAttribute</span>;
 <span class="kw">use</span> <span class="ident">saml_rs::SamlQuery</span>;
 
 <span class="kw">use</span> <span class="ident">chrono</span>::{<span class="ident">DateTime</span>, <span class="ident">Duration</span>, <span class="ident">NaiveDate</span>, <span class="ident">Utc</span>};
 
 <span class="kw">use</span> <span class="ident">tide::log</span>;
-<span class="kw">use</span> <span class="ident">tide::utils</span>::{<span class="ident">After</span>, <span class="ident">Before</span>};
+<span class="kw">use</span> <span class="ident">tide::utils::After</span>;
 <span class="kw">use</span> <span class="ident">tide</span>::{<span class="ident">Request</span>, <span class="ident">Response</span>};
 <span class="kw">use</span> <span class="ident">tide_rustls::TlsListener</span>;
 
-<span class="kw">use</span> <span class="ident">std::collections::HashMap</span>;
 <span class="kw">use</span> <span class="ident">std::fs::File</span>;
 <span class="kw">use</span> <span class="ident">std::io::ErrorKind</span>;
 <span class="kw">use</span> <span class="ident">std::str</span>::{<span class="ident">from_utf8</span>, <span class="ident">FromStr</span>};
@@ -479,16 +451,9 @@
 <span class="kw">use</span> <span class="ident">http_types::Mime</span>;
 
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">util</span>;
-<span class="comment">// use util::do_nothing;</span>
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">AppState</span> {
-    <span class="kw">pub</span> <span class="ident">hostname</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">issuer</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">service_providers</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">ServiceProvider</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">tls_cert_path</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">tls_key_path</span>: <span class="ident">String</span>,
-}
+<span class="kw">use</span> <span class="ident">util</span>::<span class="kw-2">*</span>;
+<span class="comment">// use util::do_nothing;</span>
 
 <span class="attribute">#[<span class="ident">async_std::main</span>]</span>
 <span class="doccomment">/// Spins up a test server</span>
@@ -499,13 +464,7 @@
 
     <span class="kw">let</span> <span class="ident">server_config</span> <span class="op">=</span> <span class="ident">util::ServerConfig::from_filename_and_env</span>(<span class="ident">config_path</span>);
 
-    <span class="kw">let</span> <span class="ident">app_state</span> <span class="op">=</span> <span class="ident">AppState</span> {
-        <span class="ident">hostname</span>: <span class="ident">server_config</span>.<span class="ident">public_hostname</span>,
-        <span class="ident">issuer</span>: <span class="ident">server_config</span>.<span class="ident">entity_id</span>,
-        <span class="ident">service_providers</span>: <span class="ident">server_config</span>.<span class="ident">sp_metadata</span>,
-        <span class="ident">tls_cert_path</span>: <span class="ident">server_config</span>.<span class="ident">tls_cert_path</span>.<span class="ident">to_string</span>(),
-        <span class="ident">tls_key_path</span>: <span class="ident">server_config</span>.<span class="ident">tls_key_path</span>.<span class="ident">to_string</span>(),
-    };
+    <span class="kw">let</span> <span class="ident">app_state</span>: <span class="ident">AppState</span> <span class="op">=</span> <span class="ident">server_config</span>.<span class="ident">clone</span>().<span class="ident">into</span>();
 
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">app</span> <span class="op">=</span> <span class="ident">tide::with_state</span>(<span class="ident">app_state</span>);
 
@@ -513,21 +472,6 @@
 
     <span class="comment">// driftwood adds simple Apache-Style logs</span>
     <span class="ident">app</span>.<span class="ident">with</span>(<span class="ident">driftwood::ApacheCombinedLogger</span>);
-
-    <span class="ident">app</span>.<span class="ident">with</span>(<span class="ident">Before</span>(<span class="op">|</span><span class="ident">request</span>: <span class="ident">Request</span><span class="op">&lt;</span><span class="ident">AppState</span><span class="op">&gt;</span><span class="op">|</span> <span class="kw">async</span> <span class="kw">move</span> {
-        <span class="comment">// request.set_ext(Instant::now());</span>
-
-        <span class="comment">// if you want to log all the things use this</span>
-        <span class="comment">// log::debug!(&quot;{:?}&quot;, request);</span>
-
-        <span class="comment">// my very terrible way of doing logs</span>
-        <span class="comment">// log::debug!(&quot;client={:?} url={} method={} length={}&quot;,</span>
-        <span class="comment">//     request.remote().unwrap_or(&quot;-&quot;),</span>
-        <span class="comment">//     request.url(),</span>
-        <span class="comment">//     request.method(),</span>
-        <span class="comment">//     request.len().unwrap_or(0));</span>
-        <span class="ident">request</span>
-    }));
 
     <span class="ident">app</span>.<span class="ident">with</span>(<span class="ident">After</span>(<span class="op">|</span><span class="kw-2">mut</span> <span class="ident">res</span>: <span class="ident">Response</span><span class="op">|</span> <span class="kw">async</span> {
         <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">err</span>) <span class="op">=</span> <span class="ident">res</span>.<span class="ident">downcast_error</span>::<span class="op">&lt;</span><span class="ident">async_std::io::Error</span><span class="op">&gt;</span>() {
@@ -559,8 +503,9 @@
     <span class="ident">saml_process</span>.<span class="ident">at</span>(<span class="string">&quot;/Redirect&quot;</span>).<span class="ident">get</span>(<span class="ident">saml_redirect_get</span>);
 
     <span class="kw">let</span> <span class="ident">_app</span> <span class="op">=</span> {
-        <span class="kw">let</span> <span class="ident">tls_cert</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">shellexpand::tilde</span>(<span class="kw-2">&amp;</span><span class="ident">server_config</span>.<span class="ident">tls_cert_path</span>).<span class="ident">into_owned</span>();
-        <span class="kw">let</span> <span class="ident">tls_key</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">shellexpand::tilde</span>(<span class="kw-2">&amp;</span><span class="ident">server_config</span>.<span class="ident">tls_key_path</span>).<span class="ident">into_owned</span>();
+        <span class="kw">let</span> <span class="ident">tls_cert</span>: <span class="ident">String</span> <span class="op">=</span>
+            <span class="ident">shellexpand::tilde</span>(<span class="kw-2">&amp;</span><span class="ident">server_config</span>.<span class="ident">tls_cert_path</span>.<span class="ident">as_str</span>()).<span class="ident">into_owned</span>();
+        <span class="kw">let</span> <span class="ident">tls_key</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">shellexpand::tilde</span>(<span class="kw-2">&amp;</span><span class="ident">server_config</span>.<span class="ident">tls_key_path</span>.<span class="ident">as_str</span>()).<span class="ident">into_owned</span>();
         <span class="kw">match</span> <span class="ident">File::open</span>(<span class="kw-2">&amp;</span><span class="ident">tls_cert</span>) {
             <span class="prelude-val">Ok</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">log::info!</span>(<span class="string">&quot;Successfully loaded cert from {:?}&quot;</span>, <span class="ident">tls_cert</span>),
             <span class="prelude-val">Err</span>(<span class="ident">error</span>) <span class="op">=</span><span class="op">&gt;</span> {
@@ -583,9 +528,11 @@
                 <span class="ident">std::process::exit</span>(<span class="number">1</span>);
             }
         }
+        <span class="macro">log::info!</span>(<span class="string">&quot;Starting up server&quot;</span>);
+        <span class="macro">log::debug!</span>(<span class="string">&quot;Server config: {:?}&quot;</span>, <span class="ident">server_config</span>);
         <span class="ident">app</span>.<span class="ident">listen</span>(
             <span class="ident">TlsListener::build</span>()
-                .<span class="ident">addrs</span>(<span class="macro">format!</span>(<span class="string">&quot;{}:443&quot;</span>, <span class="ident">server_config</span>.<span class="ident">bind_address</span>))
+                .<span class="ident">addrs</span>(<span class="macro">format!</span>(<span class="string">&quot;{}:443&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">server_config</span>.<span class="ident">bind_address</span>))
                 .<span class="ident">cert</span>(<span class="ident">tls_cert</span>)
                 .<span class="ident">key</span>(<span class="ident">tls_key</span>),
         )
@@ -883,5 +830,4 @@
         .<span class="ident">build</span>())
 }
 </pre></div>
-</section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="saml_test_server" data-search-index-js="../../search-index.js" data-search-js="../../search.js"></div>
-    <script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script></body></html>
+</section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="saml_test_server" data-search-index-js="../../search-index.js" data-search-js="../../search.js"></div><script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script></body></html>
