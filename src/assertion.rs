@@ -267,7 +267,7 @@ impl ToString for BaseIDAbstractType {
 ///
 /// TODO: Justify this better
 pub struct SubjectData {
-    /// Relay state as provided by the [AuthnRequest]
+    /// Relay state as provided by the [crate::AuthnRequest]
     pub relay_state: String,
     /// Qualifier TODO: What's the qualifier again?
     pub qualifier: Option<BaseIDAbstractType>,
