@@ -5,7 +5,7 @@
 use serde::Serialize;
 use std::io::Write;
 
-use std::str::{from_utf8, FromStr};
+use std::str::from_utf8;
 
 use xml::writer::{EventWriter, XmlEvent};
 
@@ -41,16 +41,16 @@ pub fn write_event<W: Write>(event: XmlEvent, writer: &mut EventWriter<W>) -> St
 // let mut animals: [&str; 2] = ["bird", "frog"];
 #[derive(Debug, Default, Serialize, Clone)]
 /// Attributes for responses
-pub struct ResponseAttribute {
+pub struct AssertionAttribute {
     name: String,
     nameformat: String,
-    values: Vec<String>,
+    values: Vec<&'static str>,
 }
 
-impl ResponseAttribute {
+impl AssertionAttribute {
     /// new Response Attribute with `attrname-format:basic`
-    pub fn basic(name: &str, values: Vec<String>) -> ResponseAttribute {
-        ResponseAttribute {
+    pub fn basic(name: &str, values: Vec<&'static str>) -> AssertionAttribute {
+        AssertionAttribute {
             name: name.to_string(),
             nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic".to_string(),
             values,
@@ -59,7 +59,7 @@ impl ResponseAttribute {
 }
 
 /// add an attribute to the statement
-pub fn add_attribute<W: Write>(attr: ResponseAttribute, writer: &mut EventWriter<W>) {
+pub fn add_attribute<W: Write>(attr: &AssertionAttribute, writer: &mut EventWriter<W>) {
     write_event(
         XmlEvent::start_element(("saml", "Attribute"))
             .attr("Name", attr.name.as_str())
@@ -67,91 +67,22 @@ pub fn add_attribute<W: Write>(attr: ResponseAttribute, writer: &mut EventWriter
             .into(),
         writer,
     );
-    for value in attr.values {
+    for value in &attr.values {
         write_event(
             XmlEvent::start_element(("saml", "AttributeValue"))
                 .attr("xsi:type", "xs:string")
                 .into(),
             writer,
         );
-        write_event(XmlEvent::characters(value.as_str()), writer);
+        write_event(XmlEvent::characters(value), writer);
         write_event(XmlEvent::end_element().into(), writer);
     }
     // write_event(XmlEvent::end_element().into(), writer);
     write_event(XmlEvent::end_element().into(), writer);
 }
 
-/// Options of Signing Algorithms for things
-#[derive(Debug)]
-pub enum SigningAlgorithm {
-    /// SHA1 Algorithm
-    Sha1,
-    /// SHA256 Algorithm
-    Sha256,
-}
-
-// impl SigningAlgorithm {
-//     fn as_str(self) -> &'static str {
-//         format!("{}", self.to_string()).clone()
-//     }
-// }
-
-impl FromStr for SigningAlgorithm {
-    type Err = &'static str;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "sha1" => Ok(SigningAlgorithm::Sha1),
-            "sha256" => Ok(SigningAlgorithm::Sha256),
-            _ => Err("invalid type"),
-        }
-    }
-}
-
-impl ToString for SigningAlgorithm {
-    fn to_string(&self) -> String {
-        match self {
-            Self::Sha1 => "sha1".to_string(),
-            Self::Sha256 => "sha256".to_string(),
-        }
-    }
-}
-
-use openssl::x509::X509;
-
-#[derive(Debug)]
-/// The content of an assertion
-pub struct AssertionData {
-    /// Assertion ID, referred to in the signature as ds:Reference
-    pub assertion_id: String,
-    /// Signing algorithm
-    pub signing_algorithm: SigningAlgorithm,
-    /// Digest algorithm
-    pub digest_algorithm: SigningAlgorithm,
-    /// Digest value, based on alg
-    pub digest_value: Option<String>,
-    /// Signature value
-    pub signature_value: Option<String>,
-    /// Certificate for signing/digest? TODO: Figure this out
-    pub certificate: X509,
-}
-
-impl AssertionData {
-    /// Build an assertion based on the AssertionData, returns a String of XML.
-    ///
-    /// If you set sign, it'll sign the data.. eventually.
-    pub fn build_assertion(&self, sign: bool) -> String {
-        if sign {
-            unimplemented!("Still need to refactor building the signed assertion")
-        } else {
-            unimplemented!("Still need to refactor building the assertion")
-        }
-        // String::from("Uh.. wait up.")
-    }
-}
-
 /// add a signature to the statement
-pub fn add_signature<W: Write>(attr: AssertionData, writer: &mut EventWriter<W>) {
+pub fn add_signature<W: Write>(attr: crate::assertion::AssertionData, writer: &mut EventWriter<W>) {
     let algstring: String = format!(
         "http://www.w3.org/2000/09/xmldsig#rsa-{}",
         attr.signing_algorithm.to_string()

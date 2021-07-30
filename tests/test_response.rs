@@ -6,7 +6,7 @@ mod tests {
 
     use saml_rs::response::{AuthNStatement, ResponseElements};
     use saml_rs::test_samples::TEST_SAML_UNSIGNED_RESPONSE_UNSIGNED_ASSERTION;
-    use saml_rs::xml::ResponseAttribute;
+    use saml_rs::xml::AssertionAttribute;
     use std::str::from_utf8;
     #[test]
     /// tests saml_rs::metadata::SamlMetadata::new()
@@ -34,12 +34,9 @@ mod tests {
         };
 
         let responseattributes = [
-            ResponseAttribute::basic("uid", ["test".to_string()].to_vec().clone()),
-            ResponseAttribute::basic("mail", ["test@example.com".to_string()].to_vec()),
-            ResponseAttribute::basic(
-                "eduPersonAffiliation",
-                ["users".to_string(), "examplerole1".to_string()].to_vec(),
-            ),
+            AssertionAttribute::basic("uid", ["test"].to_vec().clone()),
+            AssertionAttribute::basic("mail", ["test@example.com"].to_vec()),
+            AssertionAttribute::basic("eduPersonAffiliation", ["users", "examplerole1"].to_vec()),
         ]
         .to_vec();
 

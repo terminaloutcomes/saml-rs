@@ -31,6 +31,43 @@ use openssl::pkey::Private;
 use openssl::x509::X509;
 use std::fs::File;
 use std::io::prelude::*;
+use std::str::FromStr;
+
+/// Options of Signing Algorithms for things
+#[derive(Debug)]
+pub enum SigningAlgorithm {
+    /// SHA1 Algorithm
+    Sha1,
+    /// SHA256 Algorithm
+    Sha256,
+}
+
+// impl SigningAlgorithm {
+//     fn as_str(self) -> &'static str {
+//         format!("{}", self.to_string()).clone()
+//     }
+// }
+
+impl FromStr for SigningAlgorithm {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "sha1" => Ok(SigningAlgorithm::Sha1),
+            "sha256" => Ok(SigningAlgorithm::Sha256),
+            _ => Err("invalid type"),
+        }
+    }
+}
+
+impl ToString for SigningAlgorithm {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Sha1 => "sha1".to_string(),
+            Self::Sha256 => "sha256".to_string(),
+        }
+    }
+}
 
 /// Loads a PEM-encoded public key into a PKey object
 pub fn load_key_from_filename(key_filename: &str) -> Result<PKey<Private>, String> {

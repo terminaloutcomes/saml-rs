@@ -133,6 +133,11 @@ pub enum SamlBinding {
     HttpRedirect,
 }
 
+// TODO: add these bindings, not that we can use them yet
+// Failed to parse AssertionConsumerService: "UNMATCHED BINDING: urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST-SimpleSign: Must be a valid type"
+// Failed to parse AssertionConsumerService: "UNMATCHED BINDING: urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact: Must be a valid type"
+// Failed to parse AssertionConsumerService: "UNMATCHED BINDING: urn:oasis:names:tc:SAML:2.0:bindings:PAOS: Must be a valid type"
+
 impl Default for SamlBinding {
     fn default() -> Self {
         SamlBinding::HttpPost
@@ -140,7 +145,6 @@ impl Default for SamlBinding {
 }
 impl ToString for SamlBinding {
     fn to_string(&self) -> String {
-        #[allow(clippy::match_single_binding)]
         match self {
             SamlBinding::HttpPost => "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST".to_string(),
             SamlBinding::HttpRedirect => {

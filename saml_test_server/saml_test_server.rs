@@ -17,7 +17,7 @@
 use saml_rs::metadata::{generate_metadata_xml, SamlMetadata};
 use saml_rs::response::{AuthNStatement, ResponseElements};
 
-use saml_rs::xml::ResponseAttribute;
+use saml_rs::xml::AssertionAttribute;
 use saml_rs::SamlQuery;
 
 use chrono::{DateTime, Duration, NaiveDate, Utc};
@@ -216,7 +216,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         base64_decoded_samlrequest
     );
 
-    let parsed_saml_request: saml_rs::SamlAuthnRequest =
+    let parsed_saml_request: saml_rs::AuthnRequest =
         match saml_rs::parse_authn_request(&base64_decoded_samlrequest) {
             Ok(val) => val,
             Err(err) => {
@@ -245,7 +245,9 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         }
     };
 
-    let mut form_target = String::new();
+    let mut _form_target = String::new();
+
+    use saml_rs::sp::SamlBinding;
 
     response_body.push_str("<p style='color: darkgreen'>found SP in state!</p>");
     response_body.push_str(&format!("<p>{:?}</p>", service_provider));
@@ -255,13 +257,16 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
             saml_rs::sp::SamlBindingType::AssertionConsumerService => {
                 log::debug!("acs: {:?}", service);
                 match &service.binding {
-                    saml_rs::sp::SamlBinding::HttpRedirect => {
-                        log::debug!("Found it!");
-                        form_target = service.location.to_string();
-                    }
-                    _ => {
-                        log::debug!("not it!");
-                    }
+                    SamlBinding::HttpRedirect | SamlBinding::HttpPost => {
+                        log::debug!(
+                            "Found form target, type is {:?}, destination is: {}",
+                            &service.binding,
+                            service.location
+                        );
+                        _form_target = service.location.to_string();
+                    } // _ => {
+                      //     log::debug!("not it!");
+                      // }
                 }
             }
             saml_rs::sp::SamlBindingType::SingleLogoutService => {
@@ -324,6 +329,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
             _ => Utc::now(),
         };
 
+    // TODO: work out where the AuthNStatement goes
     let authnstatement = AuthNStatement {
         instant: authn_instant,
         session_index: String::from("_be9967abd904ddcae3c0eb4189adbe3f71e327cf93"),
@@ -332,16 +338,11 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     };
 
     let responseattributes = [
-        ResponseAttribute::basic("uid", ["yaleman".to_string()].to_vec()),
-        ResponseAttribute::basic("mail", ["yaleman@ricetek.net".to_string()].to_vec()),
-        ResponseAttribute::basic(
+        AssertionAttribute::basic("uid", ["yaleman"].to_vec()),
+        AssertionAttribute::basic("mail", ["yaleman@ricetek.net"].to_vec()),
+        AssertionAttribute::basic(
             "eduPersonAffiliation",
-            [
-                "users".to_string(),
-                "examplerole1".to_string(),
-                "admin".to_string(),
-            ]
-            .to_vec(),
+            ["users", "examplerole1", "admin"].to_vec(),
         ),
     ]
     .to_vec();
@@ -349,15 +350,18 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     let response = ResponseElements {
         issuer: req.state().hostname.to_string(),
         response_id: String::from("_8e8dc5f69a98cc4c1ff3427e5ce34606fd672f91e6"),
-        issue_instant: DateTime::<Utc>::from_utc(
-            NaiveDate::from_ymd(2014, 7, 17).and_hms(1, 1, 48),
-            Utc,
-        ),
+        // issue_instant: DateTime::<Utc>::from_utc(
+        //     NaiveDate::from_ymd(2014, 7, 17).and_hms(1, 1, 48),
+        //     Utc,
+        // ),
+        issue_instant: Utc::now(),
         relay_state: parsed_saml_request.relay_state,
         attributes: responseattributes,
-        destination: form_target,
+        // TODO: figure out if this should be the ACS found in _form_target above or the parsed_saml_request.consumer_service_url
+        // destination: form_target,
+        destination: parsed_saml_request.consumer_service_url,
         authnstatement,
-        assertion_id: String::from("_d71a3a8e9fcc45c9e9d248ef7049393fc8f04e5f75"),
+        assertion_id: ResponseElements::default().assertion_id,
         service_provider: service_provider.unwrap().to_owned(),
     };
 
@@ -386,7 +390,7 @@ pub fn generate_login_form(response: ResponseElements, relay_state: String) -> S
 
     let template = String::from(
         r#"<p>{{SAMLResponse | safe}}</p>
-<form method="post" action="{{form_action}}">
+<form method="post" action="{{form_action | safe}}">
     <input type="hidden" name="SAMLResponse" value="{{SAMLResponse | safe}}" />
     <input type="hidden" name="RelayState" value="{{RelayState}}" />
     <h1>Fancy example login form</h1>

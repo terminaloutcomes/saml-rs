@@ -2,8 +2,8 @@
 
 // #![deny(unsafe_code)]
 
-use crate::utils::*;
-use crate::xml::{write_event, ResponseAttribute};
+use crate::sp::*;
+use crate::xml::{write_event, AssertionAttribute};
 use chrono::{DateTime, NaiveDate, SecondsFormat, Utc};
 use std::io::Write;
 use std::str::from_utf8;
@@ -12,6 +12,7 @@ use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 #[derive(Debug)]
 /// Stores all the required elements of a SAML response... maybe?
 pub struct ResponseElements {
+    //TODO: why do I have a response_id and an assertion_id?
     // #[serde(rename = "Issuer")]
     /// Issuer of the resposne?
     // TODO: Figure out if this is right :P
@@ -28,8 +29,8 @@ pub struct ResponseElements {
     pub relay_state: String,
 
     // #[serde(rename = "Attributes")]
-    /// A list of relevant [ResponseAttribute]s
-    pub attributes: Vec<ResponseAttribute>,
+    /// A list of relevant [AssertionAttribute]s
+    pub attributes: Vec<AssertionAttribute>,
     // #[serde(rename = "Destination")]
     /// Destination endpoint of the request
     // TODO just like with the authnrequest, find out if destination is the right name/referecne
@@ -42,7 +43,7 @@ pub struct ResponseElements {
     pub assertion_id: String,
 
     /// [crate::sp::ServiceProvider]
-    pub service_provider: crate::sp::ServiceProvider,
+    pub service_provider: ServiceProvider,
 }
 
 use uuid::Uuid;
@@ -55,6 +56,31 @@ impl ResponseElements {
         }
         let buffer: Vec<u8> = self.into();
         base64::encode(buffer).into()
+    }
+
+    /// Default values, mostly so I can pull out a default assertion ID somewhere else, for now
+    /// TODO: ResponseElements::default, yes.
+    pub fn default() -> Self {
+        let placeholder_authn_statement = AuthNStatement {
+            instant: Utc::now(),
+            session_index: String::from(
+                "This is totally a placeholder session_index, why is this here?",
+            ),
+            classref: String::from("This is totally a placeholder classref, why is this here?"),
+            expiry: None,
+        };
+
+        Self {
+            assertion_id: Uuid::new_v4().to_string(),
+            attributes: vec![],
+            authnstatement: placeholder_authn_statement,
+            destination: String::from("This should have been set"),
+            issuer: String::from("This should have been set"),
+            relay_state: String::from("This should have been set"),
+            issue_instant: Utc::now(),
+            service_provider: ServiceProvider::test_generic("foo"),
+            response_id: Uuid::new_v4().to_string(),
+        }
     }
 
     /// generate a response ID, which will be the issuer and uuid concatentated
@@ -79,9 +105,8 @@ impl ResponseElements {
 impl Into<Vec<u8>> for ResponseElements {
     fn into(self) -> Vec<u8> {
         // TODO set up all these values
-        let audience = String::from("http://sp.example.com/demo1/metadata.php");
 
-        let conditions_not_before = String::from("2014-07-17T01:01:18Z");
+        let conditions_not_before = String::from("2021-07-17T01:01:18Z");
         let conditions_not_after = String::from("2024-01-18T06:21:48Z");
 
         let mut buffer = Vec::new();
@@ -90,27 +115,36 @@ impl Into<Vec<u8>> for ResponseElements {
             .write_document_declaration(false)
             .create_writer(&mut buffer);
 
-        let assertion_data = crate::xml::AssertionData {
-            assertion_id: self.assertion_id.to_string(),
-            signing_algorithm: crate::xml::SigningAlgorithm::Sha1,
-            digest_algorithm: crate::xml::SigningAlgorithm::Sha1,
-            digest_value: Some(String::from("eACxbv4QcKTz/p8ir/fKxzHHUpA=")),
-            signature_value: Some(String::from("ENpWB3CIRUdvMP6pvYmpHIfJYnLmBxqqnBiwUBDh6N8FjiFC+wM0HDQdGn3Nchap7aQj84PCZu3+/0+v9RldfIe7EwSpt7B9HXr7yYMOdncki/ksEWyxY6nfNMNctvwDXa8pv7257OslGNNlo/XVeAOyiPvQ1f89wHsKGgkRn4w=")),
-            certificate: crate::cert::gen_self_signed_certificate(&self.issuer),
-        };
-
-        let subjectdata = SubjectData {
+        let subject_data = crate::assertion::SubjectData {
             relay_state: self.relay_state.clone(),
-            qualifier: Some(BaseIDAbstractType::SPNameQualifier),
+            qualifier: Some(crate::assertion::BaseIDAbstractType::SPNameQualifier),
             qualifier_value: Some(String::from("http://sp.example.com/demo1/metadata.php")),
             nameid_format: crate::sp::NameIdFormat::Transient,
             // in the unsigned response example this was a transient value _ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7
             nameid_value: "_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7",
+            // TODO this should be fixed
             acs: "http://sp.example.com/demo1/index.php?acs",
             subject_not_on_or_after: DateTime::<Utc>::from_utc(
                 NaiveDate::from_ymd(2024, 1, 18).and_hms(6, 21, 48),
                 Utc,
             ),
+        };
+
+        let assertion_data = crate::assertion::AssertionData {
+            assertion_id: self.assertion_id.to_string(),
+            issuer: self.issuer.to_string(),
+            signing_algorithm: crate::sign::SigningAlgorithm::Sha1,
+            digest_algorithm: crate::sign::SigningAlgorithm::Sha1,
+            digest_value: Some(String::from("eACxbv4QcKTz/p8ir/fKxzHHUpA=")),
+            signature_value: Some(String::from("ENpWB3CIRUdvMP6pvYmpHIfJYnLmBxqqnBiwUBDh6N8FjiFC+wM0HDQdGn3Nchap7aQj84PCZu3+/0+v9RldfIe7EwSpt7B9HXr7yYMOdncki/ksEWyxY6nfNMNctvwDXa8pv7257OslGNNlo/XVeAOyiPvQ1f89wHsKGgkRn4w=")),
+            certificate: crate::cert::gen_self_signed_certificate(&self.issuer),
+            issue_instant: self.issue_instant,
+            subject_data,
+
+            attributes: self.attributes,
+            audience: self.destination.to_string(),
+            conditions_not_after,
+            conditions_not_before,
         };
 
         // start of the response
@@ -135,74 +169,18 @@ impl Into<Vec<u8>> for ResponseElements {
         // do the issuer inside the assertion
         // add_issuer(&self.issuer, &mut writer);
 
-        // add the signing block
-        crate::xml::add_signature(assertion_data, &mut writer);
+        // If we're signing the MESSAGE, we'd add the signing block here.
+        //
+        // Signatures for assertions go \/ down there in the assertion statement.
+        //
+        // crate::xml::add_signature(assertion_data, &mut writer);
 
         // status
         add_status("Success", &mut writer);
 
-        // start the assertion
-        write_event(
-            XmlEvent::start_element(("saml", "Assertion"))
-                .attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
-                .attr("xmlns:xs", "http://www.w3.org/2001/XMLSchema")
-                .attr("ID", &self.assertion_id)
-                .attr("Version", "2.0") // yeah, not going to support anything but 2.0 here. 😅
-                .attr(
-                    "IssueInstant",
-                    &self
-                        .issue_instant
-                        .to_rfc3339_opts(SecondsFormat::Secs, true),
-                )
-                .into(),
-            &mut writer,
-        );
+        // assertion goes here
 
-        // do the issuer inside the assertion
-        add_issuer(&self.issuer, &mut writer);
-
-        // subject
-        add_subject(&subjectdata, &mut writer);
-
-        // start conditions statement
-        write_event(
-            XmlEvent::start_element(("saml", "Conditions"))
-                // TODO: conditions_not_before
-                .attr("NotBefore", &conditions_not_before)
-                // TODO: conditions_not_after
-                .attr("NotOnOrAfter", &conditions_not_after)
-                .into(),
-            &mut writer,
-        );
-
-        write_event(
-            XmlEvent::start_element(("saml", "AudienceRestriction")).into(),
-            &mut writer,
-        );
-        write_event(
-            XmlEvent::start_element(("saml", "Audience")).into(),
-            &mut writer,
-        );
-        write_event(XmlEvent::characters(&audience), &mut writer);
-        write_event(XmlEvent::end_element().into(), &mut writer);
-        write_event(XmlEvent::end_element().into(), &mut writer);
-        // end conditions statement
-        write_event(XmlEvent::end_element().into(), &mut writer);
-
-        // To do an expiry in an hour, do this
-        // let session_expiry = Utc::now().checked_add_signed(Duration::seconds(3600));
-
-        self.authnstatement.add_to_xmlevent(&mut writer);
-
-        for attribute in self.attributes {
-            crate::xml::add_attribute(attribute, &mut writer);
-        }
-
-        // end attribute statement
-        write_event(XmlEvent::end_element().into(), &mut writer);
-
-        // end the assertion
-        write_event(XmlEvent::end_element().into(), &mut writer);
+        assertion_data.add_assertion_to_xml(&mut writer, true);
 
         // end the response
         write_event(XmlEvent::end_element().into(), &mut writer);
@@ -278,122 +256,14 @@ impl AuthNStatement {
 
         // end authn statement
         write_event(XmlEvent::end_element().into(), writer);
-
-        // start attribute statement
-        write_event(
-            XmlEvent::start_element(("saml", "AttributeStatement")).into(),
-            writer,
-        );
     }
 }
 
 /// Adds the issuer statement to a response
-fn add_issuer<W: Write>(issuer: &str, writer: &mut EventWriter<W>) {
+pub fn add_issuer<W: Write>(issuer: &str, writer: &mut EventWriter<W>) {
     write_event(XmlEvent::start_element(("saml", "Issuer")).into(), writer);
     write_event(XmlEvent::characters(&issuer), writer);
     write_event(XmlEvent::end_element().into(), writer);
-}
-
-#[derive(Debug, Copy, Clone)]
-enum BaseIDAbstractType {
-    NameQualifier,
-    SPNameQualifier,
-}
-
-impl From<String> for BaseIDAbstractType {
-    fn from(name: String) -> Self {
-        let name = name.as_str();
-        match name {
-            "NameQualifier" => BaseIDAbstractType::NameQualifier,
-            "SPNameQualifier" => BaseIDAbstractType::SPNameQualifier,
-            _ => panic!("how did you even get here"),
-        }
-    }
-}
-
-impl ToString for BaseIDAbstractType {
-    fn to_string(&self) -> String {
-        match self {
-            BaseIDAbstractType::NameQualifier => String::from("NameQualifier"),
-            BaseIDAbstractType::SPNameQualifier => String::from("SPNameQualifier"),
-        }
-    }
-}
-
-// // use xml::name::Name;
-// use std::convert::From;
-
-// impl From<xml::name::Name> for BaseIDAbstractType{
-//     fn from(name: Name) -> Self {
-//         self.from_string(name.to_string())
-//     }
-// }
-
-#[derive(Debug)]
-/// Data type for passing subject data in because yeaaaaah, specs
-///
-/// TODO: Justify this better
-struct SubjectData {
-    relay_state: String,
-    qualifier: Option<BaseIDAbstractType>,
-    qualifier_value: Option<String>,
-    nameid_format: crate::sp::NameIdFormat,
-    nameid_value: &'static str,
-    acs: &'static str,
-    subject_not_on_or_after: DateTime<Utc>,
-}
-
-/// Adds the Subject statement to an assertion
-fn add_subject<W: Write>(subjectdata: &SubjectData, writer: &mut EventWriter<W>) {
-    // start subject statement
-    write_event(XmlEvent::start_element(("saml", "Subject")).into(), writer);
-    // start nameid statement
-    // TODO: nameid can be 0 or more of NameQualifier or SPNameQualifier
-    write_event(
-        XmlEvent::start_element(("saml", "NameID"))
-            .attr(
-                subjectdata.qualifier.unwrap().to_string().as_str(),
-                subjectdata.qualifier_value.as_ref().unwrap(),
-            )
-            .attr("Format", &subjectdata.nameid_format.to_string())
-            .into(),
-        writer,
-    );
-
-    write_event(XmlEvent::characters(&subjectdata.nameid_value), writer);
-    // end nameid statement
-    write_event(XmlEvent::end_element().into(), writer);
-
-    //start subjectconfirmation
-    write_event(
-        XmlEvent::start_element(("saml", "SubjectConfirmation"))
-            .attr("Method", "urn:oasis:names:tc:SAML:2.0:cm:bearer")
-            .into(),
-        writer,
-    );
-
-    //start subjectconfirmationdata
-    write_event(
-        XmlEvent::start_element(("saml", "SubjectConfirmationData"))
-            .attr(
-                "NotOnOrAfter",
-                &subjectdata
-                    .subject_not_on_or_after
-                    .to_saml_datetime_string(),
-            )
-            .attr("Recipient", &subjectdata.acs)
-            .attr("InResponseTo", &subjectdata.relay_state)
-            .into(),
-        writer,
-    );
-
-    //end subjectconfirmationdata
-    write_event(XmlEvent::end_element().into(), writer);
-    //end subjectconfirmation
-    write_event(XmlEvent::end_element().into(), writer);
-
-    write_event(XmlEvent::end_element().into(), writer);
-    // end subject statement
 }
 
 /// Adds a set of status tags to a response

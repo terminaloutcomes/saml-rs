@@ -4,7 +4,7 @@
 #![deny(unsafe_code)]
 
 use crate::metadata::{generate_metadata_xml, SamlMetadata};
-// use crate::{decode_authn_request_base64_encoded, parse_authn_request, SamlAuthnRequest};
+// use crate::{decode_authn_request_base64_encoded, parse_authn_request, AuthnRequest};
 use tide;
 
 /// Responds with the metadata XML file in a 200-status response with the right content-type
