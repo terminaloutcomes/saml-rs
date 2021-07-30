@@ -4,9 +4,9 @@ mod tests {
 
     use chrono::{DateTime, Duration, NaiveDate, Utc};
 
+    use saml_rs::assertion::AssertionAttribute;
     use saml_rs::response::{AuthNStatement, ResponseElements};
     use saml_rs::test_samples::TEST_SAML_UNSIGNED_RESPONSE_UNSIGNED_ASSERTION;
-    use saml_rs::xml::AssertionAttribute;
     use std::str::from_utf8;
     #[test]
     /// tests saml_rs::metadata::SamlMetadata::new()
@@ -54,6 +54,7 @@ mod tests {
             authnstatement,
             assertion_id: String::from("_d71a3a8e9fcc45c9e9d248ef7049393fc8f04e5f75"),
             service_provider: saml_rs::sp::ServiceProvider::test_generic("sp.example.com"),
+            assertion_consumer_service: String::from("http://sp.example.com/demo1/index.php?acs"),
         };
         let response_vec: Vec<u8> = inputdata.into();
 

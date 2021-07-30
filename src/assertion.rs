@@ -1,6 +1,8 @@
 //! Assertion-related things
 //!
 
+use serde::Serialize;
+
 use chrono::{DateTime, SecondsFormat, Utc};
 use std::io::Write;
 use xml::writer::{EventWriter, XmlEvent};
@@ -26,7 +28,7 @@ enum StatusCode {
 
 #[derive(Debug)]
 /// The content of an assertion
-pub struct AssertionData {
+pub struct Assertion {
     /// Assertion ID, referred to in the signature as ds:Reference
     pub assertion_id: String,
     /// Issuer of the Assertion
@@ -42,23 +44,23 @@ pub struct AssertionData {
     /// Certificate for signing/digest? TODO: Figure this out
     pub certificate: openssl::x509::X509,
 
-    /// Issue/Generatino time of the AssertionData
+    /// Issue/Generatino time of the Assertion
     pub issue_instant: DateTime<Utc>,
 
     /// TODO: work out what is necessary for [SubjectData]
     pub subject_data: SubjectData,
     /// Please don't let the user do this until ... now!
-    pub conditions_not_before: String,
+    pub conditions_not_before: DateTime<Utc>,
     /// Please don't let the user do whatever we're saying they can do after this.
-    pub conditions_not_after: String,
+    pub conditions_not_after: DateTime<Utc>,
     /// Who/what should be reading this. Probably a [crate::sp::ServiceProvider]
     pub audience: String,
     /// Attributes of the assertion, things like groups and email addresses and phone numbers and favourite kind of 🥔🍠
-    pub attributes: Vec<crate::xml::AssertionAttribute>,
+    pub attributes: Vec<AssertionAttribute>,
 }
 
-impl AssertionData {
-    /// Build an assertion based on the AssertionData, returns a String of XML.
+impl Assertion {
+    /// Build an assertion based on the Assertion, returns a String of XML.
     ///
     /// If you set sign, it'll sign the data.. eventually.
     pub fn build_assertion(&self, sign: bool) -> String {
@@ -70,7 +72,7 @@ impl AssertionData {
         // String::from("Uh.. wait up.")
     }
 
-    /// This adds the data from an AssertionData to a given EventWriter.
+    /// This adds the data from an Assertion to a given EventWriter.
     ///
     /// If you specify to *sign* the assertion, it's going to:
     /// - generate a temporary EventWriter
@@ -117,7 +119,7 @@ impl AssertionData {
         );
 
         // do the issuer inside the assertion
-        crate::response::add_issuer(&self.issuer, writer);
+        add_issuer(&self.issuer, writer);
 
         // add the subject to the assertion
         add_subject(&self.subject_data, writer);
@@ -126,9 +128,9 @@ impl AssertionData {
         write_event(
             XmlEvent::start_element(("saml", "Conditions"))
                 // TODO: conditions_not_before
-                .attr("NotBefore", &self.conditions_not_before)
+                .attr("NotBefore", &self.conditions_not_before.to_rfc3339())
                 // TODO: conditions_not_after
-                .attr("NotOnOrAfter", &self.conditions_not_after)
+                .attr("NotOnOrAfter", &self.conditions_not_after.to_rfc3339())
                 .into(),
             writer,
         );
@@ -156,7 +158,7 @@ impl AssertionData {
             writer,
         );
         for attribute in &self.attributes.to_vec() {
-            crate::xml::add_attribute(attribute, writer);
+            add_attribute(attribute, writer);
         }
 
         // end saml:AttributeStatement
@@ -334,4 +336,53 @@ fn add_subject<W: Write>(subjectdata: &SubjectData, writer: &mut EventWriter<W>)
 
     write_event(XmlEvent::end_element().into(), writer);
     // end subject statement
+}
+// let mut animals: [&str; 2] = ["bird", "frog"];
+#[derive(Debug, Default, Serialize, Clone)]
+/// Attributes for responses
+pub struct AssertionAttribute {
+    name: String,
+    nameformat: String,
+    values: Vec<&'static str>,
+}
+
+impl AssertionAttribute {
+    /// new Response Attribute with `attrname-format:basic`
+    pub fn basic(name: &str, values: Vec<&'static str>) -> AssertionAttribute {
+        AssertionAttribute {
+            name: name.to_string(),
+            nameformat: "urn:oasis:names:tc:SAML:2.0:attrname-format:basic".to_string(),
+            values,
+        }
+    }
+}
+
+/// add an attribute to the statement
+pub fn add_attribute<W: Write>(attr: &AssertionAttribute, writer: &mut EventWriter<W>) {
+    write_event(
+        XmlEvent::start_element(("saml", "Attribute"))
+            .attr("Name", attr.name.as_str())
+            .attr("NameFormat", attr.nameformat.as_str())
+            .into(),
+        writer,
+    );
+    for value in &attr.values {
+        write_event(
+            XmlEvent::start_element(("saml", "AttributeValue"))
+                .attr("xsi:type", "xs:string")
+                .into(),
+            writer,
+        );
+        write_event(XmlEvent::characters(value), writer);
+        write_event(XmlEvent::end_element().into(), writer);
+    }
+    // write_event(XmlEvent::end_element().into(), writer);
+    write_event(XmlEvent::end_element().into(), writer);
+}
+
+/// Adds the issuer statement to a response
+pub fn add_issuer<W: Write>(issuer: &str, writer: &mut EventWriter<W>) {
+    write_event(XmlEvent::start_element(("saml", "Issuer")).into(), writer);
+    write_event(XmlEvent::characters(&issuer), writer);
+    write_event(XmlEvent::end_element().into(), writer);
 }

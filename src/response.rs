@@ -2,8 +2,9 @@
 
 // #![deny(unsafe_code)]
 
+use crate::assertion::AssertionAttribute;
 use crate::sp::*;
-use crate::xml::{write_event, AssertionAttribute};
+use crate::xml::write_event;
 use chrono::{DateTime, NaiveDate, SecondsFormat, Utc};
 use std::io::Write;
 use std::str::from_utf8;
@@ -44,6 +45,9 @@ pub struct ResponseElements {
 
     /// [crate::sp::ServiceProvider]
     pub service_provider: ServiceProvider,
+
+    /// TODO: Decide if we can just pick it from the SP
+    pub assertion_consumer_service: String,
 }
 
 use uuid::Uuid;
@@ -80,6 +84,8 @@ impl ResponseElements {
             issue_instant: Utc::now(),
             service_provider: ServiceProvider::test_generic("foo"),
             response_id: Uuid::new_v4().to_string(),
+            assertion_consumer_service: "assertion_consumer_service should have been set"
+                .to_string(),
         }
     }
 
@@ -96,6 +102,7 @@ impl ResponseElements {
             issue_instant: self.issue_instant,
             service_provider: self.service_provider,
             response_id,
+            assertion_consumer_service: self.assertion_consumer_service,
         }
     }
 }
@@ -106,8 +113,10 @@ impl Into<Vec<u8>> for ResponseElements {
     fn into(self) -> Vec<u8> {
         // TODO set up all these values
 
-        let conditions_not_before = String::from("2021-07-17T01:01:18Z");
-        let conditions_not_after = String::from("2024-01-18T06:21:48Z");
+        let conditions_not_before = Utc::now();
+
+        let session_time = chrono::Duration::minutes(5);
+        let conditions_not_after: DateTime<Utc> = conditions_not_before + session_time;
 
         let mut buffer = Vec::new();
         let mut writer = EmitterConfig::new()
@@ -130,7 +139,7 @@ impl Into<Vec<u8>> for ResponseElements {
             ),
         };
 
-        let assertion_data = crate::assertion::AssertionData {
+        let assertion_data = crate::assertion::Assertion {
             assertion_id: self.assertion_id.to_string(),
             issuer: self.issuer.to_string(),
             signing_algorithm: crate::sign::SigningAlgorithm::Sha1,
@@ -142,7 +151,7 @@ impl Into<Vec<u8>> for ResponseElements {
             subject_data,
 
             attributes: self.attributes,
-            audience: self.destination.to_string(),
+            audience: self.service_provider.entity_id.to_string(),
             conditions_not_after,
             conditions_not_before,
         };

@@ -17,7 +17,7 @@
 use saml_rs::metadata::{generate_metadata_xml, SamlMetadata};
 use saml_rs::response::{AuthNStatement, ResponseElements};
 
-use saml_rs::xml::AssertionAttribute;
+use saml_rs::assertion::AssertionAttribute;
 use saml_rs::SamlQuery;
 
 use chrono::{DateTime, Duration, NaiveDate, Utc};
@@ -349,7 +349,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
 
     let response = ResponseElements {
         issuer: req.state().hostname.to_string(),
-        response_id: String::from("_8e8dc5f69a98cc4c1ff3427e5ce34606fd672f91e6"),
+        response_id: ResponseElements::default().assertion_id,
         // issue_instant: DateTime::<Utc>::from_utc(
         //     NaiveDate::from_ymd(2014, 7, 17).and_hms(1, 1, 48),
         //     Utc,
@@ -359,10 +359,11 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         attributes: responseattributes,
         // TODO: figure out if this should be the ACS found in _form_target above or the parsed_saml_request.consumer_service_url
         // destination: form_target,
-        destination: parsed_saml_request.consumer_service_url,
+        destination: parsed_saml_request.consumer_service_url.to_string(),
         authnstatement,
         assertion_id: ResponseElements::default().assertion_id,
         service_provider: service_provider.unwrap().to_owned(),
+        assertion_consumer_service: parsed_saml_request.consumer_service_url,
     };
 
     response_body.push_str(&generate_login_form(response, relay_state));
