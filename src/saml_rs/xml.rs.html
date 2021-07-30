@@ -178,56 +178,11 @@
 <span id="176">176</span>
 <span id="177">177</span>
 <span id="178">178</span>
-<span id="179">179</span>
-<span id="180">180</span>
-<span id="181">181</span>
-<span id="182">182</span>
-<span id="183">183</span>
-<span id="184">184</span>
-<span id="185">185</span>
-<span id="186">186</span>
-<span id="187">187</span>
-<span id="188">188</span>
-<span id="189">189</span>
-<span id="190">190</span>
-<span id="191">191</span>
-<span id="192">192</span>
-<span id="193">193</span>
-<span id="194">194</span>
-<span id="195">195</span>
-<span id="196">196</span>
-<span id="197">197</span>
-<span id="198">198</span>
-<span id="199">199</span>
-<span id="200">200</span>
-<span id="201">201</span>
-<span id="202">202</span>
-<span id="203">203</span>
-<span id="204">204</span>
-<span id="205">205</span>
-<span id="206">206</span>
-<span id="207">207</span>
-<span id="208">208</span>
-<span id="209">209</span>
-<span id="210">210</span>
-<span id="211">211</span>
-<span id="212">212</span>
-<span id="213">213</span>
-<span id="214">214</span>
-<span id="215">215</span>
-<span id="216">216</span>
-<span id="217">217</span>
-<span id="218">218</span>
-<span id="219">219</span>
-<span id="220">220</span>
-<span id="221">221</span>
-<span id="222">222</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Internal utilities for doing things with XML</span>
 
 <span class="comment">// #![deny(unsafe_code)]</span>
 
-<span class="kw">use</span> <span class="ident">serde::Serialize</span>;
 <span class="kw">use</span> <span class="ident">std::io::Write</span>;
 
 <span class="kw">use</span> <span class="ident">std::str::from_utf8</span>;
@@ -263,51 +218,8 @@
     }
 }
 
-<span class="comment">// let mut animals: [&amp;str; 2] = [&quot;bird&quot;, &quot;frog&quot;];</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Default</span>, <span class="ident">Serialize</span>, <span class="ident">Clone</span>)]</span>
-<span class="doccomment">/// Attributes for responses</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">AssertionAttribute</span> {
-    <span class="ident">name</span>: <span class="ident">String</span>,
-    <span class="ident">nameformat</span>: <span class="ident">String</span>,
-    <span class="ident">values</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span><span class="op">&gt;</span>,
-}
-
-<span class="kw">impl</span> <span class="ident">AssertionAttribute</span> {
-    <span class="doccomment">/// new Response Attribute with `attrname-format:basic`</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">basic</span>(<span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">values</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">AssertionAttribute</span> {
-        <span class="ident">AssertionAttribute</span> {
-            <span class="ident">name</span>: <span class="ident">name</span>.<span class="ident">to_string</span>(),
-            <span class="ident">nameformat</span>: <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:attrname-format:basic&quot;</span>.<span class="ident">to_string</span>(),
-            <span class="ident">values</span>,
-        }
-    }
-}
-
-<span class="doccomment">/// add an attribute to the statement</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">add_attribute</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span>(<span class="ident">attr</span>: <span class="kw-2">&amp;</span><span class="ident">AssertionAttribute</span>, <span class="ident">writer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventWriter</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>) {
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Attribute&quot;</span>))
-            .<span class="ident">attr</span>(<span class="string">&quot;Name&quot;</span>, <span class="ident">attr</span>.<span class="ident">name</span>.<span class="ident">as_str</span>())
-            .<span class="ident">attr</span>(<span class="string">&quot;NameFormat&quot;</span>, <span class="ident">attr</span>.<span class="ident">nameformat</span>.<span class="ident">as_str</span>())
-            .<span class="ident">into</span>(),
-        <span class="ident">writer</span>,
-    );
-    <span class="kw">for</span> <span class="ident">value</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="ident">attr</span>.<span class="ident">values</span> {
-        <span class="ident">write_event</span>(
-            <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;AttributeValue&quot;</span>))
-                .<span class="ident">attr</span>(<span class="string">&quot;xsi:type&quot;</span>, <span class="string">&quot;xs:string&quot;</span>)
-                .<span class="ident">into</span>(),
-            <span class="ident">writer</span>,
-        );
-        <span class="ident">write_event</span>(<span class="ident">XmlEvent::characters</span>(<span class="ident">value</span>), <span class="ident">writer</span>);
-        <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
-    }
-    <span class="comment">// write_event(XmlEvent::end_element().into(), writer);</span>
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
-}
-
 <span class="doccomment">/// add a signature to the statement</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">add_signature</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span>(<span class="ident">attr</span>: <span class="kw">crate</span><span class="ident">::assertion::AssertionData</span>, <span class="ident">writer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventWriter</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>) {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">add_signature</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span>(<span class="ident">attr</span>: <span class="kw">crate</span><span class="ident">::assertion::Assertion</span>, <span class="ident">writer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventWriter</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>) {
     <span class="kw">let</span> <span class="ident">algstring</span>: <span class="ident">String</span> <span class="op">=</span> <span class="macro">format!</span>(
         <span class="string">&quot;http://www.w3.org/2000/09/xmldsig#rsa-{}&quot;</span>,
         <span class="ident">attr</span>.<span class="ident">signing_algorithm</span>.<span class="ident">to_string</span>()
