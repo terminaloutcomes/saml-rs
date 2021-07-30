@@ -414,6 +414,10 @@
 <span id="412">412</span>
 <span id="413">413</span>
 <span id="414">414</span>
+<span id="415">415</span>
+<span id="416">416</span>
+<span id="417">417</span>
+<span id="418">418</span>
 </pre><pre class="rust">
 <span class="doccomment">//! A test server for running as a SAML IdP</span>
 <span class="doccomment">//!</span>
@@ -434,7 +438,7 @@
 <span class="kw">use</span> <span class="ident">saml_rs::metadata</span>::{<span class="ident">generate_metadata_xml</span>, <span class="ident">SamlMetadata</span>};
 <span class="kw">use</span> <span class="ident">saml_rs::response</span>::{<span class="ident">AuthNStatement</span>, <span class="ident">ResponseElements</span>};
 
-<span class="kw">use</span> <span class="ident">saml_rs::xml::ResponseAttribute</span>;
+<span class="kw">use</span> <span class="ident">saml_rs::xml::AssertionAttribute</span>;
 <span class="kw">use</span> <span class="ident">saml_rs::SamlQuery</span>;
 
 <span class="kw">use</span> <span class="ident">chrono</span>::{<span class="ident">DateTime</span>, <span class="ident">Duration</span>, <span class="ident">NaiveDate</span>, <span class="ident">Utc</span>};
@@ -633,7 +637,7 @@
         <span class="ident">base64_decoded_samlrequest</span>
     );
 
-    <span class="kw">let</span> <span class="ident">parsed_saml_request</span>: <span class="ident">saml_rs::SamlAuthnRequest</span> <span class="op">=</span>
+    <span class="kw">let</span> <span class="ident">parsed_saml_request</span>: <span class="ident">saml_rs::AuthnRequest</span> <span class="op">=</span>
         <span class="kw">match</span> <span class="ident">saml_rs::parse_authn_request</span>(<span class="kw-2">&amp;</span><span class="ident">base64_decoded_samlrequest</span>) {
             <span class="prelude-val">Ok</span>(<span class="ident">val</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">val</span>,
             <span class="prelude-val">Err</span>(<span class="ident">err</span>) <span class="op">=</span><span class="op">&gt;</span> {
@@ -662,7 +666,9 @@
         }
     };
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">form_target</span> <span class="op">=</span> <span class="ident">String::new</span>();
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">_form_target</span> <span class="op">=</span> <span class="ident">String::new</span>();
+
+    <span class="kw">use</span> <span class="ident">saml_rs::sp::SamlBinding</span>;
 
     <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="string">&quot;&lt;p style=&#39;color: darkgreen&#39;&gt;found SP in state!&lt;/p&gt;&quot;</span>);
     <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;&lt;p&gt;{:?}&lt;/p&gt;&quot;</span>, <span class="ident">service_provider</span>));
@@ -672,13 +678,16 @@
             <span class="ident">saml_rs::sp::SamlBindingType::AssertionConsumerService</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="macro">log::debug!</span>(<span class="string">&quot;acs: {:?}&quot;</span>, <span class="ident">service</span>);
                 <span class="kw">match</span> <span class="kw-2">&amp;</span><span class="ident">service</span>.<span class="ident">binding</span> {
-                    <span class="ident">saml_rs::sp::SamlBinding::HttpRedirect</span> <span class="op">=</span><span class="op">&gt;</span> {
-                        <span class="macro">log::debug!</span>(<span class="string">&quot;Found it!&quot;</span>);
-                        <span class="ident">form_target</span> <span class="op">=</span> <span class="ident">service</span>.<span class="ident">location</span>.<span class="ident">to_string</span>();
-                    }
-                    <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> {
-                        <span class="macro">log::debug!</span>(<span class="string">&quot;not it!&quot;</span>);
-                    }
+                    <span class="ident">SamlBinding::HttpRedirect</span> <span class="op">|</span> <span class="ident">SamlBinding::HttpPost</span> <span class="op">=</span><span class="op">&gt;</span> {
+                        <span class="macro">log::debug!</span>(
+                            <span class="string">&quot;Found form target, type is {:?}, destination is: {}&quot;</span>,
+                            <span class="kw-2">&amp;</span><span class="ident">service</span>.<span class="ident">binding</span>,
+                            <span class="ident">service</span>.<span class="ident">location</span>
+                        );
+                        <span class="ident">_form_target</span> <span class="op">=</span> <span class="ident">service</span>.<span class="ident">location</span>.<span class="ident">to_string</span>();
+                    } <span class="comment">// _ =&gt; {</span>
+                      <span class="comment">//     log::debug!(&quot;not it!&quot;);</span>
+                      <span class="comment">// }</span>
                 }
             }
             <span class="ident">saml_rs::sp::SamlBindingType::SingleLogoutService</span> <span class="op">=</span><span class="op">&gt;</span> {
@@ -741,6 +750,7 @@
             <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Utc::now</span>(),
         };
 
+    <span class="comment">// TODO: work out where the AuthNStatement goes</span>
     <span class="kw">let</span> <span class="ident">authnstatement</span> <span class="op">=</span> <span class="ident">AuthNStatement</span> {
         <span class="ident">instant</span>: <span class="ident">authn_instant</span>,
         <span class="ident">session_index</span>: <span class="ident">String::from</span>(<span class="string">&quot;_be9967abd904ddcae3c0eb4189adbe3f71e327cf93&quot;</span>),
@@ -749,16 +759,11 @@
     };
 
     <span class="kw">let</span> <span class="ident">responseattributes</span> <span class="op">=</span> [
-        <span class="ident">ResponseAttribute::basic</span>(<span class="string">&quot;uid&quot;</span>, [<span class="string">&quot;yaleman&quot;</span>.<span class="ident">to_string</span>()].<span class="ident">to_vec</span>()),
-        <span class="ident">ResponseAttribute::basic</span>(<span class="string">&quot;mail&quot;</span>, [<span class="string">&quot;yaleman@ricetek.net&quot;</span>.<span class="ident">to_string</span>()].<span class="ident">to_vec</span>()),
-        <span class="ident">ResponseAttribute::basic</span>(
+        <span class="ident">AssertionAttribute::basic</span>(<span class="string">&quot;uid&quot;</span>, [<span class="string">&quot;yaleman&quot;</span>].<span class="ident">to_vec</span>()),
+        <span class="ident">AssertionAttribute::basic</span>(<span class="string">&quot;mail&quot;</span>, [<span class="string">&quot;yaleman@ricetek.net&quot;</span>].<span class="ident">to_vec</span>()),
+        <span class="ident">AssertionAttribute::basic</span>(
             <span class="string">&quot;eduPersonAffiliation&quot;</span>,
-            [
-                <span class="string">&quot;users&quot;</span>.<span class="ident">to_string</span>(),
-                <span class="string">&quot;examplerole1&quot;</span>.<span class="ident">to_string</span>(),
-                <span class="string">&quot;admin&quot;</span>.<span class="ident">to_string</span>(),
-            ]
-            .<span class="ident">to_vec</span>(),
+            [<span class="string">&quot;users&quot;</span>, <span class="string">&quot;examplerole1&quot;</span>, <span class="string">&quot;admin&quot;</span>].<span class="ident">to_vec</span>(),
         ),
     ]
     .<span class="ident">to_vec</span>();
@@ -766,15 +771,18 @@
     <span class="kw">let</span> <span class="ident">response</span> <span class="op">=</span> <span class="ident">ResponseElements</span> {
         <span class="ident">issuer</span>: <span class="ident">req</span>.<span class="ident">state</span>().<span class="ident">hostname</span>.<span class="ident">to_string</span>(),
         <span class="ident">response_id</span>: <span class="ident">String::from</span>(<span class="string">&quot;_8e8dc5f69a98cc4c1ff3427e5ce34606fd672f91e6&quot;</span>),
-        <span class="ident">issue_instant</span>: <span class="ident">DateTime</span>::<span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span><span class="ident">::from_utc</span>(
-            <span class="ident">NaiveDate::from_ymd</span>(<span class="number">2014</span>, <span class="number">7</span>, <span class="number">17</span>).<span class="ident">and_hms</span>(<span class="number">1</span>, <span class="number">1</span>, <span class="number">48</span>),
-            <span class="ident">Utc</span>,
-        ),
+        <span class="comment">// issue_instant: DateTime::&lt;Utc&gt;::from_utc(</span>
+        <span class="comment">//     NaiveDate::from_ymd(2014, 7, 17).and_hms(1, 1, 48),</span>
+        <span class="comment">//     Utc,</span>
+        <span class="comment">// ),</span>
+        <span class="ident">issue_instant</span>: <span class="ident">Utc::now</span>(),
         <span class="ident">relay_state</span>: <span class="ident">parsed_saml_request</span>.<span class="ident">relay_state</span>,
         <span class="ident">attributes</span>: <span class="ident">responseattributes</span>,
-        <span class="ident">destination</span>: <span class="ident">form_target</span>,
+        <span class="comment">// TODO: figure out if this should be the ACS found in _form_target above or the parsed_saml_request.consumer_service_url</span>
+        <span class="comment">// destination: form_target,</span>
+        <span class="ident">destination</span>: <span class="ident">parsed_saml_request</span>.<span class="ident">consumer_service_url</span>,
         <span class="ident">authnstatement</span>,
-        <span class="ident">assertion_id</span>: <span class="ident">String::from</span>(<span class="string">&quot;_d71a3a8e9fcc45c9e9d248ef7049393fc8f04e5f75&quot;</span>),
+        <span class="ident">assertion_id</span>: <span class="ident">ResponseElements::default</span>().<span class="ident">assertion_id</span>,
         <span class="ident">service_provider</span>: <span class="ident">service_provider</span>.<span class="ident">unwrap</span>().<span class="ident">to_owned</span>(),
     };
 
@@ -803,7 +811,7 @@
 
     <span class="kw">let</span> <span class="ident">template</span> <span class="op">=</span> <span class="ident">String::from</span>(
         <span class="string">r#&quot;&lt;p&gt;{{SAMLResponse | safe}}&lt;/p&gt;
-&lt;form method=&quot;post&quot; action=&quot;{{form_action}}&quot;&gt;
+&lt;form method=&quot;post&quot; action=&quot;{{form_action | safe}}&quot;&gt;
     &lt;input type=&quot;hidden&quot; name=&quot;SAMLResponse&quot; value=&quot;{{SAMLResponse | safe}}&quot; /&gt;
     &lt;input type=&quot;hidden&quot; name=&quot;RelayState&quot; value=&quot;{{RelayState}}&quot; /&gt;
     &lt;h1&gt;Fancy example login form&lt;/h1&gt;
