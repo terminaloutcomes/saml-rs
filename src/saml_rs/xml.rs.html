@@ -263,7 +263,7 @@
     */</span>
     <span class="ident">write_event</span>(
         <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;ds&quot;</span>, <span class="string">&quot;Reference&quot;</span>))
-            .<span class="ident">attr</span>(<span class="string">&quot;URI&quot;</span>, <span class="string">&quot;#pfx279776d1-c32a-3684-6dce-8eec41e02c33&quot;</span>)
+            .<span class="ident">attr</span>(<span class="string">&quot;URI&quot;</span>, <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;#pfx{}&quot;</span>, <span class="ident">attr</span>.<span class="ident">assertion_id</span>))
             .<span class="ident">into</span>(),
         <span class="ident">writer</span>,
     );

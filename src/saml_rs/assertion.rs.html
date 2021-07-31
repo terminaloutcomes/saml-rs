@@ -388,6 +388,11 @@
 <span id="386">386</span>
 <span id="387">387</span>
 <span id="388">388</span>
+<span id="389">389</span>
+<span id="390">390</span>
+<span id="391">391</span>
+<span id="392">392</span>
+<span id="393">393</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Assertion-related things</span>
 <span class="doccomment">//!</span>
@@ -463,58 +468,8 @@
         <span class="comment">// String::from(&quot;Uh.. wait up.&quot;)</span>
     }
 
-    <span class="doccomment">/// This adds the data from an Assertion to a given EventWriter.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// If you specify to *sign* the assertion, it&#39;s going to:</span>
-    <span class="doccomment">/// - generate a temporary EventWriter</span>
-    <span class="doccomment">/// - generate the *unsigned* assertion</span>
-    <span class="doccomment">/// - add the signature to the assertion</span>
-    <span class="doccomment">/// - weep quietly</span>
-    <span class="doccomment">/// - return the full pack</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// That&#39;s the plan, anyway.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// ``` xml</span>
-    <span class="doccomment">/// # Assertion Header</span>
-    <span class="doccomment">/// - Issuer</span>
-    <span class="doccomment">/// - Signature</span>
-    <span class="doccomment">/// - Subject</span>
-    <span class="doccomment">/// - Conditions</span>
-    <span class="doccomment">/// - AuthnStatement</span>
-    <span class="doccomment">/// - AttributeStatement</span>
-    <span class="doccomment">/// # End Assertion</span>
-    <span class="doccomment">/// ```</span>
-    <span class="doccomment">///</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">add_assertion_to_xml</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">writer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventWriter</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>,
-        <span class="ident">sign_assertion</span>: <span class="ident">bool</span>,
-    ) {
-        <span class="comment">// start the assertion</span>
-        <span class="macro">log::debug!</span>(<span class="string">&quot;sign_assertion: {}&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">sign_assertion</span>);
-
-        <span class="ident">write_event</span>(
-            <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Assertion&quot;</span>))
-                .<span class="ident">attr</span>(<span class="string">&quot;xmlns:xsi&quot;</span>, <span class="string">&quot;http://www.w3.org/2001/XMLSchema-instance&quot;</span>)
-                .<span class="ident">attr</span>(<span class="string">&quot;xmlns:xs&quot;</span>, <span class="string">&quot;http://www.w3.org/2001/XMLSchema&quot;</span>)
-                .<span class="ident">attr</span>(<span class="string">&quot;ID&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">assertion_id</span>)
-                .<span class="ident">attr</span>(<span class="string">&quot;Version&quot;</span>, <span class="string">&quot;2.0&quot;</span>) <span class="comment">// yeah, not going to support anything but 2.0 here. 😅</span>
-                .<span class="ident">attr</span>(
-                    <span class="string">&quot;IssueInstant&quot;</span>,
-                    <span class="kw-2">&amp;</span><span class="self">self</span>
-                        .<span class="ident">issue_instant</span>
-                        .<span class="ident">to_rfc3339_opts</span>(<span class="ident">SecondsFormat::Secs</span>, <span class="bool-val">true</span>),
-                )
-                .<span class="ident">into</span>(),
-            <span class="ident">writer</span>,
-        );
-
-        <span class="comment">// do the issuer inside the assertion</span>
-        <span class="ident">add_issuer</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">issuer</span>, <span class="ident">writer</span>);
-
-        <span class="comment">// add the subject to the assertion</span>
-        <span class="ident">add_subject</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">subject_data</span>, <span class="ident">writer</span>);
-
+    <span class="doccomment">/// adds a `saml:Conditions` statement to the writer</span>
+    <span class="kw">fn</span> <span class="ident">add_conditions</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">writer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventWriter</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>) {
         <span class="comment">// start conditions statement</span>
         <span class="ident">write_event</span>(
             <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Conditions&quot;</span>))
@@ -537,6 +492,61 @@
         <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
         <span class="comment">// end conditions statement</span>
         <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
+    }
+
+    <span class="doccomment">/// This adds the data from an Assertion to a given EventWriter.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// If you specify to *sign* the assertion, it&#39;s going to:</span>
+    <span class="doccomment">/// - generate a temporary EventWriter</span>
+    <span class="doccomment">/// - generate the *unsigned* assertion</span>
+    <span class="doccomment">/// - add the signature to the assertion</span>
+    <span class="doccomment">/// - weep quietly</span>
+    <span class="doccomment">/// - return the full pack</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// That&#39;s the plan, anyway.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// ``` xml</span>
+    <span class="doccomment">/// # Assertion Header</span>
+    <span class="doccomment">/// - AttributeStatement</span>
+    <span class="doccomment">/// - AuthnStatement</span>
+    <span class="doccomment">/// - Conditions</span>
+    <span class="doccomment">/// - Issuer</span>
+    <span class="doccomment">/// - Signature</span>
+    <span class="doccomment">/// - Subject</span>
+    <span class="doccomment">/// # End Assertion</span>
+    <span class="doccomment">/// ```</span>
+    <span class="doccomment">///</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">add_assertion_to_xml</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span>(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        <span class="ident">writer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventWriter</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>,
+        <span class="ident">sign_assertion</span>: <span class="ident">bool</span>,
+    ) {
+        <span class="comment">// start the assertion</span>
+        <span class="macro">log::debug!</span>(<span class="string">&quot;sign_assertion: {}&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">sign_assertion</span>);
+
+        <span class="ident">write_event</span>(
+            <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Assertion&quot;</span>))
+                .<span class="ident">attr</span>(<span class="string">&quot;xmlns:xs&quot;</span>, <span class="string">&quot;http://www.w3.org/2001/XMLSchema&quot;</span>)
+                .<span class="ident">attr</span>(<span class="string">&quot;xmlns:xsi&quot;</span>, <span class="string">&quot;http://www.w3.org/2001/XMLSchema-instance&quot;</span>)
+                .<span class="ident">attr</span>(<span class="string">&quot;ID&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">assertion_id</span>)
+                .<span class="ident">attr</span>(
+                    <span class="string">&quot;IssueInstant&quot;</span>,
+                    <span class="kw-2">&amp;</span><span class="self">self</span>
+                        .<span class="ident">issue_instant</span>
+                        .<span class="ident">to_rfc3339_opts</span>(<span class="ident">SecondsFormat::Secs</span>, <span class="bool-val">true</span>),
+                )
+                .<span class="ident">attr</span>(<span class="string">&quot;Version&quot;</span>, <span class="string">&quot;2.0&quot;</span>) <span class="comment">// yeah, not going to support anything but 2.0 here. 😅</span>
+                .<span class="ident">into</span>(),
+            <span class="ident">writer</span>,
+        );
+
+        <span class="comment">// do the issuer inside the assertion</span>
+        <span class="ident">add_issuer</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">issuer</span>, <span class="ident">writer</span>);
+
+        <span class="comment">// add the subject to the assertion</span>
+        <span class="ident">add_subject</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">subject_data</span>, <span class="ident">writer</span>);
+
+        <span class="self">self</span>.<span class="ident">add_conditions</span>(<span class="ident">writer</span>);
 
         <span class="comment">// To do an expiry in an hour, do this</span>
         <span class="comment">// let session_expiry = Utc::now().checked_add_signed(Duration::seconds(3600));</span>
@@ -671,7 +681,7 @@
     <span class="doccomment">/// NameID value - I know this one, it&#39;s the reference to the user, like username or some rando noise if it&#39;s transient. Regret, if it&#39;s [crate::sp::NameIdFormat::Kerberos]</span>
     <span class="kw">pub</span> <span class="ident">nameid_value</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>,
     <span class="doccomment">/// The AssertionConsumerService - where we&#39;ll send the request.</span>
-    <span class="kw">pub</span> <span class="ident">acs</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>,
+    <span class="kw">pub</span> <span class="ident">acs</span>: <span class="ident">String</span>,
     <span class="doccomment">/// The expiry of this Assertion. Woo, recovered there at the end.</span>
     <span class="kw">pub</span> <span class="ident">subject_not_on_or_after</span>: <span class="ident">DateTime</span><span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span>,
 }

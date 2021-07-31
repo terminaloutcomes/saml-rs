@@ -300,6 +300,16 @@
 <span id="298">298</span>
 <span id="299">299</span>
 <span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Want to build a SAML response? Here&#39;s your module. 🥳</span>
 
@@ -424,18 +434,28 @@
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buffer</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">writer</span> <span class="op">=</span> <span class="ident">EmitterConfig::new</span>()
             .<span class="ident">perform_indent</span>(<span class="bool-val">true</span>)
+            .<span class="ident">pad_self_closing</span>(<span class="bool-val">false</span>)
             .<span class="ident">write_document_declaration</span>(<span class="bool-val">false</span>)
+            .<span class="ident">normalize_empty_elements</span>(<span class="bool-val">true</span>)
             .<span class="ident">create_writer</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">buffer</span>);
+
+        <span class="kw">let</span> <span class="ident">acs</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">service_provider</span>.<span class="ident">find_first_acs</span>() {
+            <span class="prelude-val">Ok</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">value</span>,
+            <span class="prelude-val">Err</span>(<span class="ident">error</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="macro">eprintln!</span>(<span class="string">&quot;{:?}, falling back to https://example.com&quot;</span>, <span class="ident">error</span>);
+                <span class="ident">ServiceBinding::default</span>()
+            }
+        };
 
         <span class="kw">let</span> <span class="ident">subject_data</span> <span class="op">=</span> <span class="kw">crate</span><span class="ident">::assertion::SubjectData</span> {
             <span class="ident">relay_state</span>: <span class="self">self</span>.<span class="ident">relay_state</span>.<span class="ident">clone</span>(),
             <span class="ident">qualifier</span>: <span class="prelude-val">Some</span>(<span class="kw">crate</span><span class="ident">::assertion::BaseIDAbstractType::SPNameQualifier</span>),
-            <span class="ident">qualifier_value</span>: <span class="prelude-val">Some</span>(<span class="ident">String::from</span>(<span class="string">&quot;http://sp.example.com/demo1/metadata.php&quot;</span>)),
+            <span class="ident">qualifier_value</span>: <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">service_provider</span>.<span class="ident">entity_id</span>.<span class="ident">to_string</span>()),
             <span class="ident">nameid_format</span>: <span class="kw">crate</span><span class="ident">::sp::NameIdFormat::Transient</span>,
             <span class="comment">// in the unsigned response example this was a transient value _ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7</span>
             <span class="ident">nameid_value</span>: <span class="string">&quot;_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7&quot;</span>,
             <span class="comment">// TODO this should be fixed</span>
-            <span class="ident">acs</span>: <span class="string">&quot;http://sp.example.com/demo1/index.php?acs&quot;</span>,
+            <span class="ident">acs</span>: <span class="ident">acs</span>.<span class="ident">location</span>,
             <span class="ident">subject_not_on_or_after</span>: <span class="ident">DateTime</span>::<span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span><span class="ident">::from_utc</span>(
                 <span class="ident">NaiveDate::from_ymd</span>(<span class="number">2024</span>, <span class="number">1</span>, <span class="number">18</span>).<span class="ident">and_hms</span>(<span class="number">6</span>, <span class="number">21</span>, <span class="number">48</span>),
                 <span class="ident">Utc</span>,
