@@ -82,7 +82,7 @@ pub fn add_signature<W: Write>(attr: crate::assertion::Assertion, writer: &mut E
     */
     write_event(
         XmlEvent::start_element(("ds", "Reference"))
-            .attr("URI", "#pfx279776d1-c32a-3684-6dce-8eec41e02c33")
+            .attr("URI", &format!("#pfx{}", attr.assertion_id))
             .into(),
         writer,
     );

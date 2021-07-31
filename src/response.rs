@@ -121,18 +121,28 @@ impl Into<Vec<u8>> for ResponseElements {
         let mut buffer = Vec::new();
         let mut writer = EmitterConfig::new()
             .perform_indent(true)
+            .pad_self_closing(false)
             .write_document_declaration(false)
+            .normalize_empty_elements(true)
             .create_writer(&mut buffer);
+
+        let acs = match self.service_provider.find_first_acs() {
+            Ok(value) => value,
+            Err(error) => {
+                eprintln!("{:?}, falling back to https://example.com", error);
+                ServiceBinding::default()
+            }
+        };
 
         let subject_data = crate::assertion::SubjectData {
             relay_state: self.relay_state.clone(),
             qualifier: Some(crate::assertion::BaseIDAbstractType::SPNameQualifier),
-            qualifier_value: Some(String::from("http://sp.example.com/demo1/metadata.php")),
+            qualifier_value: Some(self.service_provider.entity_id.to_string()),
             nameid_format: crate::sp::NameIdFormat::Transient,
             // in the unsigned response example this was a transient value _ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7
             nameid_value: "_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7",
             // TODO this should be fixed
-            acs: "http://sp.example.com/demo1/index.php?acs",
+            acs: acs.location,
             subject_not_on_or_after: DateTime::<Utc>::from_utc(
                 NaiveDate::from_ymd(2024, 1, 18).and_hms(6, 21, 48),
                 Utc,

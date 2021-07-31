@@ -383,6 +383,18 @@ impl ServiceProvider {
         Ok(tmp_sb)
     }
 
+    /// return the first AssertionConsumerService we find
+    pub fn find_first_acs(&self) -> Result<ServiceBinding, &'static str> {
+        if !self.services.is_empty() {
+            for service in &self.services {
+                if let SamlBindingType::AssertionConsumerService = service.servicetype {
+                    return Ok(service.to_owned());
+                };
+            }
+        }
+        Err("Couldn't find ACS")
+    }
+
     /// Let's parse some attributes!
     fn attrib_parser(&mut self, tag: &str, attributes: Vec<OwnedAttribute>) {
         // eprintln!("attrib_parser - tag={}, attr:{:?}", tag, attributes);

@@ -72,58 +72,8 @@ impl Assertion {
         // String::from("Uh.. wait up.")
     }
 
-    /// This adds the data from an Assertion to a given EventWriter.
-    ///
-    /// If you specify to *sign* the assertion, it's going to:
-    /// - generate a temporary EventWriter
-    /// - generate the *unsigned* assertion
-    /// - add the signature to the assertion
-    /// - weep quietly
-    /// - return the full pack
-    ///
-    /// That's the plan, anyway.
-    ///
-    /// ``` xml
-    /// # Assertion Header
-    /// - Issuer
-    /// - Signature
-    /// - Subject
-    /// - Conditions
-    /// - AuthnStatement
-    /// - AttributeStatement
-    /// # End Assertion
-    /// ```
-    ///
-    pub fn add_assertion_to_xml<W: Write>(
-        &self,
-        writer: &mut EventWriter<W>,
-        sign_assertion: bool,
-    ) {
-        // start the assertion
-        log::debug!("sign_assertion: {}", &sign_assertion);
-
-        write_event(
-            XmlEvent::start_element(("saml", "Assertion"))
-                .attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
-                .attr("xmlns:xs", "http://www.w3.org/2001/XMLSchema")
-                .attr("ID", &self.assertion_id)
-                .attr("Version", "2.0") // yeah, not going to support anything but 2.0 here. 😅
-                .attr(
-                    "IssueInstant",
-                    &self
-                        .issue_instant
-                        .to_rfc3339_opts(SecondsFormat::Secs, true),
-                )
-                .into(),
-            writer,
-        );
-
-        // do the issuer inside the assertion
-        add_issuer(&self.issuer, writer);
-
-        // add the subject to the assertion
-        add_subject(&self.subject_data, writer);
-
+    /// adds a `saml:Conditions` statement to the writer
+    fn add_conditions<W: Write>(&self, writer: &mut EventWriter<W>) {
         // start conditions statement
         write_event(
             XmlEvent::start_element(("saml", "Conditions"))
@@ -146,6 +96,61 @@ impl Assertion {
         write_event(XmlEvent::end_element().into(), writer);
         // end conditions statement
         write_event(XmlEvent::end_element().into(), writer);
+    }
+
+    /// This adds the data from an Assertion to a given EventWriter.
+    ///
+    /// If you specify to *sign* the assertion, it's going to:
+    /// - generate a temporary EventWriter
+    /// - generate the *unsigned* assertion
+    /// - add the signature to the assertion
+    /// - weep quietly
+    /// - return the full pack
+    ///
+    /// That's the plan, anyway.
+    ///
+    /// ``` xml
+    /// # Assertion Header
+    /// - AttributeStatement
+    /// - AuthnStatement
+    /// - Conditions
+    /// - Issuer
+    /// - Signature
+    /// - Subject
+    /// # End Assertion
+    /// ```
+    ///
+    pub fn add_assertion_to_xml<W: Write>(
+        &self,
+        writer: &mut EventWriter<W>,
+        sign_assertion: bool,
+    ) {
+        // start the assertion
+        log::debug!("sign_assertion: {}", &sign_assertion);
+
+        write_event(
+            XmlEvent::start_element(("saml", "Assertion"))
+                .attr("xmlns:xs", "http://www.w3.org/2001/XMLSchema")
+                .attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
+                .attr("ID", &self.assertion_id)
+                .attr(
+                    "IssueInstant",
+                    &self
+                        .issue_instant
+                        .to_rfc3339_opts(SecondsFormat::Secs, true),
+                )
+                .attr("Version", "2.0") // yeah, not going to support anything but 2.0 here. 😅
+                .into(),
+            writer,
+        );
+
+        // do the issuer inside the assertion
+        add_issuer(&self.issuer, writer);
+
+        // add the subject to the assertion
+        add_subject(&self.subject_data, writer);
+
+        self.add_conditions(writer);
 
         // To do an expiry in an hour, do this
         // let session_expiry = Utc::now().checked_add_signed(Duration::seconds(3600));
@@ -280,7 +285,7 @@ pub struct SubjectData {
     /// NameID value - I know this one, it's the reference to the user, like username or some rando noise if it's transient. Regret, if it's [crate::sp::NameIdFormat::Kerberos]
     pub nameid_value: &'static str,
     /// The AssertionConsumerService - where we'll send the request.
-    pub acs: &'static str,
+    pub acs: String,
     /// The expiry of this Assertion. Woo, recovered there at the end.
     pub subject_not_on_or_after: DateTime<Utc>,
 }

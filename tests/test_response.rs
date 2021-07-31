@@ -9,8 +9,8 @@ mod tests {
     use saml_rs::test_samples::TEST_SAML_UNSIGNED_RESPONSE_UNSIGNED_ASSERTION;
     use std::str::from_utf8;
     #[test]
-    /// tests saml_rs::metadata::SamlMetadata::new()
-    fn metadata_new_set_foo_example_com() {
+    /// tests test_full_response_something_something
+    fn test_full_response_something_something() {
         // Session up the AuthNStatement
         let authn_instant =
             DateTime::<Utc>::from_utc(NaiveDate::from_ymd(2014, 7, 17).and_hms(1, 1, 48), Utc);
