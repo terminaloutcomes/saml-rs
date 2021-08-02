@@ -123,7 +123,7 @@ impl Into<Vec<u8>> for ResponseElements {
             .perform_indent(true)
             .pad_self_closing(false)
             .write_document_declaration(false)
-            .normalize_empty_elements(true)
+            .normalize_empty_elements(false)
             .create_writer(&mut buffer);
 
         let acs = match self.service_provider.find_first_acs() {
@@ -169,18 +169,18 @@ impl Into<Vec<u8>> for ResponseElements {
         // start of the response
         write_event(
             XmlEvent::start_element(("samlp", "Response"))
-                .attr("xmlns:samlp", "urn:oasis:names:tc:SAML:2.0:protocol")
                 .attr("xmlns:saml", "urn:oasis:names:tc:SAML:2.0:assertion")
+                .attr("xmlns:samlp", "urn:oasis:names:tc:SAML:2.0:protocol")
+                .attr("Destination", &self.destination)
                 .attr("ID", &self.response_id)
-                .attr("Version", "2.0")
+                .attr("InResponseTo", &self.relay_state)
                 .attr(
                     "IssueInstant",
                     &self
                         .issue_instant
                         .to_rfc3339_opts(SecondsFormat::Secs, true),
                 )
-                .attr("Destination", &self.destination)
-                .attr("InResponseTo", &self.relay_state)
+                .attr("Version", "2.0")
                 .into(),
             &mut writer,
         );

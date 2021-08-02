@@ -298,11 +298,11 @@ fn add_subject<W: Write>(subjectdata: &SubjectData, writer: &mut EventWriter<W>)
     // TODO: nameid can be 0 or more of NameQualifier or SPNameQualifier
     write_event(
         XmlEvent::start_element(("saml", "NameID"))
+            .attr("Format", &subjectdata.nameid_format.to_string())
             .attr(
                 subjectdata.qualifier.unwrap().to_string().as_str(),
                 subjectdata.qualifier_value.as_ref().unwrap(),
             )
-            .attr("Format", &subjectdata.nameid_format.to_string())
             .into(),
         writer,
     );
@@ -322,6 +322,7 @@ fn add_subject<W: Write>(subjectdata: &SubjectData, writer: &mut EventWriter<W>)
     //start subjectconfirmationdata
     write_event(
         XmlEvent::start_element(("saml", "SubjectConfirmationData"))
+            .attr("InResponseTo", &subjectdata.relay_state)
             .attr(
                 "NotOnOrAfter",
                 &subjectdata
@@ -329,7 +330,6 @@ fn add_subject<W: Write>(subjectdata: &SubjectData, writer: &mut EventWriter<W>)
                     .to_saml_datetime_string(),
             )
             .attr("Recipient", &subjectdata.acs)
-            .attr("InResponseTo", &subjectdata.relay_state)
             .into(),
         writer,
     );

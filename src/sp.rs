@@ -9,7 +9,6 @@ use std::str::FromStr;
 use openssl;
 use openssl::x509::X509;
 use std::io::Cursor;
-
 use xml::attribute::OwnedAttribute;
 use xml::reader::{EventReader, XmlEvent};
 
@@ -254,7 +253,7 @@ impl FromStr for ServiceProvider {
             protocol_support_enumeration: None,
             nameid_format: NameIdFormat::default(),
         };
-
+        let upstream_tag = "";
         for e in parser {
             match e {
                 Ok(XmlEvent::StartElement {
@@ -263,7 +262,7 @@ impl FromStr for ServiceProvider {
                     // println!("{}+{}", xml_indent(depth), name);
                     tag_name = name.local_name.to_string();
 
-                    meta.attrib_parser(&tag_name, attributes);
+                    meta.attrib_parser(&tag_name, attributes, &upstream_tag);
                     depth += 1;
                 }
                 Ok(XmlEvent::EndElement { .. /* name */ }) => {
@@ -396,8 +395,10 @@ impl ServiceProvider {
     }
 
     /// Let's parse some attributes!
-    fn attrib_parser(&mut self, tag: &str, attributes: Vec<OwnedAttribute>) {
-        // eprintln!("attrib_parser - tag={}, attr:{:?}", tag, attributes);
+    fn attrib_parser(&mut self, tag: &str, attributes: Vec<OwnedAttribute>, upstream_tag: &str) {
+        eprintln!("attrib_parser - tag={}, attr:{:?}", tag, attributes);
+        eprintln!("Current upstream tag: {}", upstream_tag);
+
         match tag {
             "AssertionConsumerService" => {
                 log::debug!("AssertionConsumerService: {:?}", attributes);
