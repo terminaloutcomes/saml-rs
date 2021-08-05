@@ -166,7 +166,6 @@
 <span id="164">164</span>
 <span id="165">165</span>
 <span id="166">166</span>
-<span id="167">167</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Functions for signing data</span>
 <span class="doccomment">//!</span>
@@ -247,7 +246,6 @@
     };
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">pkey_buffer</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
     <span class="comment">// read the whole file</span>
-    <span class="comment">// TODO: handle file read errors, but if we&#39;ve gotten here without bailing then well, eek?</span>
     <span class="kw">match</span> <span class="ident">f</span>.<span class="ident">read_to_end</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">pkey_buffer</span>) {
         <span class="prelude-val">Ok</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">eprintln!</span>(<span class="string">&quot;Read private key OK&quot;</span>),
         <span class="prelude-val">Err</span>(<span class="ident">error</span>) <span class="op">=</span><span class="op">&gt;</span> {

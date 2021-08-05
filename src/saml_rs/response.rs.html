@@ -310,18 +310,25 @@
 <span id="308">308</span>
 <span id="309">309</span>
 <span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
+<span id="314">314</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Want to build a SAML response? Here&#39;s your module. 🥳</span>
 
 <span class="comment">// #![deny(unsafe_code)]</span>
 
-<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::assertion::AssertionAttribute</span>;
-<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::sp</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::xml::write_event</span>;
 <span class="kw">use</span> <span class="ident">chrono</span>::{<span class="ident">DateTime</span>, <span class="ident">NaiveDate</span>, <span class="ident">SecondsFormat</span>, <span class="ident">Utc</span>};
 <span class="kw">use</span> <span class="ident">std::io::Write</span>;
 <span class="kw">use</span> <span class="ident">std::str::from_utf8</span>;
 <span class="kw">use</span> <span class="ident">xml::writer</span>::{<span class="ident">EmitterConfig</span>, <span class="ident">EventWriter</span>, <span class="ident">XmlEvent</span>};
+
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::assertion</span>::{<span class="ident">Assertion</span>, <span class="ident">AssertionAttribute</span>, <span class="ident">BaseIDAbstractType</span>, <span class="ident">SubjectData</span>};
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::cert::gen_self_signed_certificate</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::sign::SigningAlgorithm</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::sp</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::xml::write_event</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="doccomment">/// Stores all the required elements of a SAML response... maybe?</span>
@@ -447,14 +454,15 @@
             }
         };
 
-        <span class="kw">let</span> <span class="ident">subject_data</span> <span class="op">=</span> <span class="kw">crate</span><span class="ident">::assertion::SubjectData</span> {
+        <span class="kw">let</span> <span class="ident">subject_data</span> <span class="op">=</span> <span class="ident">SubjectData</span> {
             <span class="ident">relay_state</span>: <span class="self">self</span>.<span class="ident">relay_state</span>.<span class="ident">clone</span>(),
-            <span class="ident">qualifier</span>: <span class="prelude-val">Some</span>(<span class="kw">crate</span><span class="ident">::assertion::BaseIDAbstractType::SPNameQualifier</span>),
+            <span class="ident">qualifier</span>: <span class="prelude-val">Some</span>(<span class="ident">BaseIDAbstractType::SPNameQualifier</span>),
             <span class="ident">qualifier_value</span>: <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">service_provider</span>.<span class="ident">entity_id</span>.<span class="ident">to_string</span>()),
-            <span class="ident">nameid_format</span>: <span class="kw">crate</span><span class="ident">::sp::NameIdFormat::Transient</span>,
+            <span class="ident">nameid_format</span>: <span class="ident">NameIdFormat::Transient</span>,
             <span class="comment">// in the unsigned response example this was a transient value _ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7</span>
+            <span class="comment">// TODO: nameid_valud for SubjectData should... be actually set from somewhere</span>
             <span class="ident">nameid_value</span>: <span class="string">&quot;_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7&quot;</span>,
-            <span class="comment">// TODO this should be fixed</span>
+            <span class="comment">// TODO acs should come from somewhere, figure out where</span>
             <span class="ident">acs</span>: <span class="ident">acs</span>.<span class="ident">location</span>,
             <span class="ident">subject_not_on_or_after</span>: <span class="ident">DateTime</span>::<span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span><span class="ident">::from_utc</span>(
                 <span class="ident">NaiveDate::from_ymd</span>(<span class="number">2024</span>, <span class="number">1</span>, <span class="number">18</span>).<span class="ident">and_hms</span>(<span class="number">6</span>, <span class="number">21</span>, <span class="number">48</span>),
@@ -462,14 +470,14 @@
             ),
         };
 
-        <span class="kw">let</span> <span class="ident">assertion_data</span> <span class="op">=</span> <span class="kw">crate</span><span class="ident">::assertion::Assertion</span> {
+        <span class="kw">let</span> <span class="ident">assertion_data</span> <span class="op">=</span> <span class="ident">Assertion</span> {
             <span class="ident">assertion_id</span>: <span class="self">self</span>.<span class="ident">assertion_id</span>.<span class="ident">to_string</span>(),
             <span class="ident">issuer</span>: <span class="self">self</span>.<span class="ident">issuer</span>.<span class="ident">to_string</span>(),
-            <span class="ident">signing_algorithm</span>: <span class="kw">crate</span><span class="ident">::sign::SigningAlgorithm::Sha1</span>,
-            <span class="ident">digest_algorithm</span>: <span class="kw">crate</span><span class="ident">::sign::SigningAlgorithm::Sha1</span>,
+            <span class="ident">signing_algorithm</span>: <span class="ident">SigningAlgorithm::Sha1</span>,
+            <span class="ident">digest_algorithm</span>: <span class="ident">SigningAlgorithm::Sha1</span>,
             <span class="ident">digest_value</span>: <span class="prelude-val">Some</span>(<span class="ident">String::from</span>(<span class="string">&quot;eACxbv4QcKTz/p8ir/fKxzHHUpA=&quot;</span>)),
             <span class="ident">signature_value</span>: <span class="prelude-val">Some</span>(<span class="ident">String::from</span>(<span class="string">&quot;ENpWB3CIRUdvMP6pvYmpHIfJYnLmBxqqnBiwUBDh6N8FjiFC+wM0HDQdGn3Nchap7aQj84PCZu3+/0+v9RldfIe7EwSpt7B9HXr7yYMOdncki/ksEWyxY6nfNMNctvwDXa8pv7257OslGNNlo/XVeAOyiPvQ1f89wHsKGgkRn4w=&quot;</span>)),
-            <span class="ident">certificate</span>: <span class="kw">crate</span><span class="ident">::cert::gen_self_signed_certificate</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">issuer</span>),
+            <span class="ident">certificate</span>: <span class="ident">gen_self_signed_certificate</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">issuer</span>),
             <span class="ident">issue_instant</span>: <span class="self">self</span>.<span class="ident">issue_instant</span>,
             <span class="ident">subject_data</span>,
 

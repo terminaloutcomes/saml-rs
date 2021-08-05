@@ -481,7 +481,6 @@
 <span id="479">479</span>
 <span id="480">480</span>
 <span id="481">481</span>
-<span id="482">482</span>
 </pre><pre class="rust">
 <span class="doccomment">//! A library for doing SAML things, terribly, in rust.</span>
 <span class="doccomment">//!</span>
@@ -614,17 +613,16 @@
 
 <span class="kw">impl</span> <span class="ident">AuthnRequest</span> {
     <span class="doccomment">/// Allows one to turn a [AuthnRequestParser] into a Request object</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// TODO: doctest for AuthnRequest::From&lt;AuthnRequestParser&gt;</span>
     <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::or_fun_call</span>)]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">parser</span>: <span class="ident">AuthnRequestParser</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="ident">AuthnRequest</span> {
             <span class="ident">relay_state</span>: <span class="ident">parser</span>.<span class="ident">relay_state</span>.<span class="ident">unwrap</span>(),
-            <span class="comment">// TODO: make a default response for this at the current time</span>
-            <span class="comment">// issue_instant: parser.issue_instant.unwrap_or(String::from(&quot;unset&quot;)),</span>
             <span class="ident">issue_instant</span>: <span class="ident">parser</span>.<span class="ident">issue_instant</span>.<span class="ident">unwrap_or</span>(<span class="ident">Utc::now</span>()),
             <span class="ident">consumer_service_url</span>: <span class="ident">parser</span>.<span class="ident">consumer_service_url</span>.<span class="ident">unwrap_or</span>(<span class="ident">String::from</span>(<span class="string">&quot;unset&quot;</span>)),
             <span class="ident">issuer</span>: <span class="ident">parser</span>.<span class="ident">issuer</span>.<span class="ident">unwrap</span>(),
             <span class="ident">version</span>: <span class="ident">parser</span>.<span class="ident">version</span>,
-            <span class="comment">// TODO: make a default response for this at the current time</span>
             <span class="ident">destination</span>: <span class="ident">parser</span>.<span class="ident">destination</span>.<span class="ident">unwrap_or</span>(<span class="ident">String::from</span>(<span class="string">&quot;unset&quot;</span>)),
             <span class="ident">sigalg</span>: <span class="ident">parser</span>.<span class="ident">sigalg</span>,
             <span class="ident">signature</span>: <span class="ident">parser</span>.<span class="ident">signature</span>,
