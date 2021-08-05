@@ -167,9 +167,6 @@ pub struct AuthnRequestParser {
     ///
     /// This is a nested element inside a `<saml:Issuer xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">`
     pub issuer: Option<String>,
-    /// Have we thrown an error?
-    /// TODO: just...  throw an error maybe?
-    pub error: bool,
     /// This better be 2.0!
     pub version: String,
     /// Internal state id for the issuer
@@ -195,7 +192,6 @@ impl AuthnRequestParser {
             issue_instant: None,
             consumer_service_url: None,
             issuer: None,
-            error: false,
             version: String::from("2.0"),
             issuer_state: 0,
             destination: None,
@@ -293,7 +289,7 @@ fn parse_authn_tokenizer_attribute(
     local: StrSpan,
     value: StrSpan,
     mut req: AuthnRequestParser,
-) -> AuthnRequestParser {
+) -> Result<AuthnRequestParser, AuthnDecodeError> {
     match local.to_lowercase().as_str() {
         "destination" => {
             req.destination = Some(value.to_string());
@@ -327,15 +323,12 @@ fn parse_authn_tokenizer_attribute(
         }
         "version" => {
             if value.to_string() != "2.0" {
-                eprintln!(
-                    "SAML Request where version!=2.0 ({}), this is bad.",
+                return Err(AuthnDecodeError::new(format!(
+                    "SAML Request where version!=2.0 ({}), this is probably bad.",
                     value.to_string()
-                );
-                req.version = value.to_string();
-                req.error = true;
-            } else {
-                req.version = value.to_string();
+                )));
             }
+            req.version = value.to_string();
         }
         _ => debug!(
             "Found tokenizer attribute={}, value={}",
@@ -345,7 +338,7 @@ fn parse_authn_tokenizer_attribute(
     }
 
     //eprintln!("after block {:?}", req.issue_instant);
-    req
+    Ok(req)
 }
 
 /// Used inside AuthnRequestParser to help parse the AuthN request
@@ -390,7 +383,12 @@ pub fn parse_authn_request(request_data: &str) -> Result<AuthnRequest, String> {
                         local,
                         value,
                         span: _,
-                    } => parse_authn_tokenizer_attribute(local, value, saml_request),
+                    } => match parse_authn_tokenizer_attribute(local, value, saml_request) {
+                        Ok(value) => value,
+                        Err(error) => {
+                            return Err(format!("Failed to parse authn request: {:?}", error))
+                        }
+                    },
                     Token::ElementStart {
                         prefix: _,
                         local,
@@ -422,13 +420,9 @@ pub fn parse_authn_request(request_data: &str) -> Result<AuthnRequest, String> {
             }
         }
     }
-    if saml_request.error {
-        eprintln!("There was an error parsing the request");
-        Err("Failed to parse SAML request".to_string())
-    } else {
-        println!("found relay_state={:?}", &saml_request.relay_state);
-        Ok(AuthnRequest::from(saml_request))
-    }
+
+    println!("found relay_state={:?}", &saml_request.relay_state);
+    Ok(AuthnRequest::from(saml_request))
 }
 
 // TODO: This has some interesting code for parsing and handling assertions etc
