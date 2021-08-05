@@ -129,17 +129,16 @@ pub struct AuthnRequest {
 
 impl AuthnRequest {
     /// Allows one to turn a [AuthnRequestParser] into a Request object
+    ///
+    /// TODO: doctest for AuthnRequest::From<AuthnRequestParser>
     #[allow(clippy::or_fun_call)]
     pub fn from(parser: AuthnRequestParser) -> Self {
         AuthnRequest {
             relay_state: parser.relay_state.unwrap(),
-            // TODO: make a default response for this at the current time
-            // issue_instant: parser.issue_instant.unwrap_or(String::from("unset")),
             issue_instant: parser.issue_instant.unwrap_or(Utc::now()),
             consumer_service_url: parser.consumer_service_url.unwrap_or(String::from("unset")),
             issuer: parser.issuer.unwrap(),
             version: parser.version,
-            // TODO: make a default response for this at the current time
             destination: parser.destination.unwrap_or(String::from("unset")),
             sigalg: parser.sigalg,
             signature: parser.signature,

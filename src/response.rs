@@ -2,13 +2,16 @@
 
 // #![deny(unsafe_code)]
 
-use crate::assertion::AssertionAttribute;
-use crate::sp::*;
-use crate::xml::write_event;
 use chrono::{DateTime, NaiveDate, SecondsFormat, Utc};
 use std::io::Write;
 use std::str::from_utf8;
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
+
+use crate::assertion::{Assertion, AssertionAttribute, BaseIDAbstractType, SubjectData};
+use crate::cert::gen_self_signed_certificate;
+use crate::sign::SigningAlgorithm;
+use crate::sp::*;
+use crate::xml::write_event;
 
 #[derive(Debug)]
 /// Stores all the required elements of a SAML response... maybe?
@@ -134,14 +137,15 @@ impl Into<Vec<u8>> for ResponseElements {
             }
         };
 
-        let subject_data = crate::assertion::SubjectData {
+        let subject_data = SubjectData {
             relay_state: self.relay_state.clone(),
-            qualifier: Some(crate::assertion::BaseIDAbstractType::SPNameQualifier),
+            qualifier: Some(BaseIDAbstractType::SPNameQualifier),
             qualifier_value: Some(self.service_provider.entity_id.to_string()),
-            nameid_format: crate::sp::NameIdFormat::Transient,
+            nameid_format: NameIdFormat::Transient,
             // in the unsigned response example this was a transient value _ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7
+            // TODO: nameid_valud for SubjectData should... be actually set from somewhere
             nameid_value: "_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7",
-            // TODO this should be fixed
+            // TODO acs should come from somewhere, figure out where
             acs: acs.location,
             subject_not_on_or_after: DateTime::<Utc>::from_utc(
                 NaiveDate::from_ymd(2024, 1, 18).and_hms(6, 21, 48),
@@ -149,14 +153,14 @@ impl Into<Vec<u8>> for ResponseElements {
             ),
         };
 
-        let assertion_data = crate::assertion::Assertion {
+        let assertion_data = Assertion {
             assertion_id: self.assertion_id.to_string(),
             issuer: self.issuer.to_string(),
-            signing_algorithm: crate::sign::SigningAlgorithm::Sha1,
-            digest_algorithm: crate::sign::SigningAlgorithm::Sha1,
+            signing_algorithm: SigningAlgorithm::Sha1,
+            digest_algorithm: SigningAlgorithm::Sha1,
             digest_value: Some(String::from("eACxbv4QcKTz/p8ir/fKxzHHUpA=")),
             signature_value: Some(String::from("ENpWB3CIRUdvMP6pvYmpHIfJYnLmBxqqnBiwUBDh6N8FjiFC+wM0HDQdGn3Nchap7aQj84PCZu3+/0+v9RldfIe7EwSpt7B9HXr7yYMOdncki/ksEWyxY6nfNMNctvwDXa8pv7257OslGNNlo/XVeAOyiPvQ1f89wHsKGgkRn4w=")),
-            certificate: crate::cert::gen_self_signed_certificate(&self.issuer),
+            certificate: gen_self_signed_certificate(&self.issuer),
             issue_instant: self.issue_instant,
             subject_data,
 

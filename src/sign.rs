@@ -77,7 +77,6 @@ pub fn load_key_from_filename(key_filename: &str) -> Result<PKey<Private>, Strin
     };
     let mut pkey_buffer = Vec::new();
     // read the whole file
-    // TODO: handle file read errors, but if we've gotten here without bailing then well, eek?
     match f.read_to_end(&mut pkey_buffer) {
         Ok(_) => eprintln!("Read private key OK"),
         Err(error) => {

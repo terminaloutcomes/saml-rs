@@ -272,7 +272,7 @@ impl ToString for BaseIDAbstractType {
 #[derive(Debug)]
 /// Data type for passing subject data in because yeaaaaah, specs
 ///
-/// TODO: Justify this better
+/// TODO: Justify the existence of the elements of this struct ... more completely.
 pub struct SubjectData {
     /// Relay state as provided by the [crate::AuthnRequest]
     pub relay_state: String,
