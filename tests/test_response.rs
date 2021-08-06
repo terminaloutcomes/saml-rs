@@ -54,7 +54,10 @@ mod tests {
             authnstatement,
             assertion_id: String::from("_d71a3a8e9fcc45c9e9d248ef7049393fc8f04e5f75"),
             service_provider: saml_rs::sp::ServiceProvider::test_generic("sp.example.com"),
-            assertion_consumer_service: String::from("http://sp.example.com/demo1/index.php?acs"),
+            assertion_consumer_service: Some(String::from(
+                "http://sp.example.com/demo1/index.php?acs",
+            )),
+            session_length_seconds: 1,
         };
         let response_vec: Vec<u8> = inputdata.into();
 

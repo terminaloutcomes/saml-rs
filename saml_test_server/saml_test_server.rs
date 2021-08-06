@@ -363,7 +363,9 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         authnstatement,
         assertion_id: ResponseElements::default().assertion_id,
         service_provider: service_provider.unwrap().to_owned(),
-        assertion_consumer_service: parsed_saml_request.consumer_service_url,
+        assertion_consumer_service: Some(parsed_saml_request.consumer_service_url),
+
+        session_length_seconds: 30,
     };
 
     response_body.push_str(&generate_login_form(response, relay_state));

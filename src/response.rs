@@ -50,7 +50,10 @@ pub struct ResponseElements {
     pub service_provider: ServiceProvider,
 
     /// TODO: Decide if we can just pick it from the SP
-    pub assertion_consumer_service: String,
+    pub assertion_consumer_service: Option<String>,
+
+    /// Session length in seconds, 4294967295 should be enough for anyone! The default value is 60.
+    pub session_length_seconds: u32,
 }
 
 use uuid::Uuid;
@@ -87,8 +90,9 @@ impl ResponseElements {
             issue_instant: Utc::now(),
             service_provider: ServiceProvider::test_generic("foo"),
             response_id: Uuid::new_v4().to_string(),
-            assertion_consumer_service: "assertion_consumer_service should have been set"
-                .to_string(),
+            assertion_consumer_service: None,
+
+            session_length_seconds: 60, // a minute is plenty to be able to consume the assertion
         }
     }
 
@@ -106,6 +110,7 @@ impl ResponseElements {
             service_provider: self.service_provider,
             response_id,
             assertion_consumer_service: self.assertion_consumer_service,
+            session_length_seconds: self.session_length_seconds,
         }
     }
 }
@@ -129,12 +134,17 @@ impl Into<Vec<u8>> for ResponseElements {
             .normalize_empty_elements(false)
             .create_writer(&mut buffer);
 
-        let acs = match self.service_provider.find_first_acs() {
-            Ok(value) => value,
-            Err(error) => {
-                eprintln!("{:?}, falling back to https://example.com", error);
-                ServiceBinding::default()
+        let acs = match self.assertion_consumer_service {
+            None => {
+                match self.service_provider.find_first_acs() {
+                    Ok(value) => value.location,
+                    Err(error) => {
+                        eprintln!("{:?}, falling back to https://example.com", error);
+                        ServiceBinding::default().location
+                    } // TODO work out how to set an ACS if we fall through a) not setting it b) not finding one
+                }
             }
+            Some(value) => value,
         };
 
         let subject_data = SubjectData {
@@ -146,7 +156,7 @@ impl Into<Vec<u8>> for ResponseElements {
             // TODO: nameid_valud for SubjectData should... be actually set from somewhere
             nameid_value: "_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7",
             // TODO acs should come from somewhere, figure out where
-            acs: acs.location,
+            acs,
             subject_not_on_or_after: DateTime::<Utc>::from_utc(
                 NaiveDate::from_ymd(2024, 1, 18).and_hms(6, 21, 48),
                 Utc,
