@@ -419,6 +419,8 @@
 <span id="417">417</span>
 <span id="418">418</span>
 <span id="419">419</span>
+<span id="420">420</span>
+<span id="421">421</span>
 </pre><pre class="rust">
 <span class="doccomment">//! A test server for running as a SAML IdP</span>
 <span class="doccomment">//!</span>
@@ -785,7 +787,9 @@
         <span class="ident">authnstatement</span>,
         <span class="ident">assertion_id</span>: <span class="ident">ResponseElements::default</span>().<span class="ident">assertion_id</span>,
         <span class="ident">service_provider</span>: <span class="ident">service_provider</span>.<span class="ident">unwrap</span>().<span class="ident">to_owned</span>(),
-        <span class="ident">assertion_consumer_service</span>: <span class="ident">parsed_saml_request</span>.<span class="ident">consumer_service_url</span>,
+        <span class="ident">assertion_consumer_service</span>: <span class="prelude-val">Some</span>(<span class="ident">parsed_saml_request</span>.<span class="ident">consumer_service_url</span>),
+
+        <span class="ident">session_length_seconds</span>: <span class="number">30</span>,
     };
 
     <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="ident">generate_login_form</span>(<span class="ident">response</span>, <span class="ident">relay_state</span>));
