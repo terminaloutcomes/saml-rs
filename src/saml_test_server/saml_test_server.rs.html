@@ -421,6 +421,12 @@
 <span id="419">419</span>
 <span id="420">420</span>
 <span id="421">421</span>
+<span id="422">422</span>
+<span id="423">423</span>
+<span id="424">424</span>
+<span id="425">425</span>
+<span id="426">426</span>
+<span id="427">427</span>
 </pre><pre class="rust">
 <span class="doccomment">//! A test server for running as a SAML IdP</span>
 <span class="doccomment">//!</span>
@@ -442,6 +448,7 @@
 <span class="kw">use</span> <span class="ident">saml_rs::response</span>::{<span class="ident">AuthNStatement</span>, <span class="ident">ResponseElements</span>};
 
 <span class="kw">use</span> <span class="ident">saml_rs::assertion::AssertionAttribute</span>;
+<span class="kw">use</span> <span class="ident">saml_rs::sp::SamlBinding</span>;
 <span class="kw">use</span> <span class="ident">saml_rs::SamlQuery</span>;
 
 <span class="kw">use</span> <span class="ident">chrono</span>::{<span class="ident">DateTime</span>, <span class="ident">Duration</span>, <span class="ident">NaiveDate</span>, <span class="ident">Utc</span>};
@@ -561,7 +568,7 @@
         <span class="prelude-val">None</span>,
         <span class="prelude-val">None</span>,
         <span class="prelude-val">None</span>,
-        <span class="ident">certificate</span>,
+        <span class="prelude-val">Some</span>(<span class="ident">certificate</span>),
     ))
     .<span class="ident">into</span>())
 }
@@ -671,8 +678,6 @@
 
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">_form_target</span> <span class="op">=</span> <span class="ident">String::new</span>();
 
-    <span class="kw">use</span> <span class="ident">saml_rs::sp::SamlBinding</span>;
-
     <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="string">&quot;&lt;p style=&#39;color: darkgreen&#39;&gt;found SP in state!&lt;/p&gt;&quot;</span>);
     <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;&lt;p&gt;{:?}&lt;/p&gt;&quot;</span>, <span class="ident">service_provider</span>));
     <span class="comment">// find the consumer</span>
@@ -771,6 +776,7 @@
     ]
     .<span class="ident">to_vec</span>();
 
+    <span class="kw">let</span> <span class="ident">signing_key</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">req</span>.<span class="ident">state</span>().<span class="ident">saml_signing_key</span>.<span class="ident">to_owned</span>());
     <span class="kw">let</span> <span class="ident">response</span> <span class="op">=</span> <span class="ident">ResponseElements</span> {
         <span class="ident">issuer</span>: <span class="ident">req</span>.<span class="ident">state</span>().<span class="ident">hostname</span>.<span class="ident">to_string</span>(),
         <span class="ident">response_id</span>: <span class="ident">ResponseElements::default</span>().<span class="ident">assertion_id</span>,
@@ -790,6 +796,11 @@
         <span class="ident">assertion_consumer_service</span>: <span class="prelude-val">Some</span>(<span class="ident">parsed_saml_request</span>.<span class="ident">consumer_service_url</span>),
 
         <span class="ident">session_length_seconds</span>: <span class="number">30</span>,
+        <span class="ident">status</span>: <span class="ident">saml_rs::constants::StatusCode::Success</span>,
+        <span class="ident">sign_assertion</span>: <span class="bool-val">true</span>,
+        <span class="ident">sign_message</span>: <span class="bool-val">false</span>,
+        <span class="ident">signing_key</span>,
+        <span class="comment">// TODO: write a test case that actually signs the response</span>
     };
 
     <span class="ident">response_body</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="ident">generate_login_form</span>(<span class="ident">response</span>, <span class="ident">relay_state</span>));
@@ -810,7 +821,7 @@
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">context</span> <span class="op">=</span> <span class="ident">tera::Context::new</span>();
 
     <span class="ident">context</span>.<span class="ident">insert</span>(<span class="string">&quot;form_action&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">response</span>.<span class="ident">destination</span>);
-    <span class="kw">let</span> <span class="ident">response_data</span> <span class="op">=</span> <span class="ident">response</span>.<span class="ident">base64_encoded_response</span>(<span class="bool-val">false</span>);
+    <span class="kw">let</span> <span class="ident">response_data</span> <span class="op">=</span> <span class="ident">response</span>.<span class="ident">base64_encoded_response</span>();
     <span class="kw">let</span> <span class="ident">saml_response</span> <span class="op">=</span> <span class="ident">from_utf8</span>(<span class="kw-2">&amp;</span><span class="ident">response_data</span>).<span class="ident">unwrap</span>().<span class="ident">to_string</span>();
     <span class="ident">context</span>.<span class="ident">insert</span>(<span class="string">&quot;SAMLResponse&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">saml_response</span>);
     <span class="ident">context</span>.<span class="ident">insert</span>(<span class="string">&quot;RelayState&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">relay_state</span>);
@@ -831,17 +842,18 @@
         .<span class="ident">unwrap_or_else</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">String::from</span>(<span class="string">&quot;Couldn&#39;t generate login form&quot;</span>))
 }
 
-<span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">test_sign</span>(<span class="ident">req</span>: <span class="ident">Request</span><span class="op">&lt;</span><span class="ident">AppState</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">tide::Result</span> {
-    <span class="ident">saml_rs::sign::sign_data</span>(
-        <span class="ident">req</span>.<span class="ident">state</span>().<span class="ident">tls_cert_path</span>.<span class="ident">to_string</span>(),
-        <span class="ident">req</span>.<span class="ident">state</span>().<span class="ident">tls_key_path</span>.<span class="ident">to_string</span>(),
-        <span class="string">&quot;hello world&quot;</span>.<span class="ident">as_bytes</span>(),
-    );
-    <span class="prelude-val">Ok</span>(<span class="ident">tide::Response::builder</span>(<span class="number">200</span>)
-        .<span class="ident">body</span>(<span class="string">&quot;Signing things&quot;</span>)
-        .<span class="ident">content_type</span>(<span class="ident">Mime::from_str</span>(<span class="string">&quot;text/html;charset=utf-8&quot;</span>).<span class="ident">unwrap</span>())
-        <span class="comment">// .header(&quot;custom-header&quot;, &quot;value&quot;)</span>
-        .<span class="ident">build</span>())
-}
+<span class="comment">// TODO: reimplement test_sign</span>
+<span class="comment">// pub async fn test_sign(req: Request&lt;AppState&gt;) -&gt; tide::Result {</span>
+<span class="comment">//     saml_rs::sign::sign_data(</span>
+<span class="comment">//         req.state().tls_cert_path.to_string(),</span>
+<span class="comment">//         req.state().tls_key_path.to_string(),</span>
+<span class="comment">//         &quot;hello world&quot;.as_bytes(),</span>
+<span class="comment">//     );</span>
+<span class="comment">//     Ok(tide::Response::builder(200)</span>
+<span class="comment">//         .body(&quot;Signing things&quot;)</span>
+<span class="comment">//         .content_type(Mime::from_str(&quot;text/html;charset=utf-8&quot;).unwrap())</span>
+<span class="comment">//         // .header(&quot;custom-header&quot;, &quot;value&quot;)</span>
+<span class="comment">//         .build())</span>
+<span class="comment">// }</span>
 </pre></div>
 </section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="saml_test_server" data-search-index-js="../../search-index.js" data-search-js="../../search.js"></div><script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script></body></html>

@@ -324,6 +324,34 @@
 <span id="322">322</span>
 <span id="323">323</span>
 <span id="324">324</span>
+<span id="325">325</span>
+<span id="326">326</span>
+<span id="327">327</span>
+<span id="328">328</span>
+<span id="329">329</span>
+<span id="330">330</span>
+<span id="331">331</span>
+<span id="332">332</span>
+<span id="333">333</span>
+<span id="334">334</span>
+<span id="335">335</span>
+<span id="336">336</span>
+<span id="337">337</span>
+<span id="338">338</span>
+<span id="339">339</span>
+<span id="340">340</span>
+<span id="341">341</span>
+<span id="342">342</span>
+<span id="343">343</span>
+<span id="344">344</span>
+<span id="345">345</span>
+<span id="346">346</span>
+<span id="347">347</span>
+<span id="348">348</span>
+<span id="349">349</span>
+<span id="350">350</span>
+<span id="351">351</span>
+<span id="352">352</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Want to build a SAML response? Here&#39;s your module. 🥳</span>
 
@@ -344,28 +372,33 @@
 <span class="doccomment">/// Stores all the required elements of a SAML response... maybe?</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ResponseElements</span> {
     <span class="comment">//TODO: why do I have a response_id and an assertion_id?</span>
-    <span class="comment">// #[serde(rename = &quot;Issuer&quot;)]</span>
-    <span class="doccomment">/// Issuer of the resposne?</span>
-    <span class="comment">// TODO: Figure out if this is right :P</span>
-    <span class="kw">pub</span> <span class="ident">issuer</span>: <span class="ident">String</span>,
+
     <span class="comment">// #[serde(rename = &quot;ID&quot;)]</span>
     <span class="doccomment">/// ID of the response</span>
     <span class="doccomment">/// TODO: Figure out the rules for generating this</span>
     <span class="kw">pub</span> <span class="ident">response_id</span>: <span class="ident">String</span>,
+
     <span class="comment">// #[serde(rename = &quot;IssueInstant&quot;)]</span>
     <span class="doccomment">/// Issue time of the response</span>
     <span class="kw">pub</span> <span class="ident">issue_instant</span>: <span class="ident">DateTime</span><span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span>,
-    <span class="comment">// #[serde(rename = &quot;InResponseTo&quot;)]</span>
-    <span class="doccomment">/// RelayState from the original AuthN request</span>
-    <span class="kw">pub</span> <span class="ident">relay_state</span>: <span class="ident">String</span>,
 
-    <span class="comment">// #[serde(rename = &quot;Attributes&quot;)]</span>
-    <span class="doccomment">/// A list of relevant [AssertionAttribute]s</span>
-    <span class="kw">pub</span> <span class="ident">attributes</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">AssertionAttribute</span><span class="op">&gt;</span>,
     <span class="comment">// #[serde(rename = &quot;Destination&quot;)]</span>
     <span class="doccomment">/// Destination endpoint of the request</span>
     <span class="comment">// TODO just like with the authnrequest, find out if destination is the right name/referecne</span>
     <span class="kw">pub</span> <span class="ident">destination</span>: <span class="ident">String</span>,
+
+    <span class="comment">// #[serde(rename = &quot;InResponseTo&quot;)]</span>
+    <span class="doccomment">/// RelayState from the original AuthN request</span>
+    <span class="kw">pub</span> <span class="ident">relay_state</span>: <span class="ident">String</span>,
+
+    <span class="comment">// #[serde(rename = &quot;Issuer&quot;)]</span>
+    <span class="doccomment">/// Issuer of the resposne?</span>
+    <span class="comment">// TODO: Figure out if this is right :P</span>
+    <span class="kw">pub</span> <span class="ident">issuer</span>: <span class="ident">String</span>,
+
+    <span class="comment">// #[serde(rename = &quot;Attributes&quot;)]</span>
+    <span class="doccomment">/// A list of relevant [AssertionAttribute]s</span>
+    <span class="kw">pub</span> <span class="ident">attributes</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">AssertionAttribute</span><span class="op">&gt;</span>,
 
     <span class="doccomment">/// The [AuthNStatement] itself</span>
     <span class="kw">pub</span> <span class="ident">authnstatement</span>: <span class="ident">AuthNStatement</span>,
@@ -381,16 +414,26 @@
 
     <span class="doccomment">/// Session length in seconds, 4294967295 should be enough for anyone! The default value is 60.</span>
     <span class="kw">pub</span> <span class="ident">session_length_seconds</span>: <span class="ident">u32</span>,
+
+    <span class="doccomment">/// [crate::constants::StatusCode] of the response</span>
+    <span class="kw">pub</span> <span class="ident">status</span>: <span class="kw">crate</span><span class="ident">::constants::StatusCode</span>,
+
+    <span class="doccomment">/// Should we sign the assertion?</span>
+    <span class="kw">pub</span> <span class="ident">sign_assertion</span>: <span class="ident">bool</span>,
+
+    <span class="doccomment">/// Should we sign the message?</span>
+    <span class="kw">pub</span> <span class="ident">sign_message</span>: <span class="ident">bool</span>,
+
+    <span class="comment">// TODO: remove the option for signing_key, it should always be set</span>
+    <span class="doccomment">/// an openssl private key for signing</span>
+    <span class="kw">pub</span> <span class="ident">signing_key</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">openssl::pkey::PKey</span><span class="op">&lt;</span><span class="ident">openssl::pkey::Private</span><span class="op">&gt;</span><span class="op">&gt;</span>,
 }
 
 <span class="kw">use</span> <span class="ident">uuid::Uuid</span>;
 
 <span class="kw">impl</span> <span class="ident">ResponseElements</span> {
     <span class="doccomment">/// returns the base64 encoded version of a [ResponseElements]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">base64_encoded_response</span>(<span class="self">self</span>, <span class="ident">signed</span>: <span class="ident">bool</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> {
-        <span class="kw">if</span> <span class="ident">signed</span> {
-            <span class="macro">unimplemented!</span>(<span class="string">&quot;Still need to do this bit.&quot;</span>);
-        }
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">base64_encoded_response</span>(<span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">buffer</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">into</span>();
         <span class="ident">base64::encode</span>(<span class="ident">buffer</span>).<span class="ident">into</span>()
     }
@@ -418,8 +461,12 @@
             <span class="ident">service_provider</span>: <span class="ident">ServiceProvider::test_generic</span>(<span class="string">&quot;foo&quot;</span>),
             <span class="ident">response_id</span>: <span class="ident">Uuid::new_v4</span>().<span class="ident">to_string</span>(),
             <span class="ident">assertion_consumer_service</span>: <span class="prelude-val">None</span>,
-
             <span class="ident">session_length_seconds</span>: <span class="number">60</span>, <span class="comment">// a minute is plenty to be able to consume the assertion</span>
+            <span class="ident">status</span>: <span class="kw">crate</span><span class="ident">::constants::StatusCode::AuthnFailed</span>,
+            <span class="ident">sign_assertion</span>: <span class="bool-val">true</span>,
+            <span class="ident">sign_message</span>: <span class="bool-val">false</span>,
+            <span class="comment">// TODO: actually put a signing key into the response</span>
+            <span class="ident">signing_key</span>: <span class="prelude-val">None</span>,
         }
     }
 
@@ -438,9 +485,15 @@
             <span class="ident">response_id</span>,
             <span class="ident">assertion_consumer_service</span>: <span class="self">self</span>.<span class="ident">assertion_consumer_service</span>,
             <span class="ident">session_length_seconds</span>: <span class="self">self</span>.<span class="ident">session_length_seconds</span>,
+            <span class="ident">status</span>: <span class="self">self</span>.<span class="ident">status</span>,
+            <span class="ident">sign_assertion</span>: <span class="self">self</span>.<span class="ident">sign_assertion</span>,
+            <span class="ident">sign_message</span>: <span class="self">self</span>.<span class="ident">sign_message</span>,
+            <span class="ident">signing_key</span>: <span class="self">self</span>.<span class="ident">signing_key</span>,
         }
     }
 }
+
+<span class="comment">// TODO: for signing, implement a &quot;return this without signing flagged&quot; fn so we can ... just get an unsigned version</span>
 
 <span class="doccomment">/// Creates a String full of XML based on the ResponsElements</span>
 <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::from_over_into</span>)]</span>
@@ -505,6 +558,8 @@
             <span class="ident">audience</span>: <span class="self">self</span>.<span class="ident">service_provider</span>.<span class="ident">entity_id</span>.<span class="ident">to_string</span>(),
             <span class="ident">conditions_not_after</span>,
             <span class="ident">conditions_not_before</span>,
+            <span class="ident">sign_assertion</span>: <span class="self">self</span>.<span class="ident">sign_assertion</span>,
+            <span class="ident">signing_key</span>: <span class="self">self</span>.<span class="ident">signing_key</span>,
         };
 
         <span class="comment">// start of the response</span>
@@ -536,11 +591,12 @@
         <span class="comment">// crate::xml::add_signature(assertion_data, &amp;mut writer);</span>
 
         <span class="comment">// status</span>
-        <span class="ident">add_status</span>(<span class="string">&quot;Success&quot;</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
+        <span class="kw">let</span> <span class="ident">status</span> <span class="op">=</span> <span class="kw">crate</span><span class="ident">::constants::StatusCode::Success</span>.<span class="ident">to_string</span>();
+        <span class="ident">add_status</span>(<span class="kw-2">&amp;</span><span class="ident">status</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
 
         <span class="comment">// assertion goes here</span>
 
-        <span class="ident">assertion_data</span>.<span class="ident">add_assertion_to_xml</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>, <span class="bool-val">true</span>);
+        <span class="ident">assertion_data</span>.<span class="ident">add_assertion_to_xml</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);
 
         <span class="comment">// end the response</span>
         <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>);

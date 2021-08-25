@@ -1,0 +1,213 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/constants.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>constants.rs - source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script id="default-settings"></script><script src="../../storage.js"></script><script src="../../crates.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="alternate icon" type="image/png" href="../../favicon-16x16.png">
+<link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu" role="button">&#9776;</div><a href='../../saml_rs/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu" title="themes"><img src="../../brush.svg" width="18" height="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" id="help-button" title="help">?</button><a id="settings-menu" href="../../settings.html" title="settings"><img src="../../wheel.svg" width="18" height="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">  1</span>
+<span id="2">  2</span>
+<span id="3">  3</span>
+<span id="4">  4</span>
+<span id="5">  5</span>
+<span id="6">  6</span>
+<span id="7">  7</span>
+<span id="8">  8</span>
+<span id="9">  9</span>
+<span id="10"> 10</span>
+<span id="11"> 11</span>
+<span id="12"> 12</span>
+<span id="13"> 13</span>
+<span id="14"> 14</span>
+<span id="15"> 15</span>
+<span id="16"> 16</span>
+<span id="17"> 17</span>
+<span id="18"> 18</span>
+<span id="19"> 19</span>
+<span id="20"> 20</span>
+<span id="21"> 21</span>
+<span id="22"> 22</span>
+<span id="23"> 23</span>
+<span id="24"> 24</span>
+<span id="25"> 25</span>
+<span id="26"> 26</span>
+<span id="27"> 27</span>
+<span id="28"> 28</span>
+<span id="29"> 29</span>
+<span id="30"> 30</span>
+<span id="31"> 31</span>
+<span id="32"> 32</span>
+<span id="33"> 33</span>
+<span id="34"> 34</span>
+<span id="35"> 35</span>
+<span id="36"> 36</span>
+<span id="37"> 37</span>
+<span id="38"> 38</span>
+<span id="39"> 39</span>
+<span id="40"> 40</span>
+<span id="41"> 41</span>
+<span id="42"> 42</span>
+<span id="43"> 43</span>
+<span id="44"> 44</span>
+<span id="45"> 45</span>
+<span id="46"> 46</span>
+<span id="47"> 47</span>
+<span id="48"> 48</span>
+<span id="49"> 49</span>
+<span id="50"> 50</span>
+<span id="51"> 51</span>
+<span id="52"> 52</span>
+<span id="53"> 53</span>
+<span id="54"> 54</span>
+<span id="55"> 55</span>
+<span id="56"> 56</span>
+<span id="57"> 57</span>
+<span id="58"> 58</span>
+<span id="59"> 59</span>
+<span id="60"> 60</span>
+<span id="61"> 61</span>
+<span id="62"> 62</span>
+<span id="63"> 63</span>
+<span id="64"> 64</span>
+<span id="65"> 65</span>
+<span id="66"> 66</span>
+<span id="67"> 67</span>
+<span id="68"> 68</span>
+<span id="69"> 69</span>
+<span id="70"> 70</span>
+<span id="71"> 71</span>
+<span id="72"> 72</span>
+<span id="73"> 73</span>
+<span id="74"> 74</span>
+<span id="75"> 75</span>
+<span id="76"> 76</span>
+<span id="77"> 77</span>
+<span id="78"> 78</span>
+<span id="79"> 79</span>
+<span id="80"> 80</span>
+<span id="81"> 81</span>
+<span id="82"> 82</span>
+<span id="83"> 83</span>
+<span id="84"> 84</span>
+<span id="85"> 85</span>
+<span id="86"> 86</span>
+<span id="87"> 87</span>
+<span id="88"> 88</span>
+<span id="89"> 89</span>
+<span id="90"> 90</span>
+<span id="91"> 91</span>
+<span id="92"> 92</span>
+<span id="93"> 93</span>
+<span id="94"> 94</span>
+<span id="95"> 95</span>
+<span id="96"> 96</span>
+<span id="97"> 97</span>
+<span id="98"> 98</span>
+<span id="99"> 99</span>
+<span id="100">100</span>
+<span id="101">101</span>
+<span id="102">102</span>
+<span id="103">103</span>
+<span id="104">104</span>
+</pre><pre class="rust">
+<span class="doccomment">//! Constants for the saml-rs module.</span>
+
+<span class="doccomment">/// 3.2.2.2 Element StatusCode</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// From &lt;http://docs.oasis-open.org/security/saml/v2.0/saml-core-2.0-os.pdf&gt;</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">StatusCode</span> {
+    <span class="comment">//  The permissible top-level &lt;StatusCode&gt; values are as follows:</span>
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:Success</span>
+    <span class="doccomment">/// The request succeeded. Additional information MAY be returned in the &lt;StatusMessage&gt; and/or &lt;StatusDetail&gt; elements.</span>
+    <span class="ident">Success</span>,
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:Requester</span>
+    <span class="doccomment">/// The request could not be performed due to an error on the part of the requester.</span>
+    <span class="ident">Requester</span>,
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:Responder</span>
+    <span class="doccomment">/// The request could not be performed due to an error on the part of the SAML responder or SAML authority.</span>
+    <span class="ident">Responder</span>,
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:VersionMismatch</span>
+    <span class="doccomment">/// The SAML responder could not process the request because the version of the request message was incorrect.</span>
+    <span class="ident">VersionMismatch</span>,
+
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:AuthnFailed</span>
+    <span class="doccomment">/// The responding provider was unable to successfully authenticate the principal.</span>
+    <span class="ident">AuthnFailed</span>,
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:InvalidAttrNameOrValue Unexpected or invalid content was encountered within a \&lt;saml:Attribute\&gt; or \&lt;saml:AttributeValue\&gt; element.</span>
+    <span class="ident">InvalidAttrNameOrValue</span>,
+
+    <span class="comment">/*
+    The following second-level status codes are referenced at various places in this specification. Additional second-level status codes MAY be defined in future versions of the SAML specification. System entities are free to define more specific status codes by defining appropriate URI references.
+    */</span>
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:InvalidNameIDPolicy</span>
+    <span class="doccomment">/// The responding provider cannot or will not support the requested name identifier policy.</span>
+    <span class="ident">InvalidNameIDPolic</span>,
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:NoAuthnContext</span>
+    <span class="doccomment">/// The specified authentication context requirements cannot be met by the responder.</span>
+    <span class="ident">NoAuthnContext</span>,
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:NoAvailableIDP</span>
+    <span class="doccomment">/// Used by an intermediary to indicate that none of the supported identity provider &lt;Loc&gt; elements in an \&lt;IDPList\&gt; can be resolved or that none of the supported identity providers are available.</span>
+    <span class="ident">NoAvailableIDP</span>,
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:NoPassive</span>
+    <span class="doccomment">/// Indicates the responding provider cannot authenticate the principal passively, as has been requested.</span>
+    <span class="ident">NoPassive</span>,
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:NoSupportedIDP</span>
+    <span class="doccomment">/// Used by an intermediary to indicate that none of the identity providers in an &lt;IDPList&gt; are supported by the intermediary.</span>
+    <span class="ident">NoSupportedIDP</span>,
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:PartialLogout</span>
+    <span class="doccomment">/// Used by a session authority to indicate to a session participant that it was not able to propagate logout to all other session participants.</span>
+    <span class="ident">PartialLogout</span>,
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:ProxyCountExceeded</span>
+    <span class="doccomment">/// Indicates that a responding provider cannot authenticate the principal directly and is not permitted to proxy the request further.</span>
+    <span class="ident">ProxyCountExceeded</span>,
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:RequestDenied</span>
+    <span class="doccomment">/// The SAML responder or SAML authority is able to process the request but has chosen not to respond. This status code MAY be used when there is concern about the security context of the request message or the sequence of request messages received from a particular requester.</span>
+    <span class="ident">RequestDenied</span>,
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:RequestUnsupported</span>
+    <span class="doccomment">/// The SAML responder or SAML authority does not support the request.</span>
+    <span class="ident">RequestUnsupported</span>,
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:RequestVersionDeprecated</span>
+    <span class="doccomment">/// The SAML responder cannot process any requests with the protocol version specified in the request.</span>
+    <span class="ident">RequestVersionDeprecated</span>,
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:RequestVersionTooHigh</span>
+    <span class="doccomment">/// The SAML responder cannot process the request because the protocol version specified in the request message is a major upgrade from the highest protocol version supported by the responder.</span>
+    <span class="ident">RequestVersionTooHigh</span>,
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:RequestVersionTooLow</span>
+    <span class="doccomment">/// The SAML responder cannot process the request because the protocol version specified in the request message is too low.</span>
+    <span class="ident">RequestVersionTooLow</span>,
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:ResourceNotRecognized</span>
+    <span class="doccomment">/// The resource value provided in the request message is invalid or unrecognized.</span>
+    <span class="ident">ResourceNotRecognized</span>,
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:TooManyResponses</span>
+    <span class="doccomment">/// The response message would contain more elements than the SAML responder is able to return.</span>
+    <span class="ident">TooManyResponses</span>,
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:UnknownAttrProfile</span>
+    <span class="doccomment">/// An entity that has no knowledge of a particular attribute profile has been presented with an attribute drawn from that profile.</span>
+    <span class="ident">UnknownAttrProfile</span>,
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:UnknownPrincipal</span>
+    <span class="doccomment">/// The responding provider does not recognize the principal specified or implied by the request.</span>
+    <span class="ident">UnknownPrincipal</span>,
+    <span class="doccomment">/// urn:oasis:names:tc:SAML:2.0:status:UnsupportedBinding</span>
+    <span class="doccomment">/// The SAML responder cannot properly fulfill the request using the protocol binding specified in the request.</span>
+    <span class="ident">UnsupportedBinding</span>,
+}
+<span class="kw">use</span> <span class="ident">std::fmt</span>;
+
+<span class="kw">impl</span> <span class="ident">fmt::Display</span> <span class="kw">for</span> <span class="ident">StatusCode</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt::Formatter</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">fmt::Result</span> {
+        <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;{:?}&quot;</span>, <span class="self">self</span>)
+    }
+}
+
+<span class="comment">// impl From&lt;String&gt; for StatusCode {</span>
+<span class="comment">//     fn from(src: String) -&gt; Self {</span>
+<span class="comment">//         match src as str{</span>
+<span class="comment">//             // TODO: one day expand on From&lt;&amp;str&gt; for StatusCode if they&#39;re needed.</span>
+<span class="comment">//             &quot;AuthnFailed&quot;.to_string() =&gt; StatusCode::AuthnFailed,</span>
+<span class="comment">//             // &quot;InvalidAttrNameOrValue&quot; =&gt; StatusCode::InvalidAttrNameOrValue,</span>
+<span class="comment">//             // &quot;Success&quot; =&gt; StatusCode::Success,</span>
+<span class="comment">//             // &quot;Requester&quot; =&gt; StatusCode::Requester,</span>
+<span class="comment">//             // &quot;Responder&quot; =&gt; StatusCode::Responder,</span>
+<span class="comment">//             // &quot;VersionMismatch&quot; =&gt; StatusCode::VersionMismatch,</span>
+<span class="comment">//             _ =&gt; unimplemented!(&quot;saml_rs::constants::Statuscode From&lt;{:?}&gt; not implemented, please add code!&quot;, src),</span>
+<span class="comment">//         }</span>
+<span class="comment">//     }</span>
+<span class="comment">// }</span>
+</pre></div>
+</section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="saml_rs" data-search-index-js="../../search-index.js" data-search-js="../../search.js"></div><script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script></body></html>

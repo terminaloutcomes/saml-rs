@@ -198,6 +198,32 @@
 <span id="196">196</span>
 <span id="197">197</span>
 <span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
 </pre><pre class="rust">
 <span class="comment">// use tide::log;</span>
 <span class="kw">use</span> <span class="ident">tide::Request</span>;
@@ -234,6 +260,8 @@
 
     <span class="kw">pub</span> <span class="ident">saml_cert_path</span>: <span class="ident">String</span>,
     <span class="kw">pub</span> <span class="ident">saml_key_path</span>: <span class="ident">String</span>,
+
+    <span class="kw">pub</span> <span class="ident">saml_signing_key</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">openssl::pkey::PKey</span><span class="op">&lt;</span><span class="ident">openssl::pkey::Private</span><span class="op">&gt;</span><span class="op">&gt;</span>,
 }
 
 <span class="kw">fn</span> <span class="ident">load_sp_metadata</span>(<span class="ident">filenames</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">ServiceProvider</span><span class="op">&gt;</span> {
@@ -282,8 +310,12 @@
             <span class="ident">sp_metadata</span>: <span class="ident">HashMap::new</span>(),
             <span class="ident">session_lifetime</span>: <span class="number">43200</span>, <span class="comment">// 12 hours</span>
 
+            <span class="comment">// TODO: possibly remove saml_cert_path from [ServerConfig.default]</span>
             <span class="ident">saml_cert_path</span>: <span class="string">&quot;Need to set this&quot;</span>.<span class="ident">to_string</span>(),
+            <span class="comment">// TODO: possibly remove saml_key_path from [ServerConfig.default]</span>
             <span class="ident">saml_key_path</span>: <span class="string">&quot;Need to set this&quot;</span>.<span class="ident">to_string</span>(),
+
+            <span class="ident">saml_signing_key</span>: <span class="prelude-val">None</span>,
         }
     }
 
@@ -345,6 +377,19 @@
         <span class="kw">let</span> <span class="ident">saml_cert_path</span> <span class="op">=</span> <span class="ident">shellexpand::tilde</span>(<span class="kw-2">&amp;</span><span class="ident">tilde_saml_cert_path</span>).<span class="ident">into_owned</span>();
         <span class="kw">let</span> <span class="ident">saml_key_path</span> <span class="op">=</span> <span class="ident">shellexpand::tilde</span>(<span class="kw-2">&amp;</span><span class="ident">tilde_saml_key_path</span>).<span class="ident">into_owned</span>();
 
+        <span class="kw">use</span> <span class="ident">saml_rs::sign::load_key_from_filename</span>;
+        <span class="kw">let</span> <span class="ident">saml_signing_key</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">load_key_from_filename</span>(<span class="kw-2">&amp;</span><span class="ident">saml_key_path</span>) {
+            <span class="prelude-val">Ok</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">value</span>,
+            <span class="prelude-val">Err</span>(<span class="ident">error</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="macro">log::error!</span>(
+                    <span class="string">&quot;Failed to load private key from {}: {:?}&quot;</span>,
+                    <span class="kw-2">&amp;</span><span class="ident">saml_key_path</span>,
+                    <span class="ident">error</span>
+                );
+                <span class="ident">std::process::exit</span>(<span class="number">1</span>);
+            }
+        };
+
         <span class="macro">eprintln!</span>(<span class="string">&quot;SETTINGS\n{:?}&quot;</span>, <span class="ident">settings</span>);
         <span class="ident">ServerConfig</span> {
             <span class="ident">public_hostname</span>: <span class="ident">settings</span>
@@ -365,9 +410,13 @@
                 .<span class="ident">unwrap_or</span>(<span class="ident">ServerConfig::default</span>().<span class="ident">session_lifetime</span>),
             <span class="ident">saml_cert_path</span>,
             <span class="ident">saml_key_path</span>,
+
+            <span class="ident">saml_signing_key</span>: <span class="prelude-val">Some</span>(<span class="ident">saml_signing_key</span>),
         }
     }
 }
+
+<span class="kw">use</span> <span class="ident">openssl::pkey</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">AppState</span> {
@@ -379,6 +428,8 @@
 
     <span class="kw">pub</span> <span class="ident">saml_cert_path</span>: <span class="ident">String</span>,
     <span class="kw">pub</span> <span class="ident">saml_key_path</span>: <span class="ident">String</span>,
+
+    <span class="kw">pub</span> <span class="ident">saml_signing_key</span>: <span class="ident">pkey::PKey</span><span class="op">&lt;</span><span class="ident">pkey::Private</span><span class="op">&gt;</span>,
 }
 
 <span class="kw">use</span> <span class="ident">std::convert::From</span>;
@@ -394,6 +445,7 @@
 
             <span class="ident">saml_cert_path</span>: <span class="ident">server_config</span>.<span class="ident">saml_cert_path</span>,
             <span class="ident">saml_key_path</span>: <span class="ident">server_config</span>.<span class="ident">saml_key_path</span>,
+            <span class="ident">saml_signing_key</span>: <span class="ident">server_config</span>.<span class="ident">saml_signing_key</span>.<span class="ident">unwrap</span>(),
         }
     }
 }
