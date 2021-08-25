@@ -77,6 +77,7 @@ use std::str::from_utf8;
 
 pub mod assertion;
 pub mod cert;
+pub mod constants;
 pub mod metadata;
 pub mod response;
 pub mod sign;

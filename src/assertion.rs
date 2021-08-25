@@ -1,14 +1,36 @@
 //! Assertion-related things
 //!
+//! Assertions *Require* the following (from <http://docs.oasis-open.org/security/saml/v2.0/saml-core-2.0-os.pdf> 2.3.3 Element Assertion):
+
+//! * Version - The version of this assertion. The identifier for the version of SAML defined in this specification is "2.0". SAML versioning is discussed in Section 4.
+//! * ID - The identifier for this assertion. It is of type xs:ID, and MUST follow the requirements specified in Section 1.3.4 for identifier uniqueness.
+//! * IssueInstant - The time instant of issue in UTC, as described in Section 1.3.3.
+//! * Issuer - The SAML authority that is making the claim(s) in the assertion. The issuer SHOULD be unambiguous to the intended relying parties. There's no requirement for this to be the same as the signer, other than in the design of the consumer.
+//!
+//! Optional things:
+//!
+//! * ds:Signature - an XML signature
+//! * Subject - The subject of the statement(s) in the assertion.
+//! * Conditions - Conditions that MUST be evaluated when assessing the validity of and/or when using the assertion. See Section 2.5 for additional information on how to evaluate conditions.
+//! * Advice - Additional information related to the assertion that assists processing in certain situations but which MAY be ignored by applications that do not understand the advice or do not wish to make use of it.
+//!
+//! Zero or more of the following statement elements:
+//!
+//! * Statement - A statement of a type defined in an extension schema. An xsi:type attribute MUST be used to indicate the actual statement type.
+//! * AuthnStatement - An authentication statement.
+//! * AuthzDecisionStatement - An authorization decision statement.
+//! * AttributeStatement - An attribute statement.
+//!
+//! An assertion with no statements MUST contain a \<Subject\> element. Such an assertion identifies a principal in a manner which can be referenced or confirmed using SAML methods, but asserts no further information associated with that principal.
 
 use serde::Serialize;
 
-use chrono::{DateTime, SecondsFormat, Utc};
-use std::io::Write;
-use xml::writer::{EventWriter, XmlEvent};
-
 use crate::utils::*;
 use crate::xml::write_event;
+use chrono::{DateTime, SecondsFormat, Utc};
+use std::io::Write;
+use std::str::from_utf8;
+use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
 /// AssertionTypes, from <http://docs.oasis-open.org/security/saml/v2.0/saml-schema-assertion-2.0.xsd> ```<complexType name="AssertionType">```
 #[allow(dead_code)]
@@ -26,7 +48,7 @@ enum StatusCode {
     Success,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// The content of an assertion
 pub struct Assertion {
     /// Assertion ID, referred to in the signature as ds:Reference
@@ -57,9 +79,56 @@ pub struct Assertion {
     pub audience: String,
     /// Attributes of the assertion, things like groups and email addresses and phone numbers and favourite kind of 🥔🍠
     pub attributes: Vec<AssertionAttribute>,
+
+    /// Should we sign the assertion?
+    pub sign_assertion: bool,
+
+    /// an openssl private key for signing
+    pub signing_key: Option<openssl::pkey::PKey<openssl::pkey::Private>>,
+}
+
+/// Creates a String full of XML based on the ResponsElements
+#[allow(clippy::from_over_into)]
+impl Into<Vec<u8>> for Assertion {
+    fn into(self) -> Vec<u8> {
+        // TODO: implement into vec u8 for assertion so we can sign it
+
+        let mut buffer = Vec::new();
+        let mut writer = EmitterConfig::new()
+            .perform_indent(true)
+            .pad_self_closing(false)
+            .write_document_declaration(false)
+            .normalize_empty_elements(false)
+            .create_writer(&mut buffer);
+
+        self.add_assertion_to_xml(&mut writer);
+        log::debug!("Assertion into vec result: {}", from_utf8(&buffer).unwrap());
+        buffer
+    }
 }
 
 impl Assertion {
+    /// This exists so we can return a copy of an [Assertion] without the signature flags so we can trigger [Assertion.Into<Vec<u8>>] for signing
+    pub fn without_signature(self) -> Self {
+        Self {
+            assertion_id: self.assertion_id,
+            issuer: self.issuer,
+            signing_algorithm: self.signing_algorithm,
+            digest_algorithm: self.digest_algorithm,
+            digest_value: self.digest_value,
+            signature_value: self.signature_value,
+            certificate: self.certificate,
+            issue_instant: self.issue_instant,
+            subject_data: self.subject_data,
+            conditions_not_before: self.conditions_not_before,
+            conditions_not_after: self.conditions_not_after,
+            audience: self.audience,
+            attributes: self.attributes,
+            sign_assertion: false,
+            signing_key: self.signing_key,
+        }
+    }
+
     /// Build an assertion based on the Assertion, returns a String of XML.
     ///
     /// If you set sign, it'll sign the data.. eventually.
@@ -120,13 +189,9 @@ impl Assertion {
     /// # End Assertion
     /// ```
     ///
-    pub fn add_assertion_to_xml<W: Write>(
-        &self,
-        writer: &mut EventWriter<W>,
-        sign_assertion: bool,
-    ) {
+    pub fn add_assertion_to_xml<W: Write>(&self, writer: &mut EventWriter<W>) {
         // start the assertion
-        log::debug!("sign_assertion: {}", &sign_assertion);
+        log::debug!("sign_assertion: {}", self.sign_assertion);
 
         write_event(
             XmlEvent::start_element(("saml", "Assertion"))
@@ -145,7 +210,28 @@ impl Assertion {
         );
 
         // do the issuer inside the assertion
-        add_issuer(&self.issuer, writer);
+        write_event(XmlEvent::start_element(("saml", "Issuer")).into(), writer);
+        write_event(XmlEvent::characters(&self.issuer), writer);
+        write_event(XmlEvent::end_element().into(), writer);
+
+        // if the assertion needs to be signed, we need to generate the whole assertion as a string, sign that, then add it to this assertion.__rust_force_expr!
+        if self.sign_assertion {
+            log::debug!("Signing assertion");
+            if self.signing_key.is_none() {
+                panic!("You tried to sign an assertion without setting a signing key...");
+            }
+
+            let unsigned_assertion = self.clone().without_signature();
+
+            let xmldata: Vec<u8> = unsigned_assertion.into();
+            let key = self.signing_key.as_ref().unwrap();
+            // TODO: replace the openssl::hash::MessageDigest::sha256() with the configured signature type
+            let _signed_data =
+                crate::sign::sign_data(openssl::hash::MessageDigest::sha256(), key, &xmldata);
+            // log::debug("")
+        } else {
+            log::warn!("Unsigned assertion was built, this seems bad!");
+        }
 
         // add the subject to the assertion
         add_subject(&self.subject_data, writer);
@@ -269,7 +355,7 @@ impl ToString for BaseIDAbstractType {
 //     }
 // }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// Data type for passing subject data in because yeaaaaah, specs
 ///
 /// TODO: Justify the existence of the elements of this struct ... more completely.
@@ -382,12 +468,5 @@ pub fn add_attribute<W: Write>(attr: &AssertionAttribute, writer: &mut EventWrit
         write_event(XmlEvent::end_element().into(), writer);
     }
     // write_event(XmlEvent::end_element().into(), writer);
-    write_event(XmlEvent::end_element().into(), writer);
-}
-
-/// Adds the issuer statement to a response
-pub fn add_issuer<W: Write>(issuer: &str, writer: &mut EventWriter<W>) {
-    write_event(XmlEvent::start_element(("saml", "Issuer")).into(), writer);
-    write_event(XmlEvent::characters(&issuer), writer);
     write_event(XmlEvent::end_element().into(), writer);
 }

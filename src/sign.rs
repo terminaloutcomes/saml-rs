@@ -21,7 +21,6 @@
 //! Thats it. SAML is completely awful. There are tons of little subtleties that make implementing SAML a nightmare(like calculating the canonical form of a subset of the XML(the assertion), also the XML version of XML documents is not included.
 //!
 
-use openssl::hash::MessageDigest;
 use openssl::pkey::PKey;
 use openssl::rsa::Rsa;
 use openssl::sign::{Signer, Verifier};
@@ -34,7 +33,7 @@ use std::io::prelude::*;
 use std::str::FromStr;
 
 /// Options of Signing Algorithms for things
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum SigningAlgorithm {
     /// SHA1 Algorithm
     Sha1,
@@ -134,33 +133,31 @@ pub fn load_public_cert_from_filename(cert_filename: &str) -> Result<X509, Strin
 // TODO add some testing, and validation of sign_data
 // TODO implement sign_data properly
 /// Sign some data, with a key
-pub fn sign_data(cert_filename: String, key_filename: String, bytes_to_sign: &[u8]) {
-    // Generate a keypair
-    debug!("cert: {}", cert_filename);
-
-    // let data = b"hello, world!";
-    // let data2 = b"hola, mundo!";
-    let keypair: PKey<Private> = match load_key_from_filename(&key_filename) {
-        Ok(value) => value,
-        Err(error) => {
-            eprintln!(
-                "Failed to load private key from {}: {:?}",
-                &key_filename, error
-            );
-            return;
-        }
-    };
-
+pub fn sign_data(
+    message_digest: openssl::hash::MessageDigest,
+    signing_key: &openssl::pkey::PKey<openssl::pkey::Private>,
+    bytes_to_sign: &[u8],
+) {
     // Sign the data
-    let mut signer = Signer::new(MessageDigest::sha256(), &keypair).unwrap();
+
+    let mut signer = Signer::new(message_digest, &signing_key).unwrap();
     signer.update(bytes_to_sign).unwrap();
 
     let signature = signer.sign_to_vec().unwrap();
+    log::error!("Signature: {:?}", signature);
 
     // Verify the data
-    let mut verifier = Verifier::new(MessageDigest::sha256(), &keypair).unwrap();
+    let mut verifier = Verifier::new(message_digest, &signing_key).unwrap();
     verifier.update(bytes_to_sign).unwrap();
     // verifier.update(data2).unwrap();
     assert!(verifier.verify(&signature).unwrap());
-    eprintln!("Signed things, maybe?");
+    log::error!("Signed things, maybe?");
+
+    use openssl::hash::hash;
+
+    let digest_bytes = hash(message_digest, bytes_to_sign).unwrap();
+
+    log::debug!("base64'd digest: {:?}", base64::encode(digest_bytes));
+
+    log::debug!("base64'd signature: {:?}", base64::encode(signature));
 }

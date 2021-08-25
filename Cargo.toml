@@ -17,7 +17,6 @@ members = [
 log = "0.4"
 base64 = "0.13"
 
-
 # for inflating AuthN requests
 inflate = "0.4.5"
 

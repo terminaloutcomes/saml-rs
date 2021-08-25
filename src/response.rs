@@ -17,28 +17,33 @@ use crate::xml::write_event;
 /// Stores all the required elements of a SAML response... maybe?
 pub struct ResponseElements {
     //TODO: why do I have a response_id and an assertion_id?
-    // #[serde(rename = "Issuer")]
-    /// Issuer of the resposne?
-    // TODO: Figure out if this is right :P
-    pub issuer: String,
+
     // #[serde(rename = "ID")]
     /// ID of the response
     /// TODO: Figure out the rules for generating this
     pub response_id: String,
+
     // #[serde(rename = "IssueInstant")]
     /// Issue time of the response
     pub issue_instant: DateTime<Utc>,
-    // #[serde(rename = "InResponseTo")]
-    /// RelayState from the original AuthN request
-    pub relay_state: String,
 
-    // #[serde(rename = "Attributes")]
-    /// A list of relevant [AssertionAttribute]s
-    pub attributes: Vec<AssertionAttribute>,
     // #[serde(rename = "Destination")]
     /// Destination endpoint of the request
     // TODO just like with the authnrequest, find out if destination is the right name/referecne
     pub destination: String,
+
+    // #[serde(rename = "InResponseTo")]
+    /// RelayState from the original AuthN request
+    pub relay_state: String,
+
+    // #[serde(rename = "Issuer")]
+    /// Issuer of the resposne?
+    // TODO: Figure out if this is right :P
+    pub issuer: String,
+
+    // #[serde(rename = "Attributes")]
+    /// A list of relevant [AssertionAttribute]s
+    pub attributes: Vec<AssertionAttribute>,
 
     /// The [AuthNStatement] itself
     pub authnstatement: AuthNStatement,
@@ -54,16 +59,26 @@ pub struct ResponseElements {
 
     /// Session length in seconds, 4294967295 should be enough for anyone! The default value is 60.
     pub session_length_seconds: u32,
+
+    /// [crate::constants::StatusCode] of the response
+    pub status: crate::constants::StatusCode,
+
+    /// Should we sign the assertion?
+    pub sign_assertion: bool,
+
+    /// Should we sign the message?
+    pub sign_message: bool,
+
+    // TODO: remove the option for signing_key, it should always be set
+    /// an openssl private key for signing
+    pub signing_key: Option<openssl::pkey::PKey<openssl::pkey::Private>>,
 }
 
 use uuid::Uuid;
 
 impl ResponseElements {
     /// returns the base64 encoded version of a [ResponseElements]
-    pub fn base64_encoded_response(self, signed: bool) -> Vec<u8> {
-        if signed {
-            unimplemented!("Still need to do this bit.");
-        }
+    pub fn base64_encoded_response(self) -> Vec<u8> {
         let buffer: Vec<u8> = self.into();
         base64::encode(buffer).into()
     }
@@ -91,8 +106,12 @@ impl ResponseElements {
             service_provider: ServiceProvider::test_generic("foo"),
             response_id: Uuid::new_v4().to_string(),
             assertion_consumer_service: None,
-
             session_length_seconds: 60, // a minute is plenty to be able to consume the assertion
+            status: crate::constants::StatusCode::AuthnFailed,
+            sign_assertion: true,
+            sign_message: false,
+            // TODO: actually put a signing key into the response
+            signing_key: None,
         }
     }
 
@@ -111,9 +130,15 @@ impl ResponseElements {
             response_id,
             assertion_consumer_service: self.assertion_consumer_service,
             session_length_seconds: self.session_length_seconds,
+            status: self.status,
+            sign_assertion: self.sign_assertion,
+            sign_message: self.sign_message,
+            signing_key: self.signing_key,
         }
     }
 }
+
+// TODO: for signing, implement a "return this without signing flagged" fn so we can ... just get an unsigned version
 
 /// Creates a String full of XML based on the ResponsElements
 #[allow(clippy::from_over_into)]
@@ -178,6 +203,8 @@ impl Into<Vec<u8>> for ResponseElements {
             audience: self.service_provider.entity_id.to_string(),
             conditions_not_after,
             conditions_not_before,
+            sign_assertion: self.sign_assertion,
+            signing_key: self.signing_key,
         };
 
         // start of the response
@@ -209,11 +236,12 @@ impl Into<Vec<u8>> for ResponseElements {
         // crate::xml::add_signature(assertion_data, &mut writer);
 
         // status
-        add_status("Success", &mut writer);
+        let status = crate::constants::StatusCode::Success.to_string();
+        add_status(&status, &mut writer);
 
         // assertion goes here
 
-        assertion_data.add_assertion_to_xml(&mut writer, true);
+        assertion_data.add_assertion_to_xml(&mut writer);
 
         // end the response
         write_event(XmlEvent::end_element().into(), &mut writer);

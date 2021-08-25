@@ -18,6 +18,7 @@ use saml_rs::metadata::{generate_metadata_xml, SamlMetadata};
 use saml_rs::response::{AuthNStatement, ResponseElements};
 
 use saml_rs::assertion::AssertionAttribute;
+use saml_rs::sp::SamlBinding;
 use saml_rs::SamlQuery;
 
 use chrono::{DateTime, Duration, NaiveDate, Utc};
@@ -137,7 +138,7 @@ async fn saml_metadata_get(req: Request<AppState>) -> tide::Result {
         None,
         None,
         None,
-        certificate,
+        Some(certificate),
     ))
     .into())
 }
@@ -247,8 +248,6 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
 
     let mut _form_target = String::new();
 
-    use saml_rs::sp::SamlBinding;
-
     response_body.push_str("<p style='color: darkgreen'>found SP in state!</p>");
     response_body.push_str(&format!("<p>{:?}</p>", service_provider));
     // find the consumer
@@ -347,6 +346,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     ]
     .to_vec();
 
+    let signing_key = Some(req.state().saml_signing_key.to_owned());
     let response = ResponseElements {
         issuer: req.state().hostname.to_string(),
         response_id: ResponseElements::default().assertion_id,
@@ -366,6 +366,11 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         assertion_consumer_service: Some(parsed_saml_request.consumer_service_url),
 
         session_length_seconds: 30,
+        status: saml_rs::constants::StatusCode::Success,
+        sign_assertion: true,
+        sign_message: false,
+        signing_key,
+        // TODO: write a test case that actually signs the response
     };
 
     response_body.push_str(&generate_login_form(response, relay_state));
@@ -386,7 +391,7 @@ pub fn generate_login_form(response: ResponseElements, relay_state: String) -> S
     let mut context = tera::Context::new();
 
     context.insert("form_action", &response.destination);
-    let response_data = response.base64_encoded_response(false);
+    let response_data = response.base64_encoded_response();
     let saml_response = from_utf8(&response_data).unwrap().to_string();
     context.insert("SAMLResponse", &saml_response);
     context.insert("RelayState", &relay_state);
@@ -407,15 +412,16 @@ pub fn generate_login_form(response: ResponseElements, relay_state: String) -> S
         .unwrap_or_else(|_| String::from("Couldn't generate login form"))
 }
 
-pub async fn test_sign(req: Request<AppState>) -> tide::Result {
-    saml_rs::sign::sign_data(
-        req.state().tls_cert_path.to_string(),
-        req.state().tls_key_path.to_string(),
-        "hello world".as_bytes(),
-    );
-    Ok(tide::Response::builder(200)
-        .body("Signing things")
-        .content_type(Mime::from_str("text/html;charset=utf-8").unwrap())
-        // .header("custom-header", "value")
-        .build())
-}
+// TODO: reimplement test_sign
+// pub async fn test_sign(req: Request<AppState>) -> tide::Result {
+//     saml_rs::sign::sign_data(
+//         req.state().tls_cert_path.to_string(),
+//         req.state().tls_key_path.to_string(),
+//         "hello world".as_bytes(),
+//     );
+//     Ok(tide::Response::builder(200)
+//         .body("Signing things")
+//         .content_type(Mime::from_str("text/html;charset=utf-8").unwrap())
+//         // .header("custom-header", "value")
+//         .build())
+// }

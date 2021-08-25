@@ -33,6 +33,8 @@ pub struct ServerConfig {
 
     pub saml_cert_path: String,
     pub saml_key_path: String,
+
+    pub saml_signing_key: Option<openssl::pkey::PKey<openssl::pkey::Private>>,
 }
 
 fn load_sp_metadata(filenames: Vec<String>) -> HashMap<String, ServiceProvider> {
@@ -81,8 +83,12 @@ impl ServerConfig {
             sp_metadata: HashMap::new(),
             session_lifetime: 43200, // 12 hours
 
+            // TODO: possibly remove saml_cert_path from [ServerConfig.default]
             saml_cert_path: "Need to set this".to_string(),
+            // TODO: possibly remove saml_key_path from [ServerConfig.default]
             saml_key_path: "Need to set this".to_string(),
+
+            saml_signing_key: None,
         }
     }
 
@@ -144,6 +150,19 @@ impl ServerConfig {
         let saml_cert_path = shellexpand::tilde(&tilde_saml_cert_path).into_owned();
         let saml_key_path = shellexpand::tilde(&tilde_saml_key_path).into_owned();
 
+        use saml_rs::sign::load_key_from_filename;
+        let saml_signing_key = match load_key_from_filename(&saml_key_path) {
+            Ok(value) => value,
+            Err(error) => {
+                log::error!(
+                    "Failed to load private key from {}: {:?}",
+                    &saml_key_path,
+                    error
+                );
+                std::process::exit(1);
+            }
+        };
+
         eprintln!("SETTINGS\n{:?}", settings);
         ServerConfig {
             public_hostname: settings
@@ -164,9 +183,13 @@ impl ServerConfig {
                 .unwrap_or(ServerConfig::default().session_lifetime),
             saml_cert_path,
             saml_key_path,
+
+            saml_signing_key: Some(saml_signing_key),
         }
     }
 }
+
+use openssl::pkey;
 
 #[derive(Clone, Debug)]
 pub struct AppState {
@@ -178,6 +201,8 @@ pub struct AppState {
 
     pub saml_cert_path: String,
     pub saml_key_path: String,
+
+    pub saml_signing_key: pkey::PKey<pkey::Private>,
 }
 
 use std::convert::From;
@@ -193,6 +218,7 @@ impl From<ServerConfig> for AppState {
 
             saml_cert_path: server_config.saml_cert_path,
             saml_key_path: server_config.saml_key_path,
+            saml_signing_key: server_config.saml_signing_key.unwrap(),
         }
     }
 }

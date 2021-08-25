@@ -29,7 +29,7 @@ pub struct SamlMetadata {
     /// Appended to the baseurl when using the [SamlMetadata::post_url] function
     pub post_suffix: String,
     /// Public certificate for signing/encryption
-    pub x509_certificate: X509,
+    pub x509_certificate: Option<X509>,
 }
 
 impl SamlMetadata {
@@ -41,7 +41,7 @@ impl SamlMetadata {
         logout_suffix: Option<String>,
         redirect_suffix: Option<String>,
         post_suffix: Option<String>,
-        x509_certificate: X509,
+        x509_certificate: Option<X509>,
     ) -> Self {
         let hostname = hostname.to_string();
         let baseurl = baseurl.unwrap_or(format!("https://{}/SAML", hostname));
@@ -61,7 +61,7 @@ impl SamlMetadata {
     /// really simple version with a self-signed certificate based on just the hostname. Mainly for testing.
     pub fn from_hostname(hostname: &str) -> SamlMetadata {
         let cert = crate::cert::gen_self_signed_certificate(hostname);
-        SamlMetadata::new(hostname, None, None, None, None, None, cert)
+        SamlMetadata::new(hostname, None, None, None, None, None, Some(cert))
     }
 
     /// return the generated Logout URL based on the baseurl + logout_suffix
@@ -78,8 +78,8 @@ impl SamlMetadata {
     }
 }
 
-/// Write a key to an XMLEventWriter
-pub fn xml_write_key<W: Write>(
+/// Write a signing key to an XMLEventWriter
+pub fn xml_add_certificate<W: Write>(
     key_use: &str,
     base64_encoded_certificate: &str,
     writer: &mut EventWriter<W>,
@@ -120,8 +120,6 @@ pub fn xml_write_key<W: Write>(
 ///
 /// Current response data is based on the data returned from  <https://samltest.id/saml/idp>
 pub fn generate_metadata_xml(metadata: SamlMetadata) -> String {
-    let base64_encoded_certificate = metadata.x509_certificate.get_as_pem_string(false);
-
     let mut buffer = Vec::new();
     let mut writer = EmitterConfig::new()
         .perform_indent(true)
@@ -147,8 +145,11 @@ pub fn generate_metadata_xml(metadata: SamlMetadata) -> String {
         &mut writer,
     );
 
-    xml_write_key("signing", &base64_encoded_certificate, &mut writer);
-    xml_write_key("encryption", &base64_encoded_certificate, &mut writer);
+    if let Some(value) = &metadata.x509_certificate {
+        let base64_encoded_certificate = value.get_as_pem_string(false);
+        xml_add_certificate("signing", &base64_encoded_certificate, &mut writer);
+        xml_add_certificate("encryption", &base64_encoded_certificate, &mut writer);
+    };
 
     write_event(
         XmlEvent::start_element(("md", "SingleLogoutService"))

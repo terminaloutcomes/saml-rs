@@ -14,7 +14,9 @@ mod tests {
             None,
             None,
             None,
-            saml_rs::cert::gen_self_signed_certificate("foo.example.com"),
+            Some(saml_rs::cert::gen_self_signed_certificate(
+                "foo.example.com",
+            )),
         );
 
         assert_eq!(test_metadata.hostname, String::from("foo.example.com"));
@@ -46,7 +48,9 @@ mod tests {
             Some("/fooooooo".to_string()),
             None,
             None,
-            saml_rs::cert::gen_self_signed_certificate("foo.example.com"), // certificate placeholder
+            Some(saml_rs::cert::gen_self_signed_certificate(
+                "foo.example.com",
+            )), // certificate placeholder
         );
         assert_eq!(
             test_metadata.logout_url(),
@@ -155,7 +159,7 @@ mod tests {
             None,
             None,
             None,
-            saml_rs::cert::gen_self_signed_certificate("example.com"),
+            Some(saml_rs::cert::gen_self_signed_certificate("example.com")),
         ));
 
         let params = [

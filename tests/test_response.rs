@@ -58,6 +58,11 @@ mod tests {
                 "http://sp.example.com/demo1/index.php?acs",
             )),
             session_length_seconds: 1,
+            // TODO: Set a proper statuscode and test it in test_full_response_something_something
+            status: saml_rs::constants::StatusCode::AuthnFailed,
+            sign_assertion: false,
+            sign_message: false,
+            signing_key: None,
         };
         let response_vec: Vec<u8> = inputdata.into();
 
