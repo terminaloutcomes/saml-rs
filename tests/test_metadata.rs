@@ -24,10 +24,7 @@ mod tests {
             test_metadata.baseurl,
             String::from("https://foo.example.com/SAML")
         );
-        assert_eq!(
-            test_metadata.entity_id,
-            String::from("https://foo.example.com/SAML/idp")
-        );
+        assert_eq!(test_metadata.entity_id, String::from("foo.example.com"));
         assert_eq!(
             test_metadata.logout_url(),
             String::from("https://foo.example.com/SAML/Logout")
@@ -67,10 +64,7 @@ mod tests {
             test_metadata.baseurl,
             String::from("https://foo.example.com/SAML")
         );
-        assert_eq!(
-            test_metadata.entity_id,
-            String::from("https://foo.example.com/SAML/idp")
-        );
+        assert_eq!(test_metadata.entity_id, String::from("foo.example.com"));
         assert_eq!(
             test_metadata.logout_url(),
             String::from("https://foo.example.com/SAML/Logout")

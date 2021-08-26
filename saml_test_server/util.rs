@@ -93,7 +93,6 @@ impl ServerConfig {
 
             saml_signing_key: None,
             saml_signing_cert: None,
-
         }
     }
 
@@ -167,7 +166,8 @@ impl ServerConfig {
                 std::process::exit(1);
             }
         };
-        let saml_signing_cert = match saml_rs::sign::load_public_cert_from_filename(&saml_cert_path) {
+        let saml_signing_cert = match saml_rs::sign::load_public_cert_from_filename(&saml_cert_path)
+        {
             Ok(value) => value,
             Err(error) => {
                 log::error!(

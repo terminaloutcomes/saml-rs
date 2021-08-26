@@ -28,10 +28,10 @@ use serde::Serialize;
 use crate::utils::*;
 use crate::xml::write_event;
 use chrono::{DateTime, SecondsFormat, Utc};
+use openssl::x509::X509;
 use std::io::Write;
 use std::str::from_utf8;
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
-use openssl::x509::X509;
 
 /// AssertionTypes, from <http://docs.oasis-open.org/security/saml/v2.0/saml-schema-assertion-2.0.xsd> ```<complexType name="AssertionType">```
 #[allow(dead_code)]
@@ -206,7 +206,6 @@ impl Assertion {
         write_event(XmlEvent::characters(&self.issuer), writer);
         write_event(XmlEvent::end_element().into(), writer);
 
-
         // if the assertion needs to be signed, we need to generate the whole assertion as a string, sign that, then add it to this assertion.
         if self.sign_assertion {
             log::debug!("Signing assertion");
@@ -231,7 +230,6 @@ impl Assertion {
             write_event(XmlEvent::characters("\n\n  "), writer);
 
             log::warn!("Unsigned assertion was built, this seems bad!");
-
         }
 
         // add the subject to the assertion

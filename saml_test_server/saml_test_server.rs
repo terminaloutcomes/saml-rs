@@ -14,9 +14,9 @@
 #![forbid(unsafe_code)]
 #![deny(missing_debug_implementations)]
 
+use saml_rs::assertion::AssertionAttribute;
 use saml_rs::metadata::{generate_metadata_xml, SamlMetadata};
 use saml_rs::response::{AuthNStatement, ResponseElements};
-use saml_rs::assertion::AssertionAttribute;
 use saml_rs::sp::SamlBinding;
 use saml_rs::SamlQuery;
 

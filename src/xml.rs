@@ -42,12 +42,11 @@ pub fn write_event<W: Write>(event: XmlEvent, writer: &mut EventWriter<W>) -> St
 
 /// add a signature to the statement
 pub fn add_assertion_signature<W: Write>(
-        attr: &crate::assertion::Assertion,
-        digest: String,
-        signature: String,
-        writer: &mut EventWriter<W>,
-    ) {
-
+    attr: &crate::assertion::Assertion,
+    digest: String,
+    signature: String,
+    writer: &mut EventWriter<W>,
+) {
     write_event(
         XmlEvent::start_element(("ds", "Signature"))
             .attr("xmlns:ds", "http://www.w3.org/2000/09/xmldsig#")
@@ -70,8 +69,8 @@ pub fn add_assertion_signature<W: Write>(
 
     write_event(
         XmlEvent::start_element(("ds", "SignatureMethod"))
-        .attr("Algorithm", &test)
-        .into(),
+            .attr("Algorithm", &test)
+            .into(),
         writer,
     );
     //end ds:Algorithm
@@ -172,11 +171,11 @@ pub fn add_assertion_signature<W: Write>(
 
     let mut stripped_cert = attr.signing_cert.clone().unwrap().get_as_pem_string(false);
     // TODO: is this terrible, or is this terrible? It's terrible, find a better way of cleaning this up.
-    stripped_cert = stripped_cert.replace("\r\n", "").replace("\n", "").replace(" ", "");
-    write_event(
-        XmlEvent::characters(&stripped_cert),
-        writer,
-    );
+    stripped_cert = stripped_cert
+        .replace("\r\n", "")
+        .replace("\n", "")
+        .replace(" ", "");
+    write_event(XmlEvent::characters(&stripped_cert), writer);
     // end ds:X509Certificate
     write_event(XmlEvent::end_element().into(), writer);
     // end ds:X509Data

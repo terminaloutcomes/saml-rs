@@ -8,7 +8,7 @@ use std::str::from_utf8;
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
 use crate::assertion::{Assertion, AssertionAttribute, BaseIDAbstractType, SubjectData};
-use crate::sign::{DigestAlgorithm,SigningAlgorithm};
+use crate::sign::{DigestAlgorithm, SigningAlgorithm};
 use crate::sp::*;
 use crate::xml::write_event;
 

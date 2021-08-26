@@ -47,7 +47,7 @@ impl SamlMetadata {
         let baseurl = baseurl.unwrap_or(format!("https://{}/SAML", hostname));
         let entity_id = match entity_id {
             Some(value) => value,
-            None => hostname.to_string()
+            None => hostname.to_string(),
         };
         let logout_suffix_default = String::from("/Logout");
         SamlMetadata {

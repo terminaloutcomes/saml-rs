@@ -28,11 +28,9 @@ use openssl::sign::{Signer, Verifier};
 // use std::io;
 use openssl::pkey::Private;
 use openssl::x509::X509;
+use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
-use std::fmt;
-
-
 
 /// Options of Signing Algorithms for things
 ///
@@ -84,14 +82,22 @@ impl From<SigningAlgorithm> for String {
     fn from(sa: SigningAlgorithm) -> String {
         match sa {
             SigningAlgorithm::Sha1 => String::from("http://www.w3.org/2000/09/xmldsig#rsa-sha1"),
-            SigningAlgorithm::Sha224 => String::from("http://www.w3.org/2001/04/xmldsig-more#rsa-sha224"),
-            SigningAlgorithm::Sha256 => String::from("http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"),
-            SigningAlgorithm::Sha384 => String::from("http://www.w3.org/2001/04/xmldsig-more#rsa-sha384"),
-            SigningAlgorithm::Sha512 => String::from("http://www.w3.org/2001/04/xmldsig-more#rsa-sha512"),
+            SigningAlgorithm::Sha224 => {
+                String::from("http://www.w3.org/2001/04/xmldsig-more#rsa-sha224")
+            }
+            SigningAlgorithm::Sha256 => {
+                String::from("http://www.w3.org/2001/04/xmldsig-more#rsa-sha256")
+            }
+            SigningAlgorithm::Sha384 => {
+                String::from("http://www.w3.org/2001/04/xmldsig-more#rsa-sha384")
+            }
+            SigningAlgorithm::Sha512 => {
+                String::from("http://www.w3.org/2001/04/xmldsig-more#rsa-sha512")
+            }
             _ => {
                 let result = format!("Invalid Algorithm specified: {:?}", sa);
                 log::error!("{}", result);
-                result.to_string()
+                result
             }
         }
     }
@@ -152,7 +158,7 @@ impl fmt::Display for DigestAlgorithm {
 }
 
 impl From<openssl::hash::MessageDigest> for DigestAlgorithm {
-    fn from(_md: openssl::hash::MessageDigest ) -> Self {
+    fn from(_md: openssl::hash::MessageDigest) -> Self {
         Self::InvalidAlgorithm
     }
 }
@@ -179,13 +185,17 @@ impl From<DigestAlgorithm> for String {
             DigestAlgorithm::Sha1 => String::from("http://www.w3.org/2000/09/xmldsig#sha1"),
             DigestAlgorithm::Sha256 => String::from("http://www.w3.org/2001/04/xmlenc#sha256"),
 
-            DigestAlgorithm::Sha224 => String::from("http://www.w3.org/2001/04/xmldsig-more#sha224"),
-            DigestAlgorithm::Sha384 => String::from("http://www.w3.org/2001/04/xmldsig-more#sha384"),
+            DigestAlgorithm::Sha224 => {
+                String::from("http://www.w3.org/2001/04/xmldsig-more#sha224")
+            }
+            DigestAlgorithm::Sha384 => {
+                String::from("http://www.w3.org/2001/04/xmldsig-more#sha384")
+            }
             DigestAlgorithm::Sha512 => String::from("http://www.w3.org/2001/04/xmlenc#sha512"),
             _ => {
                 let result = format!("Invalid Algorithm specified: {:?}", sa);
                 log::error!("{}", result);
-                result.to_string()
+                result
             }
         }
     }
@@ -231,8 +241,7 @@ pub fn sign_data(
     message_digest: openssl::hash::MessageDigest,
     signing_key: &openssl::pkey::PKey<openssl::pkey::Private>,
     bytes_to_sign: &[u8],
-) -> (String, String)
-{
+) -> (String, String) {
     // Sign the data
 
     let mut signer = Signer::new(message_digest, &signing_key).unwrap();
@@ -251,7 +260,6 @@ pub fn sign_data(
     use openssl::hash::hash;
 
     let digest_bytes = hash(message_digest, bytes_to_sign).unwrap();
-
 
     let base64_encoded_digest = base64::encode(digest_bytes);
     let base64_encoded_signature = base64::encode(signature);
