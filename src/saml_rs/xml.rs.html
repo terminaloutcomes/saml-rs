@@ -178,6 +178,17 @@
 <span id="176">176</span>
 <span id="177">177</span>
 <span id="178">178</span>
+<span id="179">179</span>
+<span id="180">180</span>
+<span id="181">181</span>
+<span id="182">182</span>
+<span id="183">183</span>
+<span id="184">184</span>
+<span id="185">185</span>
+<span id="186">186</span>
+<span id="187">187</span>
+<span id="188">188</span>
+<span id="189">189</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Internal utilities for doing things with XML</span>
 
@@ -203,10 +214,13 @@
         <span class="kw">let</span> <span class="ident">cert_pem</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">to_pem</span>().<span class="ident">unwrap</span>();
         <span class="kw">let</span> <span class="ident">cert_pem</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">from_utf8</span>(<span class="kw-2">&amp;</span><span class="ident">cert_pem</span>).<span class="ident">unwrap</span>().<span class="ident">to_string</span>();
 
-        <span class="kw">match</span> <span class="ident">includeheaders</span> {
+        <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">includeheaders</span> {
             <span class="bool-val">true</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">cert_pem</span>,
             <span class="bool-val">false</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">crate</span><span class="ident">::cert::strip_cert_headers</span>(<span class="ident">cert_pem</span>),
-        }
+        };
+        <span class="macro">log::debug!</span>(<span class="string">&quot;get_as_pem_string&quot;</span>);
+        <span class="macro">log::debug!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">result</span>);
+        <span class="ident">result</span>
     }
 }
 
@@ -219,15 +233,12 @@
 }
 
 <span class="doccomment">/// add a signature to the statement</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">add_signature</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span>(<span class="ident">attr</span>: <span class="kw">crate</span><span class="ident">::assertion::Assertion</span>, <span class="ident">writer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventWriter</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>) {
-    <span class="kw">let</span> <span class="ident">algstring</span>: <span class="ident">String</span> <span class="op">=</span> <span class="macro">format!</span>(
-        <span class="string">&quot;http://www.w3.org/2000/09/xmldsig#rsa-{}&quot;</span>,
-        <span class="ident">attr</span>.<span class="ident">signing_algorithm</span>.<span class="ident">to_string</span>()
-    );
-    <span class="kw">let</span> <span class="ident">digestmethod</span>: <span class="ident">String</span> <span class="op">=</span> <span class="macro">format!</span>(
-        <span class="string">&quot;http://www.w3.org/2000/09/xmldsig#{}&quot;</span>,
-        <span class="ident">attr</span>.<span class="ident">digest_algorithm</span>.<span class="ident">to_string</span>()
-    );
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">add_assertion_signature</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span>(
+        <span class="ident">attr</span>: <span class="kw-2">&amp;</span><span class="kw">crate</span><span class="ident">::assertion::Assertion</span>,
+        <span class="ident">digest</span>: <span class="ident">String</span>,
+        <span class="ident">signature</span>: <span class="ident">String</span>,
+        <span class="ident">writer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventWriter</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>,
+    ) {
 
     <span class="ident">write_event</span>(
         <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;ds&quot;</span>, <span class="string">&quot;Signature&quot;</span>))
@@ -245,10 +256,14 @@
     <span class="comment">//end ds:CanonicalizationMethod</span>
     <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
 
+    <span class="comment">// https://www.w3.org/TR/xmldsig-core/#sec-SignatureMethod</span>
+
+    <span class="kw">let</span> <span class="ident">test</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">attr</span>.<span class="ident">signing_algorithm</span>.<span class="ident">into</span>();
+
     <span class="ident">write_event</span>(
         <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;ds&quot;</span>, <span class="string">&quot;SignatureMethod&quot;</span>))
-            .<span class="ident">attr</span>(<span class="string">&quot;Algorithm&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">algstring</span>)
-            .<span class="ident">into</span>(),
+        .<span class="ident">attr</span>(<span class="string">&quot;Algorithm&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">test</span>)
+        .<span class="ident">into</span>(),
         <span class="ident">writer</span>,
     );
     <span class="comment">//end ds:Algorithm</span>
@@ -263,7 +278,7 @@
     */</span>
     <span class="ident">write_event</span>(
         <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;ds&quot;</span>, <span class="string">&quot;Reference&quot;</span>))
-            .<span class="ident">attr</span>(<span class="string">&quot;URI&quot;</span>, <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;#pfx{}&quot;</span>, <span class="ident">attr</span>.<span class="ident">assertion_id</span>))
+            .<span class="ident">attr</span>(<span class="string">&quot;URI&quot;</span>, <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;#{}&quot;</span>, <span class="ident">attr</span>.<span class="ident">assertion_id</span>))
             .<span class="ident">into</span>(),
         <span class="ident">writer</span>,
     );
@@ -294,7 +309,12 @@
     <span class="comment">//end ds:Transforms</span>
     <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
 
+    <span class="comment">// TODO: make digestmethod configurable</span>
+    <span class="kw">let</span> <span class="ident">digestmethod</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">String::from</span>(<span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#rsa-sha256&quot;</span>);
+
     <span class="comment">// start ds:DigestMethod</span>
+    <span class="comment">// &lt;https://www.w3.org/TR/xmldsig-core/#sec-DigestMethod&gt;</span>
+
     <span class="ident">write_event</span>(
         <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;ds&quot;</span>, <span class="string">&quot;DigestMethod&quot;</span>))
             .<span class="ident">attr</span>(<span class="string">&quot;Algorithm&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">digestmethod</span>)
@@ -304,13 +324,14 @@
     <span class="comment">//end ds:DigestMethod</span>
     <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
 
+    <span class="comment">// &lt;https://www.w3.org/TR/xmldsig-core/#sec-DigestValue&gt;</span>
+    <span class="comment">// DigestValue is an element that contains the encoded value of the digest. The digest is always encoded using base64 RFC2045.</span>
     <span class="ident">write_event</span>(
         <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;ds&quot;</span>, <span class="string">&quot;DigestValue&quot;</span>)).<span class="ident">into</span>(),
         <span class="ident">writer</span>,
     );
-    <span class="comment">//&quot;eACxbv4QcKTz/p8ir/fKxzHHUpA=&quot;</span>
-    <span class="comment">// TODO: after implementing signed assertions, work out if we still to add error handling for this unwrap</span>
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::characters</span>(<span class="kw-2">&amp;</span><span class="ident">attr</span>.<span class="ident">digest_value</span>.<span class="ident">unwrap</span>()), <span class="ident">writer</span>);
+
+    <span class="ident">write_event</span>(<span class="ident">XmlEvent::characters</span>(<span class="kw-2">&amp;</span><span class="ident">digest</span>), <span class="ident">writer</span>);
     <span class="comment">//end ds:DigestValue</span>
     <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
 
@@ -326,9 +347,7 @@
         <span class="ident">writer</span>,
     );
 
-    <span class="comment">// NpWB3CIRUdvMP6pvYmpHIfJYnLmBxqqnBiwUBDh6N8FjiFC+wM0HDQdGn3Nchap7aQj84PCZu3+/0+v9RldfIe7EwSpt7B9HXr7yYMOdncki/ksEWyxY6nfNMNctvwDXa8pv7257OslGNNlo/XVeAOyiPvQ1f89wHsKGgkRn4w=</span>
-    <span class="comment">// TODO: after implementing signed assertions, work out if we still to add error handling for this unwrap</span>
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::characters</span>(<span class="kw-2">&amp;</span><span class="ident">attr</span>.<span class="ident">signature_value</span>.<span class="ident">unwrap</span>()), <span class="ident">writer</span>);
+    <span class="ident">write_event</span>(<span class="ident">XmlEvent::characters</span>(<span class="kw-2">&amp;</span><span class="ident">signature</span>), <span class="ident">writer</span>);
     <span class="comment">// characters</span>
     <span class="comment">// end ds:SignatureValue</span>
     <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
@@ -342,9 +361,12 @@
         <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;ds&quot;</span>, <span class="string">&quot;X509Certificate&quot;</span>)).<span class="ident">into</span>(),
         <span class="ident">writer</span>,
     );
-    <span class="comment">// NpWB3CIRUdvMP6pvYmpHIfJYnLmBxqqnBiwUBDh6N8FjiFC+wM0HDQdGn3Nchap7aQj84PCZu3+/0+v9RldfIe7EwSpt7B9HXr7yYMOdncki/ksEWyxY6nfNMNctvwDXa8pv7257OslGNNlo/XVeAOyiPvQ1f89wHsKGgkRn4w=</span>
+
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">stripped_cert</span> <span class="op">=</span> <span class="ident">attr</span>.<span class="ident">signing_cert</span>.<span class="ident">clone</span>().<span class="ident">unwrap</span>().<span class="ident">get_as_pem_string</span>(<span class="bool-val">false</span>);
+    <span class="comment">// TODO: is this terrible, or is this terrible? It&#39;s terrible, find a better way of cleaning this up.</span>
+    <span class="ident">stripped_cert</span> <span class="op">=</span> <span class="ident">stripped_cert</span>.<span class="ident">replace</span>(<span class="string">&quot;\r\n&quot;</span>, <span class="string">&quot;&quot;</span>).<span class="ident">replace</span>(<span class="string">&quot;\n&quot;</span>, <span class="string">&quot;&quot;</span>).<span class="ident">replace</span>(<span class="string">&quot; &quot;</span>, <span class="string">&quot;&quot;</span>);
     <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::characters</span>(<span class="kw-2">&amp;</span><span class="ident">attr</span>.<span class="ident">certificate</span>.<span class="ident">get_as_pem_string</span>(<span class="bool-val">false</span>)),
+        <span class="ident">XmlEvent::characters</span>(<span class="kw-2">&amp;</span><span class="ident">stripped_cert</span>),
         <span class="ident">writer</span>,
     );
     <span class="comment">// end ds:X509Certificate</span>

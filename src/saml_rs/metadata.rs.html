@@ -232,6 +232,9 @@
 <span id="230">230</span>
 <span id="231">231</span>
 <span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Handy for the XML metadata part of SAML</span>
 
@@ -254,7 +257,7 @@
     <span class="kw">pub</span> <span class="ident">baseurl</span>: <span class="ident">String</span>,
     <span class="doccomment">/// entityID is transmitted in all requests</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// Every SAML system entity has an entity ID, a globally-unique identifier used in software configurations, relying-party databases, and client-side cookies. On the wire, every SAML protocol message contains the entity ID of the issuer</span>
+    <span class="doccomment">/// Every SAML system entity has an entity ID, a globally-unique identifier used in software configurations, relying-party databases, and client-side cookies. On the wire, every SAML protocol message contains the entity ID of the issuer. If you don&#39;t set it, it&#39;ll fall back to the bare hostname.</span>
     <span class="comment">// #[serde(rename = &quot;entityID&quot;)]</span>
     <span class="kw">pub</span> <span class="ident">entity_id</span>: <span class="ident">String</span>,
     <span class="doccomment">/// Appended to the baseurl when using the [SamlMetadata::logout_url] function</span>
@@ -280,7 +283,10 @@
     ) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="kw">let</span> <span class="ident">hostname</span> <span class="op">=</span> <span class="ident">hostname</span>.<span class="ident">to_string</span>();
         <span class="kw">let</span> <span class="ident">baseurl</span> <span class="op">=</span> <span class="ident">baseurl</span>.<span class="ident">unwrap_or</span>(<span class="macro">format!</span>(<span class="string">&quot;https://{}/SAML&quot;</span>, <span class="ident">hostname</span>));
-        <span class="kw">let</span> <span class="ident">entity_id</span> <span class="op">=</span> <span class="ident">entity_id</span>.<span class="ident">unwrap_or</span>(<span class="macro">format!</span>(<span class="string">&quot;{}/idp&quot;</span>, <span class="ident">baseurl</span>));
+        <span class="kw">let</span> <span class="ident">entity_id</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">entity_id</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">value</span>,
+            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">hostname</span>.<span class="ident">to_string</span>()
+        };
         <span class="kw">let</span> <span class="ident">logout_suffix_default</span> <span class="op">=</span> <span class="ident">String::from</span>(<span class="string">&quot;/Logout&quot;</span>);
         <span class="ident">SamlMetadata</span> {
             <span class="ident">hostname</span>,

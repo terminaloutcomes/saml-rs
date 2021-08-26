@@ -426,52 +426,6 @@
 <span id="424">424</span>
 <span id="425">425</span>
 <span id="426">426</span>
-<span id="427">427</span>
-<span id="428">428</span>
-<span id="429">429</span>
-<span id="430">430</span>
-<span id="431">431</span>
-<span id="432">432</span>
-<span id="433">433</span>
-<span id="434">434</span>
-<span id="435">435</span>
-<span id="436">436</span>
-<span id="437">437</span>
-<span id="438">438</span>
-<span id="439">439</span>
-<span id="440">440</span>
-<span id="441">441</span>
-<span id="442">442</span>
-<span id="443">443</span>
-<span id="444">444</span>
-<span id="445">445</span>
-<span id="446">446</span>
-<span id="447">447</span>
-<span id="448">448</span>
-<span id="449">449</span>
-<span id="450">450</span>
-<span id="451">451</span>
-<span id="452">452</span>
-<span id="453">453</span>
-<span id="454">454</span>
-<span id="455">455</span>
-<span id="456">456</span>
-<span id="457">457</span>
-<span id="458">458</span>
-<span id="459">459</span>
-<span id="460">460</span>
-<span id="461">461</span>
-<span id="462">462</span>
-<span id="463">463</span>
-<span id="464">464</span>
-<span id="465">465</span>
-<span id="466">466</span>
-<span id="467">467</span>
-<span id="468">468</span>
-<span id="469">469</span>
-<span id="470">470</span>
-<span id="471">471</span>
-<span id="472">472</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Assertion-related things</span>
 <span class="doccomment">//!</span>
@@ -506,6 +460,7 @@
 <span class="kw">use</span> <span class="ident">std::io::Write</span>;
 <span class="kw">use</span> <span class="ident">std::str::from_utf8</span>;
 <span class="kw">use</span> <span class="ident">xml::writer</span>::{<span class="ident">EmitterConfig</span>, <span class="ident">EventWriter</span>, <span class="ident">XmlEvent</span>};
+<span class="kw">use</span> <span class="ident">openssl::x509::X509</span>;
 
 <span class="doccomment">/// AssertionTypes, from &lt;http://docs.oasis-open.org/security/saml/v2.0/saml-schema-assertion-2.0.xsd&gt; ```&lt;complexType name=&quot;AssertionType&quot;&gt;```</span>
 <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">dead_code</span>)]</span>
@@ -533,17 +488,9 @@
     <span class="doccomment">/// Signing algorithm</span>
     <span class="kw">pub</span> <span class="ident">signing_algorithm</span>: <span class="kw">crate</span><span class="ident">::sign::SigningAlgorithm</span>,
     <span class="doccomment">/// Digest algorithm</span>
-    <span class="kw">pub</span> <span class="ident">digest_algorithm</span>: <span class="kw">crate</span><span class="ident">::sign::SigningAlgorithm</span>,
-    <span class="doccomment">/// Digest value, based on alg</span>
-    <span class="kw">pub</span> <span class="ident">digest_value</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="doccomment">/// Signature value</span>
-    <span class="kw">pub</span> <span class="ident">signature_value</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="doccomment">/// Certificate for signing/digest? TODO: Figure this out</span>
-    <span class="kw">pub</span> <span class="ident">certificate</span>: <span class="ident">openssl::x509::X509</span>,
-
+    <span class="kw">pub</span> <span class="ident">digest_algorithm</span>: <span class="kw">crate</span><span class="ident">::sign::DigestAlgorithm</span>,
     <span class="doccomment">/// Issue/Generatino time of the Assertion</span>
     <span class="kw">pub</span> <span class="ident">issue_instant</span>: <span class="ident">DateTime</span><span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span>,
-
     <span class="doccomment">/// TODO: work out what is necessary for [SubjectData]</span>
     <span class="kw">pub</span> <span class="ident">subject_data</span>: <span class="ident">SubjectData</span>,
     <span class="doccomment">/// Please don&#39;t let the user do this until ... now!</span>
@@ -560,6 +507,8 @@
 
     <span class="doccomment">/// an openssl private key for signing</span>
     <span class="kw">pub</span> <span class="ident">signing_key</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">openssl::pkey::PKey</span><span class="op">&lt;</span><span class="ident">openssl::pkey::Private</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// Certificate for signing/digest</span>
+    <span class="kw">pub</span> <span class="ident">signing_cert</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">X509</span><span class="op">&gt;</span>,
 }
 
 <span class="doccomment">/// Creates a String full of XML based on the ResponsElements</span>
@@ -590,9 +539,6 @@
             <span class="ident">issuer</span>: <span class="self">self</span>.<span class="ident">issuer</span>,
             <span class="ident">signing_algorithm</span>: <span class="self">self</span>.<span class="ident">signing_algorithm</span>,
             <span class="ident">digest_algorithm</span>: <span class="self">self</span>.<span class="ident">digest_algorithm</span>,
-            <span class="ident">digest_value</span>: <span class="self">self</span>.<span class="ident">digest_value</span>,
-            <span class="ident">signature_value</span>: <span class="self">self</span>.<span class="ident">signature_value</span>,
-            <span class="ident">certificate</span>: <span class="self">self</span>.<span class="ident">certificate</span>,
             <span class="ident">issue_instant</span>: <span class="self">self</span>.<span class="ident">issue_instant</span>,
             <span class="ident">subject_data</span>: <span class="self">self</span>.<span class="ident">subject_data</span>,
             <span class="ident">conditions_not_before</span>: <span class="self">self</span>.<span class="ident">conditions_not_before</span>,
@@ -601,6 +547,7 @@
             <span class="ident">attributes</span>: <span class="self">self</span>.<span class="ident">attributes</span>,
             <span class="ident">sign_assertion</span>: <span class="bool-val">false</span>,
             <span class="ident">signing_key</span>: <span class="self">self</span>.<span class="ident">signing_key</span>,
+            <span class="ident">signing_cert</span>: <span class="self">self</span>.<span class="ident">signing_cert</span>,
         }
     }
 
@@ -670,8 +617,7 @@
 
         <span class="ident">write_event</span>(
             <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Assertion&quot;</span>))
-                .<span class="ident">attr</span>(<span class="string">&quot;xmlns:xs&quot;</span>, <span class="string">&quot;http://www.w3.org/2001/XMLSchema&quot;</span>)
-                .<span class="ident">attr</span>(<span class="string">&quot;xmlns:xsi&quot;</span>, <span class="string">&quot;http://www.w3.org/2001/XMLSchema-instance&quot;</span>)
+                .<span class="ident">attr</span>(<span class="string">&quot;xmlns:saml&quot;</span>, <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:assertion&quot;</span>)
                 .<span class="ident">attr</span>(<span class="string">&quot;ID&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">assertion_id</span>)
                 .<span class="ident">attr</span>(
                     <span class="string">&quot;IssueInstant&quot;</span>,
@@ -689,7 +635,8 @@
         <span class="ident">write_event</span>(<span class="ident">XmlEvent::characters</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">issuer</span>), <span class="ident">writer</span>);
         <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
 
-        <span class="comment">// if the assertion needs to be signed, we need to generate the whole assertion as a string, sign that, then add it to this assertion.__rust_force_expr!</span>
+
+        <span class="comment">// if the assertion needs to be signed, we need to generate the whole assertion as a string, sign that, then add it to this assertion.</span>
         <span class="kw">if</span> <span class="self">self</span>.<span class="ident">sign_assertion</span> {
             <span class="macro">log::debug!</span>(<span class="string">&quot;Signing assertion&quot;</span>);
             <span class="kw">if</span> <span class="self">self</span>.<span class="ident">signing_key</span>.<span class="ident">is_none</span>() {
@@ -701,11 +648,19 @@
             <span class="kw">let</span> <span class="ident">xmldata</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">unsigned_assertion</span>.<span class="ident">into</span>();
             <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">signing_key</span>.<span class="ident">as_ref</span>().<span class="ident">unwrap</span>();
             <span class="comment">// TODO: replace the openssl::hash::MessageDigest::sha256() with the configured signature type</span>
-            <span class="kw">let</span> <span class="ident">_signed_data</span> <span class="op">=</span>
+            <span class="kw">let</span> (<span class="ident">digest</span>, <span class="ident">signature</span>) <span class="op">=</span>
                 <span class="kw">crate</span><span class="ident">::sign::sign_data</span>(<span class="ident">openssl::hash::MessageDigest::sha256</span>(), <span class="ident">key</span>, <span class="kw-2">&amp;</span><span class="ident">xmldata</span>);
-            <span class="comment">// log::debug(&quot;&quot;)</span>
+            <span class="macro">log::debug!</span>(<span class="string">&quot;in assertion digest {:?}&quot;</span>, <span class="ident">digest</span>);
+            <span class="macro">log::debug!</span>(<span class="string">&quot;in assertion signature {:?}&quot;</span>, <span class="ident">signature</span>);
+
+            <span class="kw">crate</span><span class="ident">::xml::add_assertion_signature</span>(<span class="self">self</span>, <span class="ident">digest</span>, <span class="ident">signature</span>, <span class="ident">writer</span>);
         } <span class="kw">else</span> {
+            <span class="comment">// add an extra newline to the thing before signing, per https://www.di-mgt.com.au/xmldsig2.html</span>
+            <span class="comment">// the spaces indent the next tag...</span>
+            <span class="ident">write_event</span>(<span class="ident">XmlEvent::characters</span>(<span class="string">&quot;\n\n  &quot;</span>), <span class="ident">writer</span>);
+
             <span class="macro">log::warn!</span>(<span class="string">&quot;Unsigned assertion was built, this seems bad!&quot;</span>);
+
         }
 
         <span class="comment">// add the subject to the assertion</span>
@@ -734,54 +689,6 @@
         <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
     }
 }
-
-<span class="comment">/*
-&lt;saml:Assertion xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xmlns:xs=&quot;http://www.w3.org/2001/XMLSchema&quot; ID=&quot;pfx9b2e6263-8e7a-6e88-94f3-886d887744ab&quot; Version=&quot;2.0&quot; IssueInstant=&quot;2014-07-17T01:01:48Z&quot;&gt;
-    &lt;saml:Issuer&gt;http://idp.example.com/metadata.php&lt;/saml:Issuer&gt;
-&lt;ds:Signature xmlns:ds=&quot;http://www.w3.org/2000/09/xmldsig#&quot;&gt;
-  &lt;ds:SignedInfo&gt;
-&lt;ds:CanonicalizationMethod Algorithm=&quot;http://www.w3.org/2001/10/xml-exc-c14n#&quot;/&gt;
-    &lt;ds:SignatureMethod Algorithm=&quot;http://www.w3.org/2000/09/xmldsig#rsa-sha1&quot;/&gt;
-  &lt;ds:Reference URI=&quot;#pfx9b2e6263-8e7a-6e88-94f3-886d887744ab&quot;&gt;
-&lt;ds:Transforms&gt;
-&lt;ds:Transform Algorithm=&quot;http://www.w3.org/2000/09/xmldsig#enveloped-signature&quot;/&gt;
-&lt;ds:Transform Algorithm=&quot;http://www.w3.org/2001/10/xml-exc-c14n#&quot;/&gt;&lt;/ds:Transforms&gt;
-&lt;ds:DigestMethod Algorithm=&quot;http://www.w3.org/2000/09/xmldsig#sha1&quot;/&gt;
-&lt;ds:DigestValue&gt;E0ZhRXxdHjBUFuSISXpWWZR7B58=&lt;/ds:DigestValue&gt;&lt;/ds:Reference&gt;&lt;/ds:SignedInfo&gt;
-&lt;ds:SignatureValue&gt;n6qqdooy751iuMkQTxGBx5jlJlDHsuEhuKAucouePtPChCPzS5f5ogZuAQcRbJe4oiD2N/V6m/X2NEW99RWENx15Rm53GtAvjQCWuY+FNHQ0E/LI562bwOMwn/VdKm/R+xJuJ2Laa6j3EllfjQJinzCe7ZNqSQuWMgZCQ+UQla8=&lt;/ds:SignatureValue&gt;
-&lt;ds:KeyInfo&gt;
-&lt;ds:X509Data&gt;
-&lt;ds:X509Certificate&gt;MIICajCCAdOgAwIBAgIBADANBgkqhkiG9w0BAQ0FADBSMQswCQYDVQQGEwJ1czETMBEGA1UECAwKQ2FsaWZvcm5pYTEVMBMGA1UECgwMT25lbG9naW4gSW5jMRcwFQYDVQQDDA5zcC5leGFtcGxlLmNvbTAeFw0xNDA3MTcxNDEyNTZaFw0xNTA3MTcxNDEyNTZaMFIxCzAJBgNVBAYTAnVzMRMwEQYDVQQIDApDYWxpZm9ybmlhMRUwEwYDVQQKDAxPbmVsb2dpbiBJbmMxFzAVBgNVBAMMDnNwLmV4YW1wbGUuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDZx+ON4IUoIWxgukTb1tOiX3bMYzYQiwWPUNMp+Fq82xoNogso2bykZG0yiJm5o8zv/sd6pGouayMgkx/2FSOdc36T0jGbCHuRSbtia0PEzNIRtmViMrt3AeoWBidRXmZsxCNLwgIV6dn2WpuE5Az0bHgpZnQxTKFek0BMKU/d8wIDAQABo1AwTjAdBgNVHQ4EFgQUGHxYqZYyX7cTxKVODVgZwSTdCnwwHwYDVR0jBBgwFoAUGHxYqZYyX7cTxKVODVgZwSTdCnwwDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQ0FAAOBgQByFOl+hMFICbd3DJfnp2Rgd/dqttsZG/tyhILWvErbio/DEe98mXpowhTkC04ENprOyXi7ZbUqiicF89uAGyt1oqgTUCD1VsLahqIcmrzgumNyTwLGWo17WDAa1/usDhetWAMhgzF/Cnf5ek0nK00m0YZGyc4LzgD0CROMASTWNg==&lt;/ds:X509Certificate&gt;&lt;/ds:X509Data&gt;&lt;/ds:KeyInfo&gt;&lt;/ds:Signature&gt;
-    &lt;saml:Subject&gt;
-      &lt;saml:NameID SPNameQualifier=&quot;http://sp.example.com/demo1/metadata.php&quot; Format=&quot;urn:oasis:names:tc:SAML:2.0:nameid-format:transient&quot;&gt;_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7&lt;/saml:NameID&gt;
-      &lt;saml:SubjectConfirmation Method=&quot;urn:oasis:names:tc:SAML:2.0:cm:bearer&quot;&gt;
-        &lt;saml:SubjectConfirmationData NotOnOrAfter=&quot;2024-01-18T06:21:48Z&quot; Recipient=&quot;http://sp.example.com/demo1/index.php?acs&quot; InResponseTo=&quot;ONELOGIN_4fee3b046395c4e751011e97f8900b5273d56685&quot;/&gt;
-      &lt;/saml:SubjectConfirmation&gt;
-    &lt;/saml:Subject&gt;
-    &lt;saml:Conditions NotBefore=&quot;2014-07-17T01:01:18Z&quot; NotOnOrAfter=&quot;2024-01-18T06:21:48Z&quot;&gt;
-      &lt;saml:AudienceRestriction&gt;
-        &lt;saml:Audience&gt;http://sp.example.com/demo1/metadata.php&lt;/saml:Audience&gt;
-      &lt;/saml:AudienceRestriction&gt;
-    &lt;/saml:Conditions&gt;
-    &lt;saml:AuthnStatement AuthnInstant=&quot;2014-07-17T01:01:48Z&quot; SessionNotOnOrAfter=&quot;2024-07-17T09:01:48Z&quot; SessionIndex=&quot;_be9967abd904ddcae3c0eb4189adbe3f71e327cf93&quot;&gt;
-      &lt;saml:AuthnContext&gt;
-        &lt;saml:AuthnContextClassRef&gt;urn:oasis:names:tc:SAML:2.0:ac:classes:Password&lt;/saml:AuthnContextClassRef&gt;
-      &lt;/saml:AuthnContext&gt;
-    &lt;/saml:AuthnStatement&gt;
-    &lt;saml:AttributeStatement&gt;
-      &lt;saml:Attribute Name=&quot;uid&quot; NameFormat=&quot;urn:oasis:names:tc:SAML:2.0:attrname-format:basic&quot;&gt;
-        &lt;saml:AttributeValue xsi:type=&quot;xs:string&quot;&gt;test&lt;/saml:AttributeValue&gt;
-      &lt;/saml:Attribute&gt;
-      &lt;saml:Attribute Name=&quot;mail&quot; NameFormat=&quot;urn:oasis:names:tc:SAML:2.0:attrname-format:basic&quot;&gt;
-        &lt;saml:AttributeValue xsi:type=&quot;xs:string&quot;&gt;test@example.com&lt;/saml:AttributeValue&gt;
-      &lt;/saml:Attribute&gt;
-      &lt;saml:Attribute Name=&quot;eduPersonAffiliation&quot; NameFormat=&quot;urn:oasis:names:tc:SAML:2.0:attrname-format:basic&quot;&gt;
-        &lt;saml:AttributeValue xsi:type=&quot;xs:string&quot;&gt;users&lt;/saml:AttributeValue&gt;
-        &lt;saml:AttributeValue xsi:type=&quot;xs:string&quot;&gt;examplerole1&lt;/saml:AttributeValue&gt;
-      &lt;/saml:Attribute&gt;
-    &lt;/saml:AttributeStatement&gt;
-  &lt;/saml:Assertion&gt;
-*/</span>
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Copy</span>, <span class="ident">Clone</span>)]</span>
 <span class="doccomment">/// Type of `saml:NameId` in a statement.</span>
@@ -935,6 +842,7 @@
     <span class="kw">for</span> <span class="ident">value</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="ident">attr</span>.<span class="ident">values</span> {
         <span class="ident">write_event</span>(
             <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;AttributeValue&quot;</span>))
+                .<span class="ident">attr</span>(<span class="string">&quot;xmlns:xsi&quot;</span>, <span class="string">&quot;http://www.w3.org/2001/XMLSchema-instance&quot;</span>) <span class="comment">// TODO: moved 2021-08-26 to make c14n work, is this valid, or is it going to bite me</span>
                 .<span class="ident">attr</span>(<span class="string">&quot;xsi:type&quot;</span>, <span class="string">&quot;xs:string&quot;</span>)
                 .<span class="ident">into</span>(),
             <span class="ident">writer</span>,

@@ -363,8 +363,7 @@
 <span class="kw">use</span> <span class="ident">xml::writer</span>::{<span class="ident">EmitterConfig</span>, <span class="ident">EventWriter</span>, <span class="ident">XmlEvent</span>};
 
 <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::assertion</span>::{<span class="ident">Assertion</span>, <span class="ident">AssertionAttribute</span>, <span class="ident">BaseIDAbstractType</span>, <span class="ident">SubjectData</span>};
-<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::cert::gen_self_signed_certificate</span>;
-<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::sign::SigningAlgorithm</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::sign</span>::{<span class="ident">DigestAlgorithm</span>,<span class="ident">SigningAlgorithm</span>};
 <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::sp</span>::<span class="kw-2">*</span>;
 <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::xml::write_event</span>;
 
@@ -427,6 +426,8 @@
     <span class="comment">// TODO: remove the option for signing_key, it should always be set</span>
     <span class="doccomment">/// an openssl private key for signing</span>
     <span class="kw">pub</span> <span class="ident">signing_key</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">openssl::pkey::PKey</span><span class="op">&lt;</span><span class="ident">openssl::pkey::Private</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// The signing certificate</span>
+    <span class="kw">pub</span> <span class="ident">signing_cert</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">openssl::x509::X509</span><span class="op">&gt;</span>,
 }
 
 <span class="kw">use</span> <span class="ident">uuid::Uuid</span>;
@@ -465,8 +466,8 @@
             <span class="ident">status</span>: <span class="kw">crate</span><span class="ident">::constants::StatusCode::AuthnFailed</span>,
             <span class="ident">sign_assertion</span>: <span class="bool-val">true</span>,
             <span class="ident">sign_message</span>: <span class="bool-val">false</span>,
-            <span class="comment">// TODO: actually put a signing key into the response</span>
             <span class="ident">signing_key</span>: <span class="prelude-val">None</span>,
+            <span class="ident">signing_cert</span>: <span class="prelude-val">None</span>,
         }
     }
 
@@ -489,6 +490,7 @@
             <span class="ident">sign_assertion</span>: <span class="self">self</span>.<span class="ident">sign_assertion</span>,
             <span class="ident">sign_message</span>: <span class="self">self</span>.<span class="ident">sign_message</span>,
             <span class="ident">signing_key</span>: <span class="self">self</span>.<span class="ident">signing_key</span>,
+            <span class="ident">signing_cert</span>: <span class="self">self</span>.<span class="ident">signing_cert</span>,
         }
     }
 }
@@ -537,6 +539,7 @@
             <span class="ident">nameid_value</span>: <span class="string">&quot;_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7&quot;</span>,
             <span class="comment">// TODO acs should come from somewhere, figure out where</span>
             <span class="ident">acs</span>,
+            <span class="comment">// TODO: set the response not_on_or_after properly</span>
             <span class="ident">subject_not_on_or_after</span>: <span class="ident">DateTime</span>::<span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span><span class="ident">::from_utc</span>(
                 <span class="ident">NaiveDate::from_ymd</span>(<span class="number">2024</span>, <span class="number">1</span>, <span class="number">18</span>).<span class="ident">and_hms</span>(<span class="number">6</span>, <span class="number">21</span>, <span class="number">48</span>),
                 <span class="ident">Utc</span>,
@@ -546,11 +549,8 @@
         <span class="kw">let</span> <span class="ident">assertion_data</span> <span class="op">=</span> <span class="ident">Assertion</span> {
             <span class="ident">assertion_id</span>: <span class="self">self</span>.<span class="ident">assertion_id</span>.<span class="ident">to_string</span>(),
             <span class="ident">issuer</span>: <span class="self">self</span>.<span class="ident">issuer</span>.<span class="ident">to_string</span>(),
-            <span class="ident">signing_algorithm</span>: <span class="ident">SigningAlgorithm::Sha1</span>,
-            <span class="ident">digest_algorithm</span>: <span class="ident">SigningAlgorithm::Sha1</span>,
-            <span class="ident">digest_value</span>: <span class="prelude-val">Some</span>(<span class="ident">String::from</span>(<span class="string">&quot;eACxbv4QcKTz/p8ir/fKxzHHUpA=&quot;</span>)),
-            <span class="ident">signature_value</span>: <span class="prelude-val">Some</span>(<span class="ident">String::from</span>(<span class="string">&quot;ENpWB3CIRUdvMP6pvYmpHIfJYnLmBxqqnBiwUBDh6N8FjiFC+wM0HDQdGn3Nchap7aQj84PCZu3+/0+v9RldfIe7EwSpt7B9HXr7yYMOdncki/ksEWyxY6nfNMNctvwDXa8pv7257OslGNNlo/XVeAOyiPvQ1f89wHsKGgkRn4w=&quot;</span>)),
-            <span class="ident">certificate</span>: <span class="ident">gen_self_signed_certificate</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">issuer</span>),
+            <span class="ident">signing_algorithm</span>: <span class="ident">SigningAlgorithm::Sha256</span>,
+            <span class="ident">digest_algorithm</span>: <span class="ident">DigestAlgorithm::Sha256</span>,
             <span class="ident">issue_instant</span>: <span class="self">self</span>.<span class="ident">issue_instant</span>,
             <span class="ident">subject_data</span>,
 
@@ -560,12 +560,12 @@
             <span class="ident">conditions_not_before</span>,
             <span class="ident">sign_assertion</span>: <span class="self">self</span>.<span class="ident">sign_assertion</span>,
             <span class="ident">signing_key</span>: <span class="self">self</span>.<span class="ident">signing_key</span>,
+            <span class="ident">signing_cert</span>: <span class="self">self</span>.<span class="ident">signing_cert</span>,
         };
 
         <span class="comment">// start of the response</span>
         <span class="ident">write_event</span>(
             <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;samlp&quot;</span>, <span class="string">&quot;Response&quot;</span>))
-                .<span class="ident">attr</span>(<span class="string">&quot;xmlns:saml&quot;</span>, <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:assertion&quot;</span>)
                 .<span class="ident">attr</span>(<span class="string">&quot;xmlns:samlp&quot;</span>, <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:protocol&quot;</span>)
                 .<span class="ident">attr</span>(<span class="string">&quot;Destination&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">destination</span>)
                 .<span class="ident">attr</span>(<span class="string">&quot;ID&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">response_id</span>)
