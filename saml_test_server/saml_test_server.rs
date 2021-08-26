@@ -16,7 +16,6 @@
 
 use saml_rs::metadata::{generate_metadata_xml, SamlMetadata};
 use saml_rs::response::{AuthNStatement, ResponseElements};
-
 use saml_rs::assertion::AssertionAttribute;
 use saml_rs::sp::SamlBinding;
 use saml_rs::SamlQuery;
@@ -128,13 +127,15 @@ async fn main() -> tide::Result<()> {
 // use saml_rs::cert::strip_cert_headers;
 /// Provides a GET response for the metadata URL
 async fn saml_metadata_get(req: Request<AppState>) -> tide::Result {
-    let cert_path = &req.state().tls_cert_path;
+    let cert_path = &req.state().saml_cert_path;
     let certificate = saml_rs::sign::load_public_cert_from_filename(&cert_path).unwrap();
+
+    let entity_id = String::from(&req.state().hostname);
 
     Ok(generate_metadata_xml(SamlMetadata::new(
         &req.state().hostname,
         None,
-        None,
+        Some(entity_id),
         None,
         None,
         None,
@@ -370,6 +371,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         sign_assertion: true,
         sign_message: false,
         signing_key,
+        signing_cert: Some(req.state().saml_signing_cert.to_owned()),
         // TODO: write a test case that actually signs the response
     };
 

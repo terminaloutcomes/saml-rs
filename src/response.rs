@@ -8,8 +8,7 @@ use std::str::from_utf8;
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
 use crate::assertion::{Assertion, AssertionAttribute, BaseIDAbstractType, SubjectData};
-use crate::cert::gen_self_signed_certificate;
-use crate::sign::SigningAlgorithm;
+use crate::sign::{DigestAlgorithm,SigningAlgorithm};
 use crate::sp::*;
 use crate::xml::write_event;
 
@@ -72,6 +71,8 @@ pub struct ResponseElements {
     // TODO: remove the option for signing_key, it should always be set
     /// an openssl private key for signing
     pub signing_key: Option<openssl::pkey::PKey<openssl::pkey::Private>>,
+    /// The signing certificate
+    pub signing_cert: Option<openssl::x509::X509>,
 }
 
 use uuid::Uuid;
@@ -110,8 +111,8 @@ impl ResponseElements {
             status: crate::constants::StatusCode::AuthnFailed,
             sign_assertion: true,
             sign_message: false,
-            // TODO: actually put a signing key into the response
             signing_key: None,
+            signing_cert: None,
         }
     }
 
@@ -134,6 +135,7 @@ impl ResponseElements {
             sign_assertion: self.sign_assertion,
             sign_message: self.sign_message,
             signing_key: self.signing_key,
+            signing_cert: self.signing_cert,
         }
     }
 }
@@ -182,6 +184,7 @@ impl Into<Vec<u8>> for ResponseElements {
             nameid_value: "_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7",
             // TODO acs should come from somewhere, figure out where
             acs,
+            // TODO: set the response not_on_or_after properly
             subject_not_on_or_after: DateTime::<Utc>::from_utc(
                 NaiveDate::from_ymd(2024, 1, 18).and_hms(6, 21, 48),
                 Utc,
@@ -191,11 +194,8 @@ impl Into<Vec<u8>> for ResponseElements {
         let assertion_data = Assertion {
             assertion_id: self.assertion_id.to_string(),
             issuer: self.issuer.to_string(),
-            signing_algorithm: SigningAlgorithm::Sha1,
-            digest_algorithm: SigningAlgorithm::Sha1,
-            digest_value: Some(String::from("eACxbv4QcKTz/p8ir/fKxzHHUpA=")),
-            signature_value: Some(String::from("ENpWB3CIRUdvMP6pvYmpHIfJYnLmBxqqnBiwUBDh6N8FjiFC+wM0HDQdGn3Nchap7aQj84PCZu3+/0+v9RldfIe7EwSpt7B9HXr7yYMOdncki/ksEWyxY6nfNMNctvwDXa8pv7257OslGNNlo/XVeAOyiPvQ1f89wHsKGgkRn4w=")),
-            certificate: gen_self_signed_certificate(&self.issuer),
+            signing_algorithm: SigningAlgorithm::Sha256,
+            digest_algorithm: DigestAlgorithm::Sha256,
             issue_instant: self.issue_instant,
             subject_data,
 
@@ -205,12 +205,12 @@ impl Into<Vec<u8>> for ResponseElements {
             conditions_not_before,
             sign_assertion: self.sign_assertion,
             signing_key: self.signing_key,
+            signing_cert: self.signing_cert,
         };
 
         // start of the response
         write_event(
             XmlEvent::start_element(("samlp", "Response"))
-                .attr("xmlns:saml", "urn:oasis:names:tc:SAML:2.0:assertion")
                 .attr("xmlns:samlp", "urn:oasis:names:tc:SAML:2.0:protocol")
                 .attr("Destination", &self.destination)
                 .attr("ID", &self.response_id)

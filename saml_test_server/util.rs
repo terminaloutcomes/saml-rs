@@ -18,6 +18,8 @@ pub async fn do_nothing(mut _req: Request<AppState>) -> tide::Result {
         .build())
 }
 
+use openssl::x509::X509;
+
 // #[derive(serde_deserialize, Debug)]
 #[derive(Debug, Clone)]
 pub struct ServerConfig {
@@ -35,6 +37,7 @@ pub struct ServerConfig {
     pub saml_key_path: String,
 
     pub saml_signing_key: Option<openssl::pkey::PKey<openssl::pkey::Private>>,
+    pub saml_signing_cert: Option<X509>,
 }
 
 fn load_sp_metadata(filenames: Vec<String>) -> HashMap<String, ServiceProvider> {
@@ -89,6 +92,8 @@ impl ServerConfig {
             saml_key_path: "Need to set this".to_string(),
 
             saml_signing_key: None,
+            saml_signing_cert: None,
+
         }
     }
 
@@ -162,6 +167,17 @@ impl ServerConfig {
                 std::process::exit(1);
             }
         };
+        let saml_signing_cert = match saml_rs::sign::load_public_cert_from_filename(&saml_cert_path) {
+            Ok(value) => value,
+            Err(error) => {
+                log::error!(
+                    "Failed to load private key from {}: {:?}",
+                    &saml_key_path,
+                    error
+                );
+                std::process::exit(1);
+            }
+        };
 
         eprintln!("SETTINGS\n{:?}", settings);
         ServerConfig {
@@ -185,6 +201,7 @@ impl ServerConfig {
             saml_key_path,
 
             saml_signing_key: Some(saml_signing_key),
+            saml_signing_cert: Some(saml_signing_cert),
         }
     }
 }
@@ -203,6 +220,7 @@ pub struct AppState {
     pub saml_key_path: String,
 
     pub saml_signing_key: pkey::PKey<pkey::Private>,
+    pub saml_signing_cert: X509,
 }
 
 use std::convert::From;
@@ -219,6 +237,7 @@ impl From<ServerConfig> for AppState {
             saml_cert_path: server_config.saml_cert_path,
             saml_key_path: server_config.saml_key_path,
             saml_signing_key: server_config.saml_signing_key.unwrap(),
+            saml_signing_cert: server_config.saml_signing_cert.unwrap(),
         }
     }
 }

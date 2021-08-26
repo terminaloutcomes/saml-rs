@@ -19,7 +19,7 @@ pub struct SamlMetadata {
     pub baseurl: String,
     /// entityID is transmitted in all requests
     ///
-    /// Every SAML system entity has an entity ID, a globally-unique identifier used in software configurations, relying-party databases, and client-side cookies. On the wire, every SAML protocol message contains the entity ID of the issuer
+    /// Every SAML system entity has an entity ID, a globally-unique identifier used in software configurations, relying-party databases, and client-side cookies. On the wire, every SAML protocol message contains the entity ID of the issuer. If you don't set it, it'll fall back to the bare hostname.
     // #[serde(rename = "entityID")]
     pub entity_id: String,
     /// Appended to the baseurl when using the [SamlMetadata::logout_url] function
@@ -45,7 +45,10 @@ impl SamlMetadata {
     ) -> Self {
         let hostname = hostname.to_string();
         let baseurl = baseurl.unwrap_or(format!("https://{}/SAML", hostname));
-        let entity_id = entity_id.unwrap_or(format!("{}/idp", baseurl));
+        let entity_id = match entity_id {
+            Some(value) => value,
+            None => hostname.to_string()
+        };
         let logout_suffix_default = String::from("/Logout");
         SamlMetadata {
             hostname,

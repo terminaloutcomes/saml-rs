@@ -63,6 +63,7 @@ mod tests {
             sign_assertion: false,
             sign_message: false,
             signing_key: None,
+            signing_cert: None,
         };
         let response_vec: Vec<u8> = inputdata.into();
 

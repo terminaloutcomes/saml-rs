@@ -31,6 +31,7 @@ use chrono::{DateTime, SecondsFormat, Utc};
 use std::io::Write;
 use std::str::from_utf8;
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
+use openssl::x509::X509;
 
 /// AssertionTypes, from <http://docs.oasis-open.org/security/saml/v2.0/saml-schema-assertion-2.0.xsd> ```<complexType name="AssertionType">```
 #[allow(dead_code)]
@@ -58,17 +59,9 @@ pub struct Assertion {
     /// Signing algorithm
     pub signing_algorithm: crate::sign::SigningAlgorithm,
     /// Digest algorithm
-    pub digest_algorithm: crate::sign::SigningAlgorithm,
-    /// Digest value, based on alg
-    pub digest_value: Option<String>,
-    /// Signature value
-    pub signature_value: Option<String>,
-    /// Certificate for signing/digest? TODO: Figure this out
-    pub certificate: openssl::x509::X509,
-
+    pub digest_algorithm: crate::sign::DigestAlgorithm,
     /// Issue/Generatino time of the Assertion
     pub issue_instant: DateTime<Utc>,
-
     /// TODO: work out what is necessary for [SubjectData]
     pub subject_data: SubjectData,
     /// Please don't let the user do this until ... now!
@@ -85,6 +78,8 @@ pub struct Assertion {
 
     /// an openssl private key for signing
     pub signing_key: Option<openssl::pkey::PKey<openssl::pkey::Private>>,
+    /// Certificate for signing/digest
+    pub signing_cert: Option<X509>,
 }
 
 /// Creates a String full of XML based on the ResponsElements
@@ -115,9 +110,6 @@ impl Assertion {
             issuer: self.issuer,
             signing_algorithm: self.signing_algorithm,
             digest_algorithm: self.digest_algorithm,
-            digest_value: self.digest_value,
-            signature_value: self.signature_value,
-            certificate: self.certificate,
             issue_instant: self.issue_instant,
             subject_data: self.subject_data,
             conditions_not_before: self.conditions_not_before,
@@ -126,6 +118,7 @@ impl Assertion {
             attributes: self.attributes,
             sign_assertion: false,
             signing_key: self.signing_key,
+            signing_cert: self.signing_cert,
         }
     }
 
@@ -195,8 +188,7 @@ impl Assertion {
 
         write_event(
             XmlEvent::start_element(("saml", "Assertion"))
-                .attr("xmlns:xs", "http://www.w3.org/2001/XMLSchema")
-                .attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
+                .attr("xmlns:saml", "urn:oasis:names:tc:SAML:2.0:assertion")
                 .attr("ID", &self.assertion_id)
                 .attr(
                     "IssueInstant",
@@ -214,7 +206,8 @@ impl Assertion {
         write_event(XmlEvent::characters(&self.issuer), writer);
         write_event(XmlEvent::end_element().into(), writer);
 
-        // if the assertion needs to be signed, we need to generate the whole assertion as a string, sign that, then add it to this assertion.__rust_force_expr!
+
+        // if the assertion needs to be signed, we need to generate the whole assertion as a string, sign that, then add it to this assertion.
         if self.sign_assertion {
             log::debug!("Signing assertion");
             if self.signing_key.is_none() {
@@ -226,11 +219,19 @@ impl Assertion {
             let xmldata: Vec<u8> = unsigned_assertion.into();
             let key = self.signing_key.as_ref().unwrap();
             // TODO: replace the openssl::hash::MessageDigest::sha256() with the configured signature type
-            let _signed_data =
+            let (digest, signature) =
                 crate::sign::sign_data(openssl::hash::MessageDigest::sha256(), key, &xmldata);
-            // log::debug("")
+            log::debug!("in assertion digest {:?}", digest);
+            log::debug!("in assertion signature {:?}", signature);
+
+            crate::xml::add_assertion_signature(self, digest, signature, writer);
         } else {
+            // add an extra newline to the thing before signing, per https://www.di-mgt.com.au/xmldsig2.html
+            // the spaces indent the next tag...
+            write_event(XmlEvent::characters("\n\n  "), writer);
+
             log::warn!("Unsigned assertion was built, this seems bad!");
+
         }
 
         // add the subject to the assertion
@@ -259,54 +260,6 @@ impl Assertion {
         write_event(XmlEvent::end_element().into(), writer);
     }
 }
-
-/*
-<saml:Assertion xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" ID="pfx9b2e6263-8e7a-6e88-94f3-886d887744ab" Version="2.0" IssueInstant="2014-07-17T01:01:48Z">
-    <saml:Issuer>http://idp.example.com/metadata.php</saml:Issuer>
-<ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
-  <ds:SignedInfo>
-<ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
-    <ds:SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>
-  <ds:Reference URI="#pfx9b2e6263-8e7a-6e88-94f3-886d887744ab">
-<ds:Transforms>
-<ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
-<ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/></ds:Transforms>
-<ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
-<ds:DigestValue>E0ZhRXxdHjBUFuSISXpWWZR7B58=</ds:DigestValue></ds:Reference></ds:SignedInfo>
-<ds:SignatureValue>n6qqdooy751iuMkQTxGBx5jlJlDHsuEhuKAucouePtPChCPzS5f5ogZuAQcRbJe4oiD2N/V6m/X2NEW99RWENx15Rm53GtAvjQCWuY+FNHQ0E/LI562bwOMwn/VdKm/R+xJuJ2Laa6j3EllfjQJinzCe7ZNqSQuWMgZCQ+UQla8=</ds:SignatureValue>
-<ds:KeyInfo>
-<ds:X509Data>
-<ds:X509Certificate>MIICajCCAdOgAwIBAgIBADANBgkqhkiG9w0BAQ0FADBSMQswCQYDVQQGEwJ1czETMBEGA1UECAwKQ2FsaWZvcm5pYTEVMBMGA1UECgwMT25lbG9naW4gSW5jMRcwFQYDVQQDDA5zcC5leGFtcGxlLmNvbTAeFw0xNDA3MTcxNDEyNTZaFw0xNTA3MTcxNDEyNTZaMFIxCzAJBgNVBAYTAnVzMRMwEQYDVQQIDApDYWxpZm9ybmlhMRUwEwYDVQQKDAxPbmVsb2dpbiBJbmMxFzAVBgNVBAMMDnNwLmV4YW1wbGUuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDZx+ON4IUoIWxgukTb1tOiX3bMYzYQiwWPUNMp+Fq82xoNogso2bykZG0yiJm5o8zv/sd6pGouayMgkx/2FSOdc36T0jGbCHuRSbtia0PEzNIRtmViMrt3AeoWBidRXmZsxCNLwgIV6dn2WpuE5Az0bHgpZnQxTKFek0BMKU/d8wIDAQABo1AwTjAdBgNVHQ4EFgQUGHxYqZYyX7cTxKVODVgZwSTdCnwwHwYDVR0jBBgwFoAUGHxYqZYyX7cTxKVODVgZwSTdCnwwDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQ0FAAOBgQByFOl+hMFICbd3DJfnp2Rgd/dqttsZG/tyhILWvErbio/DEe98mXpowhTkC04ENprOyXi7ZbUqiicF89uAGyt1oqgTUCD1VsLahqIcmrzgumNyTwLGWo17WDAa1/usDhetWAMhgzF/Cnf5ek0nK00m0YZGyc4LzgD0CROMASTWNg==</ds:X509Certificate></ds:X509Data></ds:KeyInfo></ds:Signature>
-    <saml:Subject>
-      <saml:NameID SPNameQualifier="http://sp.example.com/demo1/metadata.php" Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient">_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7</saml:NameID>
-      <saml:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer">
-        <saml:SubjectConfirmationData NotOnOrAfter="2024-01-18T06:21:48Z" Recipient="http://sp.example.com/demo1/index.php?acs" InResponseTo="ONELOGIN_4fee3b046395c4e751011e97f8900b5273d56685"/>
-      </saml:SubjectConfirmation>
-    </saml:Subject>
-    <saml:Conditions NotBefore="2014-07-17T01:01:18Z" NotOnOrAfter="2024-01-18T06:21:48Z">
-      <saml:AudienceRestriction>
-        <saml:Audience>http://sp.example.com/demo1/metadata.php</saml:Audience>
-      </saml:AudienceRestriction>
-    </saml:Conditions>
-    <saml:AuthnStatement AuthnInstant="2014-07-17T01:01:48Z" SessionNotOnOrAfter="2024-07-17T09:01:48Z" SessionIndex="_be9967abd904ddcae3c0eb4189adbe3f71e327cf93">
-      <saml:AuthnContext>
-        <saml:AuthnContextClassRef>urn:oasis:names:tc:SAML:2.0:ac:classes:Password</saml:AuthnContextClassRef>
-      </saml:AuthnContext>
-    </saml:AuthnStatement>
-    <saml:AttributeStatement>
-      <saml:Attribute Name="uid" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
-        <saml:AttributeValue xsi:type="xs:string">test</saml:AttributeValue>
-      </saml:Attribute>
-      <saml:Attribute Name="mail" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
-        <saml:AttributeValue xsi:type="xs:string">test@example.com</saml:AttributeValue>
-      </saml:Attribute>
-      <saml:Attribute Name="eduPersonAffiliation" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
-        <saml:AttributeValue xsi:type="xs:string">users</saml:AttributeValue>
-        <saml:AttributeValue xsi:type="xs:string">examplerole1</saml:AttributeValue>
-      </saml:Attribute>
-    </saml:AttributeStatement>
-  </saml:Assertion>
-*/
 
 #[derive(Debug, Copy, Clone)]
 /// Type of `saml:NameId` in a statement.
@@ -460,6 +413,7 @@ pub fn add_attribute<W: Write>(attr: &AssertionAttribute, writer: &mut EventWrit
     for value in &attr.values {
         write_event(
             XmlEvent::start_element(("saml", "AttributeValue"))
+                .attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance") // TODO: moved 2021-08-26 to make c14n work, is this valid, or is it going to bite me
                 .attr("xsi:type", "xs:string")
                 .into(),
             writer,

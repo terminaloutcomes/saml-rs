@@ -22,10 +22,13 @@ impl X509Utils for openssl::x509::X509 {
         let cert_pem = &self.to_pem().unwrap();
         let cert_pem: String = from_utf8(&cert_pem).unwrap().to_string();
 
-        match includeheaders {
+        let result = match includeheaders {
             true => cert_pem,
             false => crate::cert::strip_cert_headers(cert_pem),
-        }
+        };
+        log::debug!("get_as_pem_string");
+        log::debug!("{}", result);
+        result
     }
 }
 
@@ -38,15 +41,12 @@ pub fn write_event<W: Write>(event: XmlEvent, writer: &mut EventWriter<W>) -> St
 }
 
 /// add a signature to the statement
-pub fn add_signature<W: Write>(attr: crate::assertion::Assertion, writer: &mut EventWriter<W>) {
-    let algstring: String = format!(
-        "http://www.w3.org/2000/09/xmldsig#rsa-{}",
-        attr.signing_algorithm.to_string()
-    );
-    let digestmethod: String = format!(
-        "http://www.w3.org/2000/09/xmldsig#{}",
-        attr.digest_algorithm.to_string()
-    );
+pub fn add_assertion_signature<W: Write>(
+        attr: &crate::assertion::Assertion,
+        digest: String,
+        signature: String,
+        writer: &mut EventWriter<W>,
+    ) {
 
     write_event(
         XmlEvent::start_element(("ds", "Signature"))
@@ -64,10 +64,14 @@ pub fn add_signature<W: Write>(attr: crate::assertion::Assertion, writer: &mut E
     //end ds:CanonicalizationMethod
     write_event(XmlEvent::end_element().into(), writer);
 
+    // https://www.w3.org/TR/xmldsig-core/#sec-SignatureMethod
+
+    let test: String = attr.signing_algorithm.into();
+
     write_event(
         XmlEvent::start_element(("ds", "SignatureMethod"))
-            .attr("Algorithm", &algstring)
-            .into(),
+        .attr("Algorithm", &test)
+        .into(),
         writer,
     );
     //end ds:Algorithm
@@ -82,7 +86,7 @@ pub fn add_signature<W: Write>(attr: crate::assertion::Assertion, writer: &mut E
     */
     write_event(
         XmlEvent::start_element(("ds", "Reference"))
-            .attr("URI", &format!("#pfx{}", attr.assertion_id))
+            .attr("URI", &format!("#{}", attr.assertion_id))
             .into(),
         writer,
     );
@@ -113,7 +117,12 @@ pub fn add_signature<W: Write>(attr: crate::assertion::Assertion, writer: &mut E
     //end ds:Transforms
     write_event(XmlEvent::end_element().into(), writer);
 
+    // TODO: make digestmethod configurable
+    let digestmethod: String = String::from("http://www.w3.org/2001/04/xmldsig-more#rsa-sha256");
+
     // start ds:DigestMethod
+    // <https://www.w3.org/TR/xmldsig-core/#sec-DigestMethod>
+
     write_event(
         XmlEvent::start_element(("ds", "DigestMethod"))
             .attr("Algorithm", &digestmethod)
@@ -123,13 +132,14 @@ pub fn add_signature<W: Write>(attr: crate::assertion::Assertion, writer: &mut E
     //end ds:DigestMethod
     write_event(XmlEvent::end_element().into(), writer);
 
+    // <https://www.w3.org/TR/xmldsig-core/#sec-DigestValue>
+    // DigestValue is an element that contains the encoded value of the digest. The digest is always encoded using base64 RFC2045.
     write_event(
         XmlEvent::start_element(("ds", "DigestValue")).into(),
         writer,
     );
-    //"eACxbv4QcKTz/p8ir/fKxzHHUpA="
-    // TODO: after implementing signed assertions, work out if we still to add error handling for this unwrap
-    write_event(XmlEvent::characters(&attr.digest_value.unwrap()), writer);
+
+    write_event(XmlEvent::characters(&digest), writer);
     //end ds:DigestValue
     write_event(XmlEvent::end_element().into(), writer);
 
@@ -145,9 +155,7 @@ pub fn add_signature<W: Write>(attr: crate::assertion::Assertion, writer: &mut E
         writer,
     );
 
-    // NpWB3CIRUdvMP6pvYmpHIfJYnLmBxqqnBiwUBDh6N8FjiFC+wM0HDQdGn3Nchap7aQj84PCZu3+/0+v9RldfIe7EwSpt7B9HXr7yYMOdncki/ksEWyxY6nfNMNctvwDXa8pv7257OslGNNlo/XVeAOyiPvQ1f89wHsKGgkRn4w=
-    // TODO: after implementing signed assertions, work out if we still to add error handling for this unwrap
-    write_event(XmlEvent::characters(&attr.signature_value.unwrap()), writer);
+    write_event(XmlEvent::characters(&signature), writer);
     // characters
     // end ds:SignatureValue
     write_event(XmlEvent::end_element().into(), writer);
@@ -161,9 +169,12 @@ pub fn add_signature<W: Write>(attr: crate::assertion::Assertion, writer: &mut E
         XmlEvent::start_element(("ds", "X509Certificate")).into(),
         writer,
     );
-    // NpWB3CIRUdvMP6pvYmpHIfJYnLmBxqqnBiwUBDh6N8FjiFC+wM0HDQdGn3Nchap7aQj84PCZu3+/0+v9RldfIe7EwSpt7B9HXr7yYMOdncki/ksEWyxY6nfNMNctvwDXa8pv7257OslGNNlo/XVeAOyiPvQ1f89wHsKGgkRn4w=
+
+    let mut stripped_cert = attr.signing_cert.clone().unwrap().get_as_pem_string(false);
+    // TODO: is this terrible, or is this terrible? It's terrible, find a better way of cleaning this up.
+    stripped_cert = stripped_cert.replace("\r\n", "").replace("\n", "").replace(" ", "");
     write_event(
-        XmlEvent::characters(&attr.certificate.get_as_pem_string(false)),
+        XmlEvent::characters(&stripped_cert),
         writer,
     );
     // end ds:X509Certificate

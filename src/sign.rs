@@ -30,15 +30,27 @@ use openssl::pkey::Private;
 use openssl::x509::X509;
 use std::fs::File;
 use std::io::prelude::*;
-use std::str::FromStr;
+use std::fmt;
+
+
 
 /// Options of Signing Algorithms for things
-#[derive(Clone, Debug)]
+///
+/// <https://www.w3.org/TR/xmldsig-core/#sec-PKCS1>
+#[derive(Copy, Clone, Debug)]
 pub enum SigningAlgorithm {
     /// SHA1 Algorithm
     Sha1,
+    /// Really?
+    Sha224,
     /// SHA256 Algorithm
     Sha256,
+    /// For when 256 isn't enough
+    Sha384,
+    /// Size does matter, I guess?
+    Sha512,
+    /// If you try to use the wrong one
+    InvalidAlgorithm,
 }
 
 // impl SigningAlgorithm {
@@ -47,23 +59,40 @@ pub enum SigningAlgorithm {
 //     }
 // }
 
-impl FromStr for SigningAlgorithm {
-    type Err = &'static str;
+impl fmt::Display for SigningAlgorithm {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+impl From<String> for SigningAlgorithm {
+    // type Err = &'static str;
+
+    fn from(s: String) -> Self {
         match s.to_lowercase().as_str() {
-            "sha1" => Ok(SigningAlgorithm::Sha1),
-            "sha256" => Ok(SigningAlgorithm::Sha256),
-            _ => Err("invalid type"),
+            "http://www.w3.org/2000/09/xmldsig#rsa-sha1" => Self::Sha1,
+            "http://www.w3.org/2001/04/xmldsig-more#rsa-sha224" => Self::Sha224,
+            "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256" => Self::Sha256,
+            "http://www.w3.org/2001/04/xmldsig-more#rsa-sha384" => Self::Sha384,
+            "http://www.w3.org/2001/04/xmldsig-more#rsa-sha512" => Self::Sha512,
+            _ => Self::InvalidAlgorithm,
         }
     }
 }
 
-impl ToString for SigningAlgorithm {
-    fn to_string(&self) -> String {
-        match self {
-            Self::Sha1 => "sha1".to_string(),
-            Self::Sha256 => "sha256".to_string(),
+impl From<SigningAlgorithm> for String {
+    fn from(sa: SigningAlgorithm) -> String {
+        match sa {
+            SigningAlgorithm::Sha1 => String::from("http://www.w3.org/2000/09/xmldsig#rsa-sha1"),
+            SigningAlgorithm::Sha224 => String::from("http://www.w3.org/2001/04/xmldsig-more#rsa-sha224"),
+            SigningAlgorithm::Sha256 => String::from("http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"),
+            SigningAlgorithm::Sha384 => String::from("http://www.w3.org/2001/04/xmldsig-more#rsa-sha384"),
+            SigningAlgorithm::Sha512 => String::from("http://www.w3.org/2001/04/xmldsig-more#rsa-sha512"),
+            _ => {
+                let result = format!("Invalid Algorithm specified: {:?}", sa);
+                log::error!("{}", result);
+                result.to_string()
+            }
         }
     }
 }
@@ -94,6 +123,71 @@ pub fn load_key_from_filename(key_filename: &str) -> Result<PKey<Private>, Strin
     match PKey::from_rsa(keypair) {
         Ok(value) => Ok(value),
         Err(error) => Err(format!("Failed to convert into PKey object: {:?}", error)),
+    }
+}
+
+/// Options of Digest Algorithms for things
+///
+/// <https://www.w3.org/TR/xmldsig-core/#sec-AlgID>
+#[derive(Copy, Clone, Debug)]
+pub enum DigestAlgorithm {
+    /// SHA1 Algorithm (Use is DISCOURAGED; see SHA-1 Warning)
+    Sha1,
+    /// Really?
+    Sha224,
+    /// SHA256 Algorithm
+    Sha256,
+    /// For when 256 isn't enough
+    Sha384,
+    /// Size does matter, I guess?
+    Sha512,
+    /// If you try to use the wrong one
+    InvalidAlgorithm,
+}
+
+impl fmt::Display for DigestAlgorithm {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl From<openssl::hash::MessageDigest> for DigestAlgorithm {
+    fn from(_md: openssl::hash::MessageDigest ) -> Self {
+        Self::InvalidAlgorithm
+    }
+}
+
+impl From<String> for DigestAlgorithm {
+    // type Err = &'static str;
+
+    fn from(s: String) -> Self {
+        match s.to_lowercase().as_str() {
+            "http://www.w3.org/2000/09/xmldsig#sha1" => Self::Sha1,
+            "http://www.w3.org/2001/04/xmlenc#sha256" => Self::Sha256,
+
+            "http://www.w3.org/2001/04/xmldsig-more#sha224" => Self::Sha224,
+            "http://www.w3.org/2001/04/xmldsig-more#sha384" => Self::Sha384,
+            "http://www.w3.org/2001/04/xmlenc#sha512" => Self::Sha512,
+            _ => Self::InvalidAlgorithm,
+        }
+    }
+}
+
+impl From<DigestAlgorithm> for String {
+    fn from(sa: DigestAlgorithm) -> String {
+        match sa {
+            DigestAlgorithm::Sha1 => String::from("http://www.w3.org/2000/09/xmldsig#sha1"),
+            DigestAlgorithm::Sha256 => String::from("http://www.w3.org/2001/04/xmlenc#sha256"),
+
+            DigestAlgorithm::Sha224 => String::from("http://www.w3.org/2001/04/xmldsig-more#sha224"),
+            DigestAlgorithm::Sha384 => String::from("http://www.w3.org/2001/04/xmldsig-more#sha384"),
+            DigestAlgorithm::Sha512 => String::from("http://www.w3.org/2001/04/xmlenc#sha512"),
+            _ => {
+                let result = format!("Invalid Algorithm specified: {:?}", sa);
+                log::error!("{}", result);
+                result.to_string()
+            }
+        }
     }
 }
 
@@ -137,7 +231,8 @@ pub fn sign_data(
     message_digest: openssl::hash::MessageDigest,
     signing_key: &openssl::pkey::PKey<openssl::pkey::Private>,
     bytes_to_sign: &[u8],
-) {
+) -> (String, String)
+{
     // Sign the data
 
     let mut signer = Signer::new(message_digest, &signing_key).unwrap();
@@ -157,7 +252,13 @@ pub fn sign_data(
 
     let digest_bytes = hash(message_digest, bytes_to_sign).unwrap();
 
-    log::debug!("base64'd digest: {:?}", base64::encode(digest_bytes));
 
-    log::debug!("base64'd signature: {:?}", base64::encode(signature));
+    let base64_encoded_digest = base64::encode(digest_bytes);
+    let base64_encoded_signature = base64::encode(signature);
+
+    log::debug!("base64'd digest: {:?}", base64_encoded_digest);
+
+    log::debug!("base64'd signature: {:?}", base64_encoded_signature);
+
+    (base64_encoded_digest, base64_encoded_signature)
 }
