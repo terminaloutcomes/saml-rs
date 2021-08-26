@@ -188,7 +188,6 @@
 <span id="186">186</span>
 <span id="187">187</span>
 <span id="188">188</span>
-<span id="189">189</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Internal utilities for doing things with XML</span>
 
@@ -234,12 +233,11 @@
 
 <span class="doccomment">/// add a signature to the statement</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">add_assertion_signature</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span>(
-        <span class="ident">attr</span>: <span class="kw-2">&amp;</span><span class="kw">crate</span><span class="ident">::assertion::Assertion</span>,
-        <span class="ident">digest</span>: <span class="ident">String</span>,
-        <span class="ident">signature</span>: <span class="ident">String</span>,
-        <span class="ident">writer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventWriter</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>,
-    ) {
-
+    <span class="ident">attr</span>: <span class="kw-2">&amp;</span><span class="kw">crate</span><span class="ident">::assertion::Assertion</span>,
+    <span class="ident">digest</span>: <span class="ident">String</span>,
+    <span class="ident">signature</span>: <span class="ident">String</span>,
+    <span class="ident">writer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">EventWriter</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>,
+) {
     <span class="ident">write_event</span>(
         <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;ds&quot;</span>, <span class="string">&quot;Signature&quot;</span>))
             .<span class="ident">attr</span>(<span class="string">&quot;xmlns:ds&quot;</span>, <span class="string">&quot;http://www.w3.org/2000/09/xmldsig#&quot;</span>)
@@ -262,8 +260,8 @@
 
     <span class="ident">write_event</span>(
         <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;ds&quot;</span>, <span class="string">&quot;SignatureMethod&quot;</span>))
-        .<span class="ident">attr</span>(<span class="string">&quot;Algorithm&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">test</span>)
-        .<span class="ident">into</span>(),
+            .<span class="ident">attr</span>(<span class="string">&quot;Algorithm&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">test</span>)
+            .<span class="ident">into</span>(),
         <span class="ident">writer</span>,
     );
     <span class="comment">//end ds:Algorithm</span>
@@ -364,11 +362,11 @@
 
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">stripped_cert</span> <span class="op">=</span> <span class="ident">attr</span>.<span class="ident">signing_cert</span>.<span class="ident">clone</span>().<span class="ident">unwrap</span>().<span class="ident">get_as_pem_string</span>(<span class="bool-val">false</span>);
     <span class="comment">// TODO: is this terrible, or is this terrible? It&#39;s terrible, find a better way of cleaning this up.</span>
-    <span class="ident">stripped_cert</span> <span class="op">=</span> <span class="ident">stripped_cert</span>.<span class="ident">replace</span>(<span class="string">&quot;\r\n&quot;</span>, <span class="string">&quot;&quot;</span>).<span class="ident">replace</span>(<span class="string">&quot;\n&quot;</span>, <span class="string">&quot;&quot;</span>).<span class="ident">replace</span>(<span class="string">&quot; &quot;</span>, <span class="string">&quot;&quot;</span>);
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::characters</span>(<span class="kw-2">&amp;</span><span class="ident">stripped_cert</span>),
-        <span class="ident">writer</span>,
-    );
+    <span class="ident">stripped_cert</span> <span class="op">=</span> <span class="ident">stripped_cert</span>
+        .<span class="ident">replace</span>(<span class="string">&quot;\r\n&quot;</span>, <span class="string">&quot;&quot;</span>)
+        .<span class="ident">replace</span>(<span class="string">&quot;\n&quot;</span>, <span class="string">&quot;&quot;</span>)
+        .<span class="ident">replace</span>(<span class="string">&quot; &quot;</span>, <span class="string">&quot;&quot;</span>);
+    <span class="ident">write_event</span>(<span class="ident">XmlEvent::characters</span>(<span class="kw-2">&amp;</span><span class="ident">stripped_cert</span>), <span class="ident">writer</span>);
     <span class="comment">// end ds:X509Certificate</span>
     <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
     <span class="comment">// end ds:X509Data</span>
