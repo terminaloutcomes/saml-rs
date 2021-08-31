@@ -117,7 +117,7 @@ pub fn add_assertion_signature<W: Write>(
     write_event(XmlEvent::end_element().into(), writer);
 
     // TODO: make digestmethod configurable
-    let digestmethod: String = String::from("http://www.w3.org/2001/04/xmldsig-more#rsa-sha256");
+    let digestmethod: String = crate::sign::DigestAlgorithm::Sha256.into();
 
     // start ds:DigestMethod
     // <https://www.w3.org/TR/xmldsig-core/#sec-DigestMethod>
