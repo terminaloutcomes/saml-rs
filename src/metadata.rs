@@ -151,7 +151,7 @@ pub fn generate_metadata_xml(metadata: SamlMetadata) -> String {
     if let Some(value) = &metadata.x509_certificate {
         let base64_encoded_certificate = value.get_as_pem_string(false);
         xml_add_certificate("signing", &base64_encoded_certificate, &mut writer);
-        xml_add_certificate("encryption", &base64_encoded_certificate, &mut writer);
+        // xml_add_certificate("encryption", &base64_encoded_certificate, &mut writer);
     };
 
     write_event(
