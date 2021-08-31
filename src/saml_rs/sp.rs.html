@@ -521,6 +521,22 @@
 <span id="519">519</span>
 <span id="520">520</span>
 <span id="521">521</span>
+<span id="522">522</span>
+<span id="523">523</span>
+<span id="524">524</span>
+<span id="525">525</span>
+<span id="526">526</span>
+<span id="527">527</span>
+<span id="528">528</span>
+<span id="529">529</span>
+<span id="530">530</span>
+<span id="531">531</span>
+<span id="532">532</span>
+<span id="533">533</span>
+<span id="534">534</span>
+<span id="535">535</span>
+<span id="536">536</span>
+<span id="537">537</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Service Provider utilities and functions</span>
 <span class="doccomment">//!</span>
@@ -946,6 +962,11 @@
                             <span class="macro">log::debug!</span>(<span class="string">&quot;Setting entityID: {}&quot;</span>, <span class="ident">attribute</span>.<span class="ident">value</span>);
                             <span class="self">self</span>.<span class="ident">entity_id</span> <span class="op">=</span> <span class="ident">attribute</span>.<span class="ident">value</span>;
                         }
+                        <span class="string">&quot;ID&quot;</span> <span class="op">=</span><span class="op">&gt;</span> {
+                            <span class="macro">log::debug!</span>(<span class="string">&quot;Setting entityID: {}&quot;</span>, <span class="ident">attribute</span>.<span class="ident">value</span>);
+                            <span class="self">self</span>.<span class="ident">entity_id</span> <span class="op">=</span> <span class="ident">attribute</span>.<span class="ident">value</span>;
+                        }
+                        <span class="comment">// TODO validUntil example value &quot;2100-01-01T00:00:42Z&quot;</span>
                         <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> {
                             <span class="macro">eprintln!</span>(
                                 <span class="string">&quot;found an EntityDescriptor attribute that&#39;s not entityID: {:?}&quot;</span>,
@@ -1000,11 +1021,22 @@
                     }
                 }
             }
+            <span class="comment">// TODO: RequestInitiator</span>
+            <span class="string">&quot;RequestInitiator&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">log::warn!</span>(<span class="string">&quot;RequestInitiator is yet to be implemented, skipping&quot;</span>),
+            <span class="comment">// TODO: SPSSODescriptor?</span>
+            <span class="comment">// &quot;SPSSODescriptor&quot; =&gt; log::warn!(&quot;SPSSODescriptor is yet to be implemented, skipping&quot;),</span>
+            <span class="comment">// TODO: SigningMethod - should be relevant to how we respond</span>
+            <span class="string">&quot;SigningMethod&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">log::warn!</span>(<span class="string">&quot;SigningMethod is yet to be implemented, skipping&quot;</span>),
+            <span class="comment">// TODO: DigestMethod - should be relevant to how we respond</span>
+            <span class="string">&quot;DigestMethod&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">log::warn!</span>(<span class="string">&quot;DigestMethod is yet to be implemented, skipping&quot;</span>),
+
             <span class="string">&quot;NameIDFormat&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for NameIDFormat&quot;</span>),
             <span class="string">&quot;KeyDescriptor&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for KeyDescriptor&quot;</span>),
             <span class="string">&quot;KeyInfo&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for KeyInfo&quot;</span>),
             <span class="string">&quot;X509Certificate&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for X509Certificate&quot;</span>),
             <span class="string">&quot;X509Data&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for X509Data&quot;</span>),
+            <span class="string">&quot;Logo&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for Logo&quot;</span>),
+            <span class="string">&quot;Description&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for Description&quot;</span>),
             <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">eprintln!</span>(
                 <span class="string">&quot;!!! Asked to parse attributes for tag={}, not caught by anything {:?}&quot;</span>,
                 <span class="ident">tag</span>, <span class="ident">attributes</span>
