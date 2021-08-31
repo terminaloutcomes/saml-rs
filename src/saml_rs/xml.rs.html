@@ -308,7 +308,7 @@
     <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
 
     <span class="comment">// TODO: make digestmethod configurable</span>
-    <span class="kw">let</span> <span class="ident">digestmethod</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">String::from</span>(<span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#rsa-sha256&quot;</span>);
+    <span class="kw">let</span> <span class="ident">digestmethod</span>: <span class="ident">String</span> <span class="op">=</span> <span class="kw">crate</span><span class="ident">::sign::DigestAlgorithm::Sha256</span>.<span class="ident">into</span>();
 
     <span class="comment">// start ds:DigestMethod</span>
     <span class="comment">// &lt;https://www.w3.org/TR/xmldsig-core/#sec-DigestMethod&gt;</span>
