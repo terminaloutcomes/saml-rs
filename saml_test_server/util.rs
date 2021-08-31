@@ -111,7 +111,10 @@ impl ServerConfig {
             _ => Vec::<String>::new(),
         };
 
+        log::debug!("Loading SP Metadata from config.");
+
         let sp_metadata = load_sp_metadata(filenames);
+        eprintln!("Done loading SP Metadata from config.");
 
         let tilde_cert_path: String = settings.get("tls_cert_path").unwrap_or_else(|error| {
             eprintln!(
@@ -158,8 +161,8 @@ impl ServerConfig {
         let saml_signing_key = match load_key_from_filename(&saml_key_path) {
             Ok(value) => value,
             Err(error) => {
-                log::error!(
-                    "Failed to load private key from {}: {:?}",
+                eprintln!(
+                    "Failed to load SAML signing key from {}: {:?}",
                     &saml_key_path,
                     error
                 );
@@ -170,8 +173,8 @@ impl ServerConfig {
         {
             Ok(value) => value,
             Err(error) => {
-                log::error!(
-                    "Failed to load private key from {}: {:?}",
+                eprintln!(
+                    "Failed to load SAML signing cert from {}: {:?}",
                     &saml_key_path,
                     error
                 );

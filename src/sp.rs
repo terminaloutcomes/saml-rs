@@ -422,6 +422,11 @@ impl ServiceProvider {
                             log::debug!("Setting entityID: {}", attribute.value);
                             self.entity_id = attribute.value;
                         }
+                        "ID" => {
+                            log::debug!("Setting entityID: {}", attribute.value);
+                            self.entity_id = attribute.value;
+                        }
+                        // TODO validUntil example value "2100-01-01T00:00:42Z"
                         _ => {
                             eprintln!(
                                 "found an EntityDescriptor attribute that's not entityID: {:?}",
@@ -476,11 +481,22 @@ impl ServiceProvider {
                     }
                 }
             }
+            // TODO: RequestInitiator
+            "RequestInitiator" => log::warn!("RequestInitiator is yet to be implemented, skipping"),
+            // TODO: SPSSODescriptor?
+            // "SPSSODescriptor" => log::warn!("SPSSODescriptor is yet to be implemented, skipping"),
+            // TODO: SigningMethod - should be relevant to how we respond
+            "SigningMethod" => log::warn!("SigningMethod is yet to be implemented, skipping"),
+            // TODO: DigestMethod - should be relevant to how we respond
+            "DigestMethod" => log::warn!("DigestMethod is yet to be implemented, skipping"),
+
             "NameIDFormat" => log::debug!("Don't need to parse attributes for NameIDFormat"),
             "KeyDescriptor" => log::debug!("Don't need to parse attributes for KeyDescriptor"),
             "KeyInfo" => log::debug!("Don't need to parse attributes for KeyInfo"),
             "X509Certificate" => log::debug!("Don't need to parse attributes for X509Certificate"),
             "X509Data" => log::debug!("Don't need to parse attributes for X509Data"),
+            "Logo" => log::debug!("Don't need to parse attributes for Logo"),
+            "Description" => log::debug!("Don't need to parse attributes for Description"),
             _ => eprintln!(
                 "!!! Asked to parse attributes for tag={}, not caught by anything {:?}",
                 tag, attributes
