@@ -1,5 +1,7 @@
 FROM rust:latest as builder
 
+# based on https://blog.logrocket.com/packaging-a-rust-web-service-using-docker/
+
 RUN mkdir /build/
 ADD . /build/
 WORKDIR /build/saml_test_server/
