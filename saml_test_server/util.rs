@@ -163,8 +163,7 @@ impl ServerConfig {
             Err(error) => {
                 eprintln!(
                     "Failed to load SAML signing key from {}: {:?}",
-                    &saml_key_path,
-                    error
+                    &saml_key_path, error
                 );
                 std::process::exit(1);
             }
@@ -175,8 +174,7 @@ impl ServerConfig {
             Err(error) => {
                 eprintln!(
                     "Failed to load SAML signing cert from {}: {:?}",
-                    &saml_key_path,
-                    error
+                    &saml_key_path, error
                 );
                 std::process::exit(1);
             }
