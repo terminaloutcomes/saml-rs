@@ -188,6 +188,10 @@
 <span id="186">186</span>
 <span id="187">187</span>
 <span id="188">188</span>
+<span id="189">189</span>
+<span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Internal utilities for doing things with XML</span>
 
@@ -217,8 +221,12 @@
             <span class="bool-val">true</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">cert_pem</span>,
             <span class="bool-val">false</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">crate</span><span class="ident">::cert::strip_cert_headers</span>(<span class="ident">cert_pem</span>),
         };
-        <span class="macro">log::debug!</span>(<span class="string">&quot;get_as_pem_string&quot;</span>);
+        <span class="macro">log::debug!</span>(
+            <span class="string">&quot;############### start get_as_pem_string includeheaders: {} ###############&quot;</span>,
+            <span class="ident">includeheaders</span>
+        );
         <span class="macro">log::debug!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">result</span>);
+        <span class="macro">log::debug!</span>(<span class="string">&quot;############### end get_as_pem_string ###############&quot;</span>);
         <span class="ident">result</span>
     }
 }

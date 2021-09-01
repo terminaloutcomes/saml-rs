@@ -76,6 +76,8 @@
 <span id="74">74</span>
 <span id="75">75</span>
 <span id="76">76</span>
+<span id="77">77</span>
+<span id="78">78</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Certificate and signing-related things</span>
 
@@ -135,6 +137,8 @@ https://docs.rs/openssl/0.10.35/openssl/pkey/index.html
     <span class="ident">cert_string</span>
         .<span class="ident">replace</span>(<span class="string">&quot;-----BEGIN CERTIFICATE-----&quot;</span>, <span class="string">&quot;&quot;</span>)
         .<span class="ident">replace</span>(<span class="string">&quot;-----END CERTIFICATE-----&quot;</span>, <span class="string">&quot;&quot;</span>)
+        .<span class="ident">trim</span>()
+        .<span class="ident">to_string</span>()
 }
 
 <span class="doccomment">/// generates a really terrible self-signed certificate for testing purposes</span>
