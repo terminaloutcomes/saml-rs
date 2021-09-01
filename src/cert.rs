@@ -56,6 +56,8 @@ pub fn strip_cert_headers(cert_string: String) -> String {
     cert_string
         .replace("-----BEGIN CERTIFICATE-----", "")
         .replace("-----END CERTIFICATE-----", "")
+        .trim()
+        .to_string()
 }
 
 /// generates a really terrible self-signed certificate for testing purposes

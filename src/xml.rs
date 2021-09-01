@@ -26,8 +26,12 @@ impl X509Utils for openssl::x509::X509 {
             true => cert_pem,
             false => crate::cert::strip_cert_headers(cert_pem),
         };
-        log::debug!("get_as_pem_string");
+        log::debug!(
+            "############### start get_as_pem_string includeheaders: {} ###############",
+            includeheaders
+        );
         log::debug!("{}", result);
+        log::debug!("############### end get_as_pem_string ###############");
         result
     }
 }

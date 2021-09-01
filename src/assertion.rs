@@ -82,6 +82,31 @@ pub struct Assertion {
     pub signing_cert: Option<X509>,
 }
 
+fn write_assertion_tmpdir(buffer: &[u8]) {
+    let mut assertionpath = std::env::temp_dir();
+    let mut assertionfilename: String = chrono::Utc::now().timestamp().to_string();
+    assertionfilename.push_str("-assertionout.xml");
+    assertionpath.set_file_name(assertionfilename);
+    log::debug!("Assertion filename: {:?}", &assertionpath);
+    let mut assertionfile = match std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        // either use ? or unwrap since it returns a Result
+        .open(assertionpath.into_os_string())
+    {
+        Ok(value) => value,
+        Err(e) => {
+            log::error!("Failed to open assertionout {:?}", e);
+            std::process::exit(1)
+        }
+    };
+
+    match assertionfile.write_all(&buffer) {
+        Ok(value) => log::debug!("{:?}", value),
+        Err(e) => log::error!("{:?}", e),
+    };
+}
+
 /// Creates a String full of XML based on the ResponsElements
 #[allow(clippy::from_over_into)]
 impl Into<Vec<u8>> for Assertion {
@@ -97,7 +122,10 @@ impl Into<Vec<u8>> for Assertion {
             .create_writer(&mut buffer);
 
         self.add_assertion_to_xml(&mut writer);
-        log::debug!("Assertion into vec result: {}", from_utf8(&buffer).unwrap());
+        log::debug!("Assertion into vec result:");
+        log::debug!("{}", from_utf8(&buffer).unwrap());
+
+        write_assertion_tmpdir(&buffer);
         buffer
     }
 }
@@ -227,7 +255,7 @@ impl Assertion {
         } else {
             // add an extra newline to the thing before signing, per https://www.di-mgt.com.au/xmldsig2.html
             // the spaces indent the next tag...
-            write_event(XmlEvent::characters("\n\n  "), writer);
+            write_event(XmlEvent::characters("\n  \n  "), writer);
 
             log::warn!("Unsigned assertion was built, this seems bad!");
         }
