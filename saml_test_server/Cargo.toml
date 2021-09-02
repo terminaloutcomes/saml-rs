@@ -3,10 +3,13 @@ name = "saml_test_server"
 version = "0.1.0"
 authors = ["James Hodgkinson <james@terminaloutcomes.com>"]
 edition = "2018"
+default-run = "saml_test_server"
 
 [[bin]]
 name = "saml_test_server"
 path = "saml_test_server.rs"
+
+
 
 [dependencies]
 
@@ -57,3 +60,7 @@ driftwood = "0.0.6"
 
 # html generation
 tera = "1"
+
+# for test_digest
+sha-1 = "0.9.8"
+hex = "0.4.3"

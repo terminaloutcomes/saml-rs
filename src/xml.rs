@@ -45,19 +45,14 @@ pub fn write_event<W: Write>(event: XmlEvent, writer: &mut EventWriter<W>) -> St
 }
 
 /// add a signature to the statement
-pub fn add_assertion_signature<W: Write>(
+pub fn generate_signedinfo<W: Write>(
     attr: &crate::assertion::Assertion,
-    digest: String,
-    signature: String,
+    digest: &str,
     writer: &mut EventWriter<W>,
 ) {
-    write_event(
-        XmlEvent::start_element(("ds", "Signature"))
-            .attr("xmlns:ds", "http://www.w3.org/2000/09/xmldsig#")
-            .into(),
-        writer,
-    );
+    // start ds:SignedInfo
     write_event(XmlEvent::start_element(("ds", "SignedInfo")).into(), writer);
+    // start CanonicalizationMethod Tag
     write_event(
         XmlEvent::start_element(("ds", "CanonicalizationMethod"))
             .attr("Algorithm", "http://www.w3.org/2001/10/xml-exc-c14n#")
@@ -120,12 +115,10 @@ pub fn add_assertion_signature<W: Write>(
     //end ds:Transforms
     write_event(XmlEvent::end_element().into(), writer);
 
-    // TODO: make digestmethod configurable
-    let digestmethod: String = crate::sign::DigestAlgorithm::Sha256.into();
+    let digestmethod: String = attr.digest_algorithm.into();
 
     // start ds:DigestMethod
     // <https://www.w3.org/TR/xmldsig-core/#sec-DigestMethod>
-
     write_event(
         XmlEvent::start_element(("ds", "DigestMethod"))
             .attr("Algorithm", &digestmethod)
@@ -151,6 +144,23 @@ pub fn add_assertion_signature<W: Write>(
 
     //end ds:SignedInfo
     write_event(XmlEvent::end_element().into(), writer);
+}
+
+/// add a signature to the statement
+pub fn add_assertion_signature<W: Write>(
+    attr: &crate::assertion::Assertion,
+    digest: String,
+    base64_encoded_signature: String,
+    writer: &mut EventWriter<W>,
+) {
+    write_event(
+        XmlEvent::start_element(("ds", "Signature"))
+            .attr("xmlns:ds", "http://www.w3.org/2000/09/xmldsig#")
+            .into(),
+        writer,
+    );
+
+    generate_signedinfo(attr, &digest, writer);
 
     // start ds:SignatureValue
     write_event(
@@ -158,7 +168,7 @@ pub fn add_assertion_signature<W: Write>(
         writer,
     );
 
-    write_event(XmlEvent::characters(&signature), writer);
+    write_event(XmlEvent::characters(&base64_encoded_signature), writer);
     // characters
     // end ds:SignatureValue
     write_event(XmlEvent::end_element().into(), writer);

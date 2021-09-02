@@ -241,17 +241,53 @@ impl Assertion {
                 panic!("You tried to sign an assertion without setting a signing key...");
             }
 
+            // 1. generate the assertion, a big lump of XML
             let unsigned_assertion = self.clone().without_signature();
-
             let xmldata: Vec<u8> = unsigned_assertion.into();
-            let key = self.signing_key.as_ref().unwrap();
-            // TODO: replace the openssl::hash::MessageDigest::sha256() with the configured signature type
-            let (digest, signature) =
-                crate::sign::sign_data(openssl::hash::MessageDigest::sha256(), key, &xmldata);
-            log::debug!("in assertion digest {:?}", digest);
-            log::debug!("in assertion signature {:?}", signature);
 
-            crate::xml::add_assertion_signature(self, digest, signature, writer);
+            // 2. take a hash of that.
+            let digest_bytes = self.digest_algorithm.hash(&xmldata).unwrap();
+
+            // 3. base64 encode #2
+            let base64_encoded_digest = base64::encode(&digest_bytes);
+
+            // 4. you put #3 into ANOTHER chunk of XML.
+            let mut signedinfo_buffer = Vec::new();
+            let mut signedinfo_writer = EmitterConfig::new()
+                .perform_indent(true)
+                .pad_self_closing(false)
+                .write_document_declaration(false)
+                .normalize_empty_elements(false)
+                .create_writer(&mut signedinfo_buffer);
+
+            crate::xml::generate_signedinfo(self, &base64_encoded_digest, &mut signedinfo_writer);
+            log::debug!("SignedInfo Element:");
+            log::debug!("{}", from_utf8(&signedinfo_buffer).unwrap());
+
+            // 5. you hash #4.
+            let hashed_signedinfo = base64::encode(signedinfo_buffer);
+            log::debug!("Hashed Signedinfo: {}", hashed_signedinfo);
+
+            // 6. you sign #5
+            let key = self.signing_key.as_ref().unwrap();
+            let signed_result =
+                crate::sign::sign_data(self.signing_algorithm, key, &hashed_signedinfo.as_bytes());
+            log::debug!("Signature result: {:?}", &signed_result);
+
+            let base64_encoded_signature = base64::encode(&signed_result);
+            log::debug!(
+                "Base64 encoded signature result: {:?}",
+                &base64_encoded_signature
+            );
+
+            // 7. then you put #4 and #6 inside some other xml inside #1.
+
+            crate::xml::add_assertion_signature(
+                self,
+                base64_encoded_digest,
+                base64_encoded_signature,
+                writer,
+            );
         } else {
             // add an extra newline to the thing before signing, per https://www.di-mgt.com.au/xmldsig2.html
             // the spaces indent the next tag...

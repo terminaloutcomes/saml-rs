@@ -21,6 +21,7 @@
 //! Thats it. SAML is completely awful. There are tons of little subtleties that make implementing SAML a nightmare(like calculating the canonical form of a subset of the XML(the assertion), also the XML version of XML documents is not included.
 //!
 
+// use openssl::hash::hash;
 use openssl::pkey::PKey;
 use openssl::rsa::Rsa;
 use openssl::sign::{Signer, Verifier};
@@ -49,6 +50,19 @@ pub enum SigningAlgorithm {
     Sha512,
     /// If you try to use the wrong one
     InvalidAlgorithm,
+}
+
+impl From<SigningAlgorithm> for openssl::hash::MessageDigest {
+    fn from(src: SigningAlgorithm) -> openssl::hash::MessageDigest {
+        match src {
+            SigningAlgorithm::Sha1 => openssl::hash::MessageDigest::sha1(),
+            SigningAlgorithm::Sha224 => openssl::hash::MessageDigest::sha224(),
+            SigningAlgorithm::Sha256 => openssl::hash::MessageDigest::sha256(),
+            SigningAlgorithm::Sha384 => openssl::hash::MessageDigest::sha384(),
+            SigningAlgorithm::Sha512 => openssl::hash::MessageDigest::sha512(),
+            SigningAlgorithm::InvalidAlgorithm => panic!("How did you even get here?"),
+        }
+    }
 }
 
 // impl SigningAlgorithm {
@@ -157,6 +171,19 @@ impl fmt::Display for DigestAlgorithm {
     }
 }
 
+impl From<DigestAlgorithm> for openssl::hash::MessageDigest {
+    fn from(src: DigestAlgorithm) -> openssl::hash::MessageDigest {
+        match src {
+            DigestAlgorithm::Sha1 => openssl::hash::MessageDigest::sha1(),
+            DigestAlgorithm::Sha224 => openssl::hash::MessageDigest::sha224(),
+            DigestAlgorithm::Sha256 => openssl::hash::MessageDigest::sha256(),
+            DigestAlgorithm::Sha384 => openssl::hash::MessageDigest::sha384(),
+            DigestAlgorithm::Sha512 => openssl::hash::MessageDigest::sha512(),
+            DigestAlgorithm::InvalidAlgorithm => panic!("How did you even get here?"),
+        }
+    }
+}
+
 impl From<openssl::hash::MessageDigest> for DigestAlgorithm {
     fn from(_md: openssl::hash::MessageDigest) -> Self {
         Self::InvalidAlgorithm
@@ -164,8 +191,6 @@ impl From<openssl::hash::MessageDigest> for DigestAlgorithm {
 }
 
 impl From<String> for DigestAlgorithm {
-    // type Err = &'static str;
-
     fn from(s: String) -> Self {
         match s.to_lowercase().as_str() {
             "http://www.w3.org/2000/09/xmldsig#sha1" => Self::Sha1,
@@ -234,39 +259,49 @@ pub fn load_public_cert_from_filename(cert_filename: &str) -> Result<X509, Strin
     }
 }
 
+impl DigestAlgorithm {
+    /// Hash a set of bytes using an [openssl::hash::MessageDigest]
+    ///
+    pub fn hash(
+        self,
+        bytes_to_hash: &[u8],
+    ) -> Result<openssl::hash::DigestBytes, openssl::error::ErrorStack> {
+        // do the hashy bit
+        match openssl::hash::hash(self.into(), bytes_to_hash) {
+            Ok(value) => {
+                debug!("Hashed bytes result: {:?}", value);
+                Ok(value)
+            }
+            Err(error) => {
+                eprintln!("Failed to hash bytes: {:?}", error);
+                Err(error)
+            }
+        }
+    }
+}
 // TODO add some testing, and validation of sign_data
 // TODO implement sign_data properly
 /// Sign some data, with a key
 pub fn sign_data(
-    message_digest: openssl::hash::MessageDigest,
+    signing_algorithm: crate::sign::SigningAlgorithm,
     signing_key: &openssl::pkey::PKey<openssl::pkey::Private>,
     bytes_to_sign: &[u8],
-) -> (String, String) {
+) -> Vec<u8> {
     // Sign the data
 
-    let mut signer = Signer::new(message_digest, &signing_key).unwrap();
+    let signing_algorithm: openssl::hash::MessageDigest = signing_algorithm.into();
+    let mut signer = Signer::new(signing_algorithm, &signing_key).unwrap();
     signer.update(bytes_to_sign).unwrap();
 
     let signature = signer.sign_to_vec().unwrap();
-    log::error!("Signature: {:?}", signature);
+    log::debug!("Signature: {:?}", signature);
 
     // Verify the data
-    let mut verifier = Verifier::new(message_digest, &signing_key).unwrap();
+    let mut verifier = Verifier::new(signing_algorithm, &signing_key).unwrap();
     verifier.update(bytes_to_sign).unwrap();
     // verifier.update(data2).unwrap();
     assert!(verifier.verify(&signature).unwrap());
     log::error!("Signed things, maybe?");
 
-    use openssl::hash::hash;
-
-    let digest_bytes = hash(message_digest, bytes_to_sign).unwrap();
-
-    let base64_encoded_digest = base64::encode(digest_bytes);
-    let base64_encoded_signature = base64::encode(signature);
-
-    log::debug!("base64'd digest: {:?}", base64_encoded_digest);
-
-    log::debug!("base64'd signature: {:?}", base64_encoded_signature);
-
-    (base64_encoded_digest, base64_encoded_signature)
+    signature
 }

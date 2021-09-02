@@ -14,3 +14,19 @@ impl DateTimeUtils for DateTime<Utc> {
         self.to_rfc3339_opts(SecondsFormat::Secs, true)
     }
 }
+
+/// Takes a [Vec<u8>] and turns it into a [String]
+///
+/// With an optional "join" string to allow you to space it out etc.
+///
+/// From <https://illegalargumentexception.blogspot.com/2015/05/rust-byte-array-to-hex-string.html>
+pub fn to_hex_string(bytes: Vec<u8>, join: Option<&str>) -> String {
+    let strs: Vec<String> = bytes
+        .iter()
+        .map(|b| format!("{:02X}", b).to_lowercase())
+        .collect();
+    match join {
+        Some(joinval) => strs.join(joinval),
+        None => strs.join(""),
+    }
+}
