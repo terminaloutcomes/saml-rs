@@ -255,9 +255,9 @@ impl Assertion {
             let mut signedinfo_buffer = Vec::new();
             let mut signedinfo_writer = EmitterConfig::new()
                 .perform_indent(true)
-                .pad_self_closing(false)
                 .write_document_declaration(false)
-                .normalize_empty_elements(false)
+                .normalize_empty_elements(true)
+                .pad_self_closing(false)
                 .create_writer(&mut signedinfo_buffer);
 
             crate::xml::generate_signedinfo(self, &base64_encoded_digest, &mut signedinfo_writer);
