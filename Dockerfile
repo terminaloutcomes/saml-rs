@@ -28,4 +28,8 @@ RUN chown -R $APP_USER:$APP_USER ${APP}
 USER $APP_USER
 WORKDIR ${APP}
 
+# dumb-init fixes the "can't ctrl-c to kill this" problem
+# <https://github.com/Yelp/dumb-init>
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+
 CMD ["./saml_test_server"]
