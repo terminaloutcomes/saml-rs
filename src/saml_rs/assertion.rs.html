@@ -746,9 +746,9 @@
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">signedinfo_buffer</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">signedinfo_writer</span> <span class="op">=</span> <span class="ident">EmitterConfig::new</span>()
                 .<span class="ident">perform_indent</span>(<span class="bool-val">true</span>)
-                .<span class="ident">pad_self_closing</span>(<span class="bool-val">false</span>)
                 .<span class="ident">write_document_declaration</span>(<span class="bool-val">false</span>)
-                .<span class="ident">normalize_empty_elements</span>(<span class="bool-val">false</span>)
+                .<span class="ident">normalize_empty_elements</span>(<span class="bool-val">true</span>)
+                .<span class="ident">pad_self_closing</span>(<span class="bool-val">false</span>)
                 .<span class="ident">create_writer</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">signedinfo_buffer</span>);
 
             <span class="kw">crate</span><span class="ident">::xml::generate_signedinfo</span>(<span class="self">self</span>, <span class="kw-2">&amp;</span><span class="ident">base64_encoded_digest</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">signedinfo_writer</span>);
