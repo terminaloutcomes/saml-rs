@@ -11,6 +11,7 @@ FROM debian:buster-slim
 ARG APP=/usr/src/app
 
 RUN apt-get update \
+    && apt-get -y upgrade \
     && apt-get install -y ca-certificates tzdata dumb-init \
     && rm -rf /var/lib/apt/lists/*
 
