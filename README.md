@@ -1,23 +1,25 @@
 # saml-rs
 
-A library for doing SAML things, terribly, in rust.
+My main aim at the moment is to provide IdP capabilities for the [Kanidm](https://github.com/kanidm/kanidm) project, if you want to help - please log PRs/Issues against [terminaloutcomes/saml-rs](https://github.com/terminaloutcomes/saml-rs).
+
+## Please help! 
+
+I can't work out how to get signed assertions to validate in any publicly-available SP implementation :(
 
 This library's in a lot of flux right now, if you're using it from Github then... sorry? Once it's published as a crate you'll have a relatively stable target, as much as that'll help?
 
-My main aim at the moment is to provide IdP capabilities for the [Kanidm](https://github.com/kanidm/kanidm) project, if you want to help - please log PRs/Issues against [terminaloutcomes/saml-rs](https://github.com/terminaloutcomes/saml-rs).
-
-# Documentation
+## Documentation
 
 The automatically-generated documentation based on the `main` branch is here: https://terminaloutcomes.github.io/saml-rs/saml_rs/
 
 
-# Generating the SAML keys for the test server.
+## Generating the SAML keys for the test server.
 
 You'll need cloudflare's SSL toolkit [cloudflare/ssl](https://github.com/cloudflare/cfssl).
 
 This assumes you're running it from `~/certs`
 
-## Create a config.json
+### Create a config.json
 
 ```json
 {
@@ -40,7 +42,7 @@ This assumes you're running it from `~/certs`
 }
 ```
 
-## Running commands
+### Running commands
 
 This generates a CA cert, then signs a certificate for it with the same name. It's janky but it works.
 
