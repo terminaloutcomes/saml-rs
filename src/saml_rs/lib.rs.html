@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src&#x2F;lib.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>lib.rs - source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script id="default-settings" ></script><script src="../../storage.js"></script><script src="../../crates.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../favicon.svg"><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu" role="button">&#9776;</div><a href='../../saml_rs/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu" title="themes"><img width="18" height="18" alt="Pick another theme!" src="../../brush.svg"></button><div id="theme-choices" role="menu"></div></div><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input"name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" id="help-button" title="help">?</button><a id="settings-menu" href="../../settings.html" title="settings"><img width="18" height="18" alt="Change settings" src="../../wheel.svg"></a></div></form></nav><section id="main" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">  1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src&#x2F;lib.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>lib.rs - source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script id="default-settings" ></script><script src="../../storage.js"></script><script src="../../crates.js"></script><script defer src="../../main.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script>
+    <noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu" role="button">&#9776;</div><a href='../../saml_rs/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu" title="themes"><img width="18" height="18" alt="Pick another theme!" src="../../brush.svg"></button><div id="theme-choices" role="menu"></div></div><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" id="help-button" title="help">?</button><a id="settings-menu" href="../../settings.html" title="settings"><img width="18" height="18" alt="Change settings" src="../../wheel.svg"></a></div></form></nav><section id="main" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
 <span id="4">  4</span>
@@ -480,8 +481,7 @@
 <span id="480">480</span>
 <span id="481">481</span>
 <span id="482">482</span>
-</pre><pre class="rust">
-<span class="doccomment">//! A library for doing SAML things, terribly, in rust.</span>
+</pre><pre class="rust"><code><span class="doccomment">//! A library for doing SAML things, terribly, in rust.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! My main aim at the moment is to provide IdP capabilities for the [Kanidm](https://github.com/kanidm/kanidm) project.</span>
 <span class="doccomment">//!</span>
@@ -616,7 +616,7 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// TODO: doctest for AuthnRequest::From&lt;AuthnRequestParser&gt;</span>
     <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::or_fun_call</span>)]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">parser</span>: <span class="ident">AuthnRequestParser</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">parser</span>: <span class="ident">AuthnRequestParser</span>) -&gt; <span class="self">Self</span> {
         <span class="ident">AuthnRequest</span> {
             <span class="ident">relay_state</span>: <span class="ident">parser</span>.<span class="ident">relay_state</span>.<span class="ident">unwrap</span>(),
             <span class="ident">issue_instant</span>: <span class="ident">parser</span>.<span class="ident">issue_instant</span>.<span class="ident">unwrap_or</span>(<span class="ident">Utc::now</span>()),
@@ -630,7 +630,7 @@
     }
 
     <span class="doccomment">/// Return the issue instant in the required form</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">issue_instant_string</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">issue_instant_string</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">String</span> {
         <span class="self">self</span>.<span class="ident">issue_instant</span>
             .<span class="ident">to_rfc3339_opts</span>(<span class="ident">SecondsFormat::Secs</span>, <span class="bool-val">true</span>)
     }
@@ -669,7 +669,7 @@
 
 <span class="kw">impl</span> <span class="ident">AuthnRequestParser</span> {
     <span class="doccomment">/// Generate a new [AuthnRequestParser]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() -&gt; <span class="self">Self</span> {
         <span class="ident">AuthnRequestParser</span> {
             <span class="ident">relay_state</span>: <span class="prelude-val">None</span>,
             <span class="ident">issue_instant</span>: <span class="prelude-val">None</span>,
@@ -692,14 +692,14 @@
 
 <span class="kw">impl</span> <span class="ident">AuthnDecodeError</span> {
     <span class="doccomment">/// Generatin&#39; a new AuthDecodeError</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">message</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">AuthnDecodeError</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">message</span>: <span class="ident">String</span>) -&gt; <span class="ident">AuthnDecodeError</span> {
         <span class="ident">AuthnDecodeError</span> { <span class="ident">message</span> }
     }
 }
 
 <span class="comment">// A unique format for dubugging output</span>
 <span class="kw">impl</span> <span class="ident">fmt::Debug</span> <span class="kw">for</span> <span class="ident">AuthnDecodeError</span> {
-    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt::Formatter</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">fmt::Result</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;mut</span> <span class="ident">fmt::Formatter</span>) -&gt; <span class="ident">fmt::Result</span> {
         <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;AuthnDecodeError {{ message: {} }}&quot;</span>, <span class="self">self</span>.<span class="ident">message</span>)
     }
 }
@@ -724,19 +724,19 @@
 
 <span class="doccomment">/// Does the decoding to hand the signature to the verifier</span>
 <span class="comment">// TODO: is string the best retval for decode_authn_request_signature</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">decode_authn_request_signature</span>(<span class="ident">signature</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">decode_authn_request_signature</span>(<span class="ident">signature</span>: <span class="ident">String</span>) -&gt; <span class="ident">String</span> {
     <span class="macro">debug!</span>(<span class="string">&quot;signature: {:?}&quot;</span>, <span class="ident">signature</span>);
     <span class="ident">signature</span>
 }
 
 <span class="doccomment">/// Removes base64 encoding and also deflates the input String.</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">decode_authn_request_base64_encoded</span>(<span class="ident">req</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">AuthnDecodeError</span><span class="op">&gt;</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">decode_authn_request_base64_encoded</span>(<span class="ident">req</span>: <span class="ident">String</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">AuthnDecodeError</span><span class="op">&gt;</span> {
     <span class="kw">let</span> <span class="ident">base64_decoded_samlrequest</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">base64::decode</span>(<span class="ident">req</span>) {
-        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> {
+        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; {
             <span class="macro">debug!</span>(<span class="string">&quot;Successfully Base64 Decoded the SAMLRequest&quot;</span>);
             <span class="ident">value</span>
         }
-        <span class="prelude-val">Err</span>(<span class="ident">err</span>) <span class="op">=</span><span class="op">&gt;</span> {
+        <span class="prelude-val">Err</span>(<span class="ident">err</span>) =&gt; {
             <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">AuthnDecodeError::new</span>(<span class="macro">format!</span>(
                 <span class="string">&quot;Failed to base64 decode SAMLRequest in saml_redirect_get {:?}&quot;</span>,
                 <span class="ident">err</span>
@@ -745,7 +745,7 @@
     };
     <span class="comment">// here we try and use libflate to deflate the base64-decoded bytes because compression is used</span>
     <span class="kw">let</span> <span class="ident">inflated_result</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">inflate_bytes</span>(<span class="kw-2">&amp;</span><span class="ident">base64_decoded_samlrequest</span>) {
-        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> {
+        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; {
             <span class="macro">debug!</span>(
                 <span class="string">&quot;Successfully inflated the base64-decoded bytes: {:?}&quot;</span>,
                 <span class="ident">from_utf8</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">unwrap_or</span>(<span class="string">&quot;Couldn&#39;t utf-8 decode this mess&quot;</span>)
@@ -753,14 +753,14 @@
             <span class="ident">value</span>
         }
         <span class="comment">// if it fails, it&#39;s probably fine to return the bare bytes as they&#39;re already a string?</span>
-        <span class="prelude-val">Err</span>(<span class="ident">error</span>) <span class="op">=</span><span class="op">&gt;</span> {
+        <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; {
             <span class="macro">debug!</span>(<span class="string">&quot;Failed to inflate bytes ({:?})&quot;</span>, <span class="ident">error</span>);
             <span class="ident">base64_decoded_samlrequest</span>
         }
     };
     <span class="kw">match</span> <span class="ident">from_utf8</span>(<span class="kw-2">&amp;</span><span class="ident">inflated_result</span>) {
-        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Ok</span>(<span class="ident">value</span>.<span class="ident">to_string</span>()),
-        <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Err</span>(<span class="ident">AuthnDecodeError::new</span>(<span class="macro">format!</span>(
+        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="ident">value</span>.<span class="ident">to_string</span>()),
+        <span class="kw">_</span> =&gt; <span class="prelude-val">Err</span>(<span class="ident">AuthnDecodeError::new</span>(<span class="macro">format!</span>(
             <span class="string">&quot;Failed to utf-8 encode the result: {:?}&quot;</span>,
             <span class="ident">inflated_result</span>
         ))),
@@ -772,27 +772,27 @@
     <span class="ident">local</span>: <span class="ident">StrSpan</span>,
     <span class="ident">value</span>: <span class="ident">StrSpan</span>,
     <span class="kw-2">mut</span> <span class="ident">req</span>: <span class="ident">AuthnRequestParser</span>,
-) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">AuthnRequestParser</span>, <span class="ident">AuthnDecodeError</span><span class="op">&gt;</span> {
+) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">AuthnRequestParser</span>, <span class="ident">AuthnDecodeError</span><span class="op">&gt;</span> {
     <span class="kw">match</span> <span class="ident">local</span>.<span class="ident">to_lowercase</span>().<span class="ident">as_str</span>() {
-        <span class="string">&quot;destination&quot;</span> <span class="op">=</span><span class="op">&gt;</span> {
+        <span class="string">&quot;destination&quot;</span> =&gt; {
             <span class="ident">req</span>.<span class="ident">destination</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">value</span>.<span class="ident">to_string</span>());
         }
-        <span class="string">&quot;id&quot;</span> <span class="op">=</span><span class="op">&gt;</span> {
+        <span class="string">&quot;id&quot;</span> =&gt; {
             <span class="ident">req</span>.<span class="ident">relay_state</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">value</span>.<span class="ident">to_string</span>());
         }
-        <span class="string">&quot;issueinstant&quot;</span> <span class="op">=</span><span class="op">&gt;</span> {
+        <span class="string">&quot;issueinstant&quot;</span> =&gt; {
             <span class="macro">debug!</span>(<span class="string">&quot;Found issueinstant: {}&quot;</span>, <span class="ident">value</span>.<span class="ident">to_string</span>());
 
             <span class="comment">// Date parsing... 2021-07-19T12:06:25Z</span>
             <span class="kw">let</span> <span class="ident">parsed_datetime</span> <span class="op">=</span> <span class="ident">DateTime::parse_from_rfc3339</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>);
             <span class="macro">debug!</span>(<span class="string">&quot;parsed_datetime: {:?}&quot;</span>, <span class="ident">parsed_datetime</span>);
             <span class="kw">match</span> <span class="ident">parsed_datetime</span> {
-                <span class="prelude-val">Ok</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; {
                     <span class="macro">debug!</span>(<span class="string">&quot;Setting issue_instant&quot;</span>);
                     <span class="kw">let</span> <span class="ident">result</span>: <span class="ident">DateTime</span><span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">value</span>.<span class="ident">into</span>();
                     <span class="ident">req</span>.<span class="ident">issue_instant</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">result</span>);
                 }
-                <span class="prelude-val">Err</span>(<span class="ident">error</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; {
                     <span class="macro">eprintln!</span>(
                         <span class="string">&quot;Failed to cast datetime source={:?}, error=\&quot;{}\&quot;&quot;</span>,
                         <span class="ident">value</span>.<span class="ident">to_string</span>(),
@@ -801,10 +801,10 @@
                 }
             };
         }
-        <span class="string">&quot;assertionconsumerserviceurl&quot;</span> <span class="op">=</span><span class="op">&gt;</span> {
+        <span class="string">&quot;assertionconsumerserviceurl&quot;</span> =&gt; {
             <span class="ident">req</span>.<span class="ident">consumer_service_url</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">value</span>.<span class="ident">to_string</span>());
         }
-        <span class="string">&quot;version&quot;</span> <span class="op">=</span><span class="op">&gt;</span> {
+        <span class="string">&quot;version&quot;</span> =&gt; {
             <span class="kw">if</span> <span class="ident">value</span>.<span class="ident">to_string</span>() <span class="op">!</span><span class="op">=</span> <span class="string">&quot;2.0&quot;</span> {
                 <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">AuthnDecodeError::new</span>(<span class="macro">format!</span>(
                     <span class="string">&quot;SAML Request where version!=2.0 ({}), this is probably bad.&quot;</span>,
@@ -813,7 +813,7 @@
             }
             <span class="ident">req</span>.<span class="ident">version</span> <span class="op">=</span> <span class="ident">value</span>.<span class="ident">to_string</span>();
         }
-        <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">debug!</span>(
+        <span class="kw">_</span> =&gt; <span class="macro">debug!</span>(
             <span class="string">&quot;Found tokenizer attribute={}, value={}&quot;</span>,
             <span class="ident">local</span>.<span class="ident">to_lowercase</span>().<span class="ident">as_str</span>(),
             <span class="ident">value</span>.<span class="ident">to_string</span>()
@@ -828,13 +828,13 @@
 <span class="kw">fn</span> <span class="ident">parse_authn_tokenizer_element_start</span>(
     <span class="ident">local</span>: <span class="ident">StrSpan</span>,
     <span class="kw-2">mut</span> <span class="ident">req</span>: <span class="ident">AuthnRequestParser</span>,
-) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">AuthnRequestParser</span> {
+) -&gt; <span class="ident">AuthnRequestParser</span> {
     <span class="macro">debug!</span>(
         <span class="string">&quot;parse_authn_tokenizer_element_start: {}&quot;</span>,
         <span class="ident">local</span>.<span class="ident">to_lowercase</span>().<span class="ident">as_str</span>()
     );
-    <span class="kw">if</span> <span class="ident">local</span>.<span class="ident">to_lowercase</span>().<span class="ident">as_str</span>() <span class="op">=</span><span class="op">=</span> <span class="string">&quot;issuer&quot;</span> {
-        <span class="kw">if</span> <span class="ident">req</span>.<span class="ident">issuer_state</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span> {
+    <span class="kw">if</span> <span class="ident">local</span>.<span class="ident">to_lowercase</span>().<span class="ident">as_str</span>() <span class="op">==</span> <span class="string">&quot;issuer&quot;</span> {
+        <span class="kw">if</span> <span class="ident">req</span>.<span class="ident">issuer_state</span> <span class="op">==</span> <span class="number">0</span> {
             <span class="ident">req</span>.<span class="ident">issuer_state</span> <span class="op">=</span> <span class="number">1</span>;
             <span class="macro">debug!</span>(<span class="string">&quot;Found a text tag called issuer, moving to issuer-finding state machine state 1&quot;</span>)
         } <span class="kw">else</span> {
@@ -851,7 +851,7 @@
 }
 
 <span class="doccomment">/// Give it a string full of XML and it&#39;ll give you back a [AuthnRequest] object which has the details</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">parse_authn_request</span>(<span class="ident">request_data</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">AuthnRequest</span>, <span class="ident">String</span><span class="op">&gt;</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">parse_authn_request</span>(<span class="ident">request_data</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">AuthnRequest</span>, <span class="ident">String</span><span class="op">&gt;</span> {
     <span class="comment">// more examples here</span>
     <span class="comment">// https://developers.onelogin.com/saml/examples/authnrequest</span>
 
@@ -859,16 +859,16 @@
     <span class="kw">let</span> <span class="ident">tokenizer</span> <span class="op">=</span> <span class="ident">xmlparser::Tokenizer::from</span>(<span class="ident">request_data</span>);
     <span class="kw">for</span> <span class="ident">token</span> <span class="kw">in</span> <span class="ident">tokenizer</span> {
         <span class="kw">match</span> <span class="ident">token</span> {
-            <span class="prelude-val">Ok</span>(<span class="ident">token_value</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="prelude-val">Ok</span>(<span class="ident">token_value</span>) =&gt; {
                 <span class="ident">saml_request</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">token_value</span> {
                     <span class="ident">Token::Attribute</span> {
                         <span class="ident">prefix</span>: <span class="kw">_</span>,
                         <span class="ident">local</span>,
                         <span class="ident">value</span>,
                         <span class="ident">span</span>: <span class="kw">_</span>,
-                    } <span class="op">=</span><span class="op">&gt;</span> <span class="kw">match</span> <span class="ident">parse_authn_tokenizer_attribute</span>(<span class="ident">local</span>, <span class="ident">value</span>, <span class="ident">saml_request</span>) {
-                        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">value</span>,
-                        <span class="prelude-val">Err</span>(<span class="ident">error</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                    } =&gt; <span class="kw">match</span> <span class="ident">parse_authn_tokenizer_attribute</span>(<span class="ident">local</span>, <span class="ident">value</span>, <span class="ident">saml_request</span>) {
+                        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; <span class="ident">value</span>,
+                        <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; {
                             <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">&quot;Failed to parse authn request: {:?}&quot;</span>, <span class="ident">error</span>))
                         }
                     },
@@ -876,10 +876,10 @@
                         <span class="ident">prefix</span>: <span class="kw">_</span>,
                         <span class="ident">local</span>,
                         <span class="ident">span</span>: <span class="kw">_</span>,
-                    } <span class="op">=</span><span class="op">&gt;</span> <span class="ident">parse_authn_tokenizer_element_start</span>(<span class="ident">local</span>, <span class="ident">saml_request</span>),
-                    <span class="ident">Token::Text</span> { <span class="ident">text</span> } <span class="op">=</span><span class="op">&gt;</span> {
+                    } =&gt; <span class="ident">parse_authn_tokenizer_element_start</span>(<span class="ident">local</span>, <span class="ident">saml_request</span>),
+                    <span class="ident">Token::Text</span> { <span class="ident">text</span> } =&gt; {
                         <span class="comment">// if issuer_state == -1 { continue }</span>
-                        <span class="kw">if</span> <span class="ident">saml_request</span>.<span class="ident">issuer_state</span> <span class="op">=</span><span class="op">=</span> <span class="number">1</span> {
+                        <span class="kw">if</span> <span class="ident">saml_request</span>.<span class="ident">issuer_state</span> <span class="op">==</span> <span class="number">1</span> {
                             <span class="kw">let</span> <span class="ident">issuer</span> <span class="op">=</span> <span class="ident">text</span>.<span class="ident">as_str</span>();
                             <span class="macro">debug!</span>(<span class="string">&quot;Found issuer: {}&quot;</span>, <span class="ident">issuer</span>);
                             <span class="ident">saml_request</span>.<span class="ident">issuer</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">issuer</span>.<span class="ident">to_string</span>());
@@ -892,10 +892,10 @@
                         }
                         <span class="ident">saml_request</span>
                     }
-                    <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">saml_request</span>,
+                    <span class="kw">_</span> =&gt; <span class="ident">saml_request</span>,
                 };
             }
-            <span class="prelude-val">Err</span>(<span class="kw-2">ref</span> <span class="ident">error</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="prelude-val">Err</span>(<span class="kw-2">ref</span> <span class="ident">error</span>) =&gt; {
                 <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="macro">format!</span>(
                     <span class="string">&quot;Error parsing token: {:?}\n{:?}&quot;</span>,
                     <span class="ident">error</span>, <span class="ident">request_data</span>
@@ -963,7 +963,6 @@
 <span class="comment">// This corresponds to i2d_RSAPrivateKey.</span>
 <span class="comment">// */</span>
 <span class="comment">// }</span>
-</pre></div>
+</code></pre></div>
 </section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="saml_rs" data-search-index-js="../../search-index.js" data-search-js="../../search.js"></div>
-    <script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script>
 </body></html>
