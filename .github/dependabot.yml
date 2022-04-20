@@ -1,0 +1,16 @@
+version: 2
+updates:
+- package-ecosystem: cargo
+  directory: /
+  schedule:
+    interval: weekly
+    day: monday
+    time: "00:00"
+    timezone: Etc/UTC
+- package-ecosystem: pip
+  directory: /
+  schedule:
+    interval: weekly
+    day: monday
+    time: "00:00"
+    timezone: Etc/UTC
