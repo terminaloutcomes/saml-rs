@@ -42,7 +42,7 @@ openssl = "0.10.35"
 # web things
 tide = { version="0.16" }
 
-uuid = { version = "0.8", features = ["serde", "v4"] }
+uuid = { version = "1.0", features = ["serde", "v4"] }
 
 
 [dev-dependencies]
