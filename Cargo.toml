@@ -28,7 +28,7 @@ xml-rs = "0.8"
 # parsing and shenanigans
 xmlparser = "0.13.3"
 serde = "1.0"
-serde-xml-rs = "0.3.1"
+serde-xml-rs = "0.5.1"
 serde_derive = "1.0"
 
 # testing strings
