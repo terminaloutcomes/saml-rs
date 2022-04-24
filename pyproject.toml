@@ -23,3 +23,4 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pylint.MASTER]
 extension-pkg-allow-list="lxml"
+max-line-length=200
