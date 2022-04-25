@@ -246,7 +246,6 @@
 <span id="241">241</span>
 <span id="242">242</span>
 <span id="243">243</span>
-<span id="244">244</span>
 </pre><pre class="rust"><code><span class="comment">// use tide::log;</span>
 <span class="kw">use</span> <span class="ident">tide::Request</span>;
 
@@ -348,11 +347,10 @@
     <span class="doccomment">/// Pass this a filename (with or without extension) and it&#39;ll choose from JSON/YAML/TOML etc and also check</span>
     <span class="doccomment">/// environment variables starting with SAML_</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_filename_and_env</span>(<span class="ident">path</span>: <span class="ident">String</span>) -&gt; <span class="self">Self</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">settings</span> <span class="op">=</span> <span class="ident">config::Config::default</span>();
-        <span class="ident">settings</span>
-            .<span class="ident">merge</span>(<span class="ident">config::File::with_name</span>(<span class="kw-2">&amp;</span><span class="ident">path</span>))
-            .<span class="ident">unwrap</span>()
-            .<span class="ident">merge</span>(<span class="ident">config::Environment::with_prefix</span>(<span class="string">&quot;SAML&quot;</span>))
+        <span class="kw">let</span> <span class="ident">settings</span> <span class="op">=</span> <span class="ident">config::Config::builder</span>()
+            .<span class="ident">add_source</span>(<span class="ident">config::File::with_name</span>(<span class="kw-2">&amp;</span><span class="ident">path</span>))
+            .<span class="ident">add_source</span>(<span class="ident">config::Environment::with_prefix</span>(<span class="string">&quot;SAML&quot;</span>))
+            .<span class="ident">build</span>()
             .<span class="ident">unwrap</span>();
 
         <span class="kw">let</span> <span class="ident">filenames</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">settings</span>.<span class="ident">get</span>(<span class="string">&quot;sp_metadata_files&quot;</span>) {
