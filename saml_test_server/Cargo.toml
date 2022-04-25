@@ -62,5 +62,5 @@ driftwood = "0.0.6"
 tera = "1"
 
 # for test_digest
-sha-1 = "0.9.8"
+sha-1 = "0.10.0"
 hex = "0.4.3"
