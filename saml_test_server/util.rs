@@ -99,11 +99,10 @@ impl ServerConfig {
     /// Pass this a filename (with or without extension) and it'll choose from JSON/YAML/TOML etc and also check
     /// environment variables starting with SAML_
     pub fn from_filename_and_env(path: String) -> Self {
-        let mut settings = config::Config::default();
-        settings
-            .merge(config::File::with_name(&path))
-            .unwrap()
-            .merge(config::Environment::with_prefix("SAML"))
+        let settings = config::Config::builder()
+            .add_source(config::File::with_name(&path))
+            .add_source(config::Environment::with_prefix("SAML"))
+            .build()
             .unwrap();
 
         let filenames: Vec<String> = match settings.get("sp_metadata_files") {

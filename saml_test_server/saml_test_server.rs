@@ -128,7 +128,8 @@ async fn main() -> tide::Result<()> {
 /// Provides a GET response for the metadata URL
 async fn saml_metadata_get(req: Request<AppState>) -> tide::Result {
     let cert_path = &req.state().saml_cert_path;
-    let certificate = saml_rs::sign::load_public_cert_from_filename(&cert_path).unwrap();
+    let certificate = saml_rs::sign::load_public_cert_from_filename(cert_path)
+    .unwrap();
 
     let entity_id = String::from(&req.state().hostname);
 
