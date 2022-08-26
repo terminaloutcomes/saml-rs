@@ -27,10 +27,10 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [package.extras]
-tests_no_zope = ["cloudpickle", "pytest-mypy-plugins", "mypy", "six", "pytest (>=4.3.0)", "pympler", "hypothesis", "coverage[toml] (>=5.0.2)"]
-tests = ["cloudpickle", "zope.interface", "pytest-mypy-plugins", "mypy", "six", "pytest (>=4.3.0)", "pympler", "hypothesis", "coverage[toml] (>=5.0.2)"]
-docs = ["sphinx-notfound-page", "zope.interface", "sphinx", "furo"]
-dev = ["cloudpickle", "pre-commit", "sphinx-notfound-page", "sphinx", "furo", "zope.interface", "pytest-mypy-plugins", "mypy", "six", "pytest (>=4.3.0)", "pympler", "hypothesis", "coverage[toml] (>=5.0.2)"]
+dev = ["cloudpickle", "coverage[toml] (>=5.0.2)", "furo", "hypothesis", "mypy", "pre-commit", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "six", "sphinx", "sphinx-notfound-page", "zope.interface"]
+docs = ["furo", "sphinx", "sphinx-notfound-page", "zope.interface"]
+tests = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "six", "zope.interface"]
+tests_no_zope = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "six"]
 
 [[package]]
 name = "black"
@@ -48,10 +48,10 @@ platformdirs = ">=2"
 tomli = {version = ">=1.1.0", markers = "python_full_version < \"3.11.0a7\""}
 
 [package.extras]
-uvloop = ["uvloop (>=0.15.2)"]
-jupyter = ["tokenize-rt (>=3.2.0)", "ipython (>=7.8.0)"]
-d = ["aiohttp (>=3.7.4)"]
 colorama = ["colorama (>=0.4.3)"]
+d = ["aiohttp (>=3.7.4)"]
+jupyter = ["ipython (>=7.8.0)", "tokenize-rt (>=3.2.0)"]
+uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
 name = "certifi"
@@ -115,11 +115,11 @@ cffi = ">=1.12"
 
 [package.extras]
 docs = ["sphinx (>=1.6.5,!=1.8.0,!=3.1.0,!=3.1.1)", "sphinx-rtd-theme"]
-docstest = ["pyenchant (>=1.6.11)", "twine (>=1.12.0)", "sphinxcontrib-spelling (>=4.0.1)"]
+docstest = ["pyenchant (>=1.6.11)", "sphinxcontrib-spelling (>=4.0.1)", "twine (>=1.12.0)"]
 pep8test = ["black", "flake8", "flake8-import-order", "pep8-naming"]
 sdist = ["setuptools_rust (>=0.11.4)"]
 ssh = ["bcrypt (>=3.1.5)"]
-test = ["pytest (>=6.2.0)", "pytest-benchmark", "pytest-cov", "pytest-subtests", "pytest-xdist", "pretend", "iso8601", "pytz", "hypothesis (>=1.11.4,!=3.79.2)"]
+test = ["hypothesis (>=1.11.4,!=3.79.2)", "iso8601", "pretend", "pytest (>=6.2.0)", "pytest-benchmark", "pytest-cov", "pytest-subtests", "pytest-xdist", "pytz"]
 
 [[package]]
 name = "dill"
@@ -131,25 +131,6 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, 
 
 [package.extras]
 graph = ["objgraph (>=1.7.2)"]
-
-[[package]]
-name = "eight"
-version = "1.0.1"
-description = "Python 2 to the power of 3. A lightweight porting helper library."
-category = "main"
-optional = false
-python-versions = "*"
-
-[package.dependencies]
-future = ">=0.16,<0.19"
-
-[[package]]
-name = "future"
-version = "0.18.2"
-description = "Clean single-source support for Python 3 and 2"
-category = "main"
-optional = false
-python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 
 [[package]]
 name = "iniconfig"
@@ -168,10 +149,10 @@ optional = false
 python-versions = ">=3.6.1,<4.0"
 
 [package.extras]
-plugins = ["setuptools"]
 colors = ["colorama (>=0.4.3,<0.5.0)"]
+pipfile_deprecated_finder = ["pipreqs", "requirementslib"]
+plugins = ["setuptools"]
 requirements_deprecated_finder = ["pip-api", "pipreqs"]
-pipfile_deprecated_finder = ["requirementslib", "pipreqs"]
 
 [[package]]
 name = "lazy-object-proxy"
@@ -190,10 +171,10 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, != 3.4.*"
 
 [package.extras]
-source = ["Cython (>=0.29.7)"]
-htmlsoup = ["beautifulsoup4"]
-html5 = ["html5lib"]
 cssselect = ["cssselect (>=0.7)"]
+html5 = ["html5lib"]
+htmlsoup = ["beautifulsoup4"]
+source = ["Cython (>=0.29.7)"]
 
 [[package]]
 name = "lxml-stubs"
@@ -204,7 +185,7 @@ optional = false
 python-versions = "*"
 
 [package.extras]
-test = ["pytest-mypy-plugins (==1.9.3)", "pytest (>=6.0.0)", "coverage[toml] (==5.2)"]
+test = ["coverage[toml] (==5.2)", "pytest (>=6.0.0)", "pytest-mypy-plugins (==1.9.3)"]
 
 [[package]]
 name = "mccabe"
@@ -228,9 +209,9 @@ tomli = {version = ">=1.1.0", markers = "python_version < \"3.11\""}
 typing-extensions = ">=3.10"
 
 [package.extras]
-reports = ["lxml"]
-python2 = ["typed-ast (>=1.4.0,<2)"]
 dmypy = ["psutil (>=4.0)"]
+python2 = ["typed-ast (>=1.4.0,<2)"]
+reports = ["lxml"]
 
 [[package]]
 name = "mypy-extensions"
@@ -268,8 +249,8 @@ optional = false
 python-versions = ">=3.7"
 
 [package.extras]
-test = ["pytest (>=6)", "pytest-mock (>=3.6)", "pytest-cov (>=2.7)", "appdirs (==1.4.4)"]
-docs = ["sphinx (>=4)", "sphinx-autodoc-typehints (>=1.12)", "proselint (>=0.10.2)", "furo (>=2021.7.5b38)"]
+docs = ["furo (>=2021.7.5b38)", "proselint (>=0.10.2)", "sphinx (>=4)", "sphinx-autodoc-typehints (>=1.12)"]
+test = ["appdirs (==1.4.4)", "pytest (>=6)", "pytest-cov (>=2.7)", "pytest-mock (>=3.6)"]
 
 [[package]]
 name = "pluggy"
@@ -280,8 +261,8 @@ optional = false
 python-versions = ">=3.6"
 
 [package.extras]
-testing = ["pytest-benchmark", "pytest"]
-dev = ["tox", "pre-commit"]
+dev = ["pre-commit", "tox"]
+testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "py"
@@ -318,8 +299,8 @@ tomli = {version = ">=1.1.0", markers = "python_version < \"3.11\""}
 tomlkit = ">=0.10.1"
 
 [package.extras]
-testutils = ["gitpython (>3)"]
 spelling = ["pyenchant (>=3.2,<4.0)"]
+testutils = ["gitpython (>3)"]
 
 [[package]]
 name = "pyopenssl"
@@ -334,8 +315,8 @@ cryptography = ">=3.2"
 six = ">=1.5.2"
 
 [package.extras]
-test = ["pytest (>=3.0.1)", "pretend", "flaky"]
-docs = ["sphinx-rtd-theme", "sphinx"]
+docs = ["sphinx", "sphinx-rtd-theme"]
+test = ["flaky", "pretend", "pytest (>=3.0.1)"]
 
 [[package]]
 name = "pyparsing"
@@ -367,11 +348,11 @@ py = ">=1.8.2"
 tomli = ">=1.0.0"
 
 [package.extras]
-testing = ["xmlschema", "requests", "pygments (>=2.7.2)", "nose", "mock", "hypothesis (>=3.56)", "argcomplete"]
+testing = ["argcomplete", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.7.2)", "requests", "xmlschema"]
 
 [[package]]
 name = "signxml"
-version = "2.9.0"
+version = "2.10.0"
 description = "Python XML Signature library"
 category = "main"
 optional = false
@@ -380,9 +361,8 @@ python-versions = "*"
 [package.dependencies]
 certifi = ">=2018.1.18"
 cryptography = ">=2.1.4"
-eight = ">=0.4.2,<2"
 lxml = ">=4.2.1,<5"
-pyOpenSSL = ">=17.5.0,<21"
+pyOpenSSL = ">=17.5.0"
 
 [[package]]
 name = "six"
@@ -427,7 +407,7 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "1d227b981aa75ffd440cbee16696b8bf692c0fe32970856c7702b7066d01ed38"
+content-hash = "359081d35f1e951d10d9086f1cb9a68194cad4d7b8c84444fcfde26a67113e4f"
 
 [metadata.files]
 astroid = [
@@ -610,13 +590,6 @@ cryptography = [
 dill = [
     {file = "dill-0.3.5.1-py2.py3-none-any.whl", hash = "sha256:33501d03270bbe410c72639b350e941882a8b0fd55357580fbc873fba0c59302"},
     {file = "dill-0.3.5.1.tar.gz", hash = "sha256:d75e41f3eff1eee599d738e76ba8f4ad98ea229db8b085318aa2b3333a208c86"},
-]
-eight = [
-    {file = "eight-1.0.1-py2.py3-none-any.whl", hash = "sha256:bd6967ec7cf9e61ab18b55751236ed89a8363cfcb69127aace336869615245d5"},
-    {file = "eight-1.0.1.tar.gz", hash = "sha256:6465970d3c12a1d759151690629b10b50ffb124c9b62e912999ee9233378a562"},
-]
-future = [
-    {file = "future-0.18.2.tar.gz", hash = "sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d"},
 ]
 iniconfig = [
     {file = "iniconfig-1.1.1-py2.py3-none-any.whl", hash = "sha256:011e24c64b7f47f6ebd835bb12a743f2fbe9a26d4cecaa7f53bc4f35ee9da8b3"},
@@ -815,8 +788,8 @@ pytest = [
     {file = "pytest-7.1.2.tar.gz", hash = "sha256:a06a0425453864a270bc45e71f783330a7428defb4230fb5e6a731fde06ecd45"},
 ]
 signxml = [
-    {file = "signxml-2.9.0-py2.py3-none-any.whl", hash = "sha256:fd2e00ee4c757ecaee9c4ff010d1e0d7ee894fc9bd880b4ea4ab07ec30491d01"},
-    {file = "signxml-2.9.0.tar.gz", hash = "sha256:8e72e4f1fb274368f802d7ddf057291312a530be060b2ff6b95a0370b2aafe98"},
+    {file = "signxml-2.10.0-py2.py3-none-any.whl", hash = "sha256:898db708fbcc8d455edbea09f5c3827ff3b700d6ba620d68cf09f75cbb57cf00"},
+    {file = "signxml-2.10.0.tar.gz", hash = "sha256:02065da169f33c519d7a9c7a60d96c9e0a245ee1015945f58e36f406899d8d13"},
 ]
 six = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
