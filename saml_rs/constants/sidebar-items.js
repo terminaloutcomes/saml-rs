@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["StatusCode","3.2.2.2 Element StatusCode"]]});
+window.SIDEBAR_ITEMS = {"enum":[["StatusCode","3.2.2.2 Element StatusCode"]]};

@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["do_nothing","Placeholder function for development purposes, just returns a “Doing nothing” 200 response."],["load_sp_metadata",""]],"struct":[["AppState",""],["ServerConfig",""]]});
+window.SIDEBAR_ITEMS = {"fn":[["do_nothing","Placeholder function for development purposes, just returns a “Doing nothing” 200 response."],["load_sp_metadata",""]],"struct":[["AppState",""],["ServerConfig",""]]};

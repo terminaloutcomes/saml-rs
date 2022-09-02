@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["to_hex_string","Takes a [Vec] and turns it into a [String]"]],"trait":[["DateTimeUtils","Extensions for [chrono::DateTime] for nicer functionality"]]});
+window.SIDEBAR_ITEMS = {"fn":[["to_hex_string","Takes a [Vec] and turns it into a [String]"]],"trait":[["DateTimeUtils","Extensions for [chrono::DateTime] for nicer functionality"]]};
