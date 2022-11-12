@@ -55,7 +55,7 @@ config = "0.13"
 
 shellexpand = "2.0"
 
-driftwood = "0.0.6"
+driftwood = "0.0.7"
 
 
 # html generation
