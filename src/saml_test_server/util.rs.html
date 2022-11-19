@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `saml_test_server/util.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>util.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../saml_test_server/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../saml_test_server/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../saml_test_server/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `saml_test_server/util.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>util.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../saml_test_server/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../saml_test_server/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../saml_test_server/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -241,248 +241,248 @@
 <span id="241">241</span>
 <span id="242">242</span>
 <span id="243">243</span>
-</pre><pre class="rust"><code><span class="comment">// use tide::log;</span>
-<span class="kw">use</span> <span class="ident">tide::Request</span>;
+</pre><pre class="rust"><code><span class="comment">// use tide::log;
+</span><span class="kw">use </span>tide::Request;
 
-<span class="kw">use</span> <span class="ident">http_types::Mime</span>;
-<span class="kw">use</span> <span class="ident">std::collections::HashMap</span>;
-<span class="kw">use</span> <span class="ident">std::str::FromStr</span>;
+<span class="kw">use </span>http_types::Mime;
+<span class="kw">use </span>std::collections::HashMap;
+<span class="kw">use </span>std::str::FromStr;
 
-<span class="kw">use</span> <span class="ident">saml_rs::sp::ServiceProvider</span>;
-<span class="kw">use</span> <span class="ident">std::fs::read_to_string</span>;
-<span class="kw">use</span> <span class="ident">std::path::Path</span>;
+<span class="kw">use </span>saml_rs::sp::ServiceProvider;
+<span class="kw">use </span>std::fs::read_to_string;
+<span class="kw">use </span>std::path::Path;
 
-<span class="doccomment">/// Placeholder function for development purposes, just returns a &quot;Doing nothing&quot; 200 response.</span>
-<span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">do_nothing</span>(<span class="kw-2">mut</span> <span class="ident">_req</span>: <span class="ident">Request</span><span class="op">&lt;</span><span class="ident">AppState</span><span class="op">&gt;</span>) -&gt; <span class="ident">tide::Result</span> {
-    <span class="prelude-val">Ok</span>(<span class="ident">tide::Response::builder</span>(<span class="number">418</span>)
-        .<span class="ident">body</span>(<span class="string">&quot;Doing nothing&quot;</span>)
-        .<span class="ident">content_type</span>(<span class="ident">Mime::from_str</span>(<span class="string">&quot;text/html;charset=utf-8&quot;</span>).<span class="ident">unwrap</span>())
-        <span class="comment">// .header(&quot;custom-header&quot;, &quot;value&quot;)</span>
-        .<span class="ident">build</span>())
+<span class="doccomment">/// Placeholder function for development purposes, just returns a &quot;Doing nothing&quot; 200 response.
+</span><span class="kw">pub async fn </span>do_nothing(<span class="kw-2">mut </span>_req: Request&lt;AppState&gt;) -&gt; tide::Result {
+    <span class="prelude-val">Ok</span>(tide::Response::builder(<span class="number">418</span>)
+        .body(<span class="string">&quot;Doing nothing&quot;</span>)
+        .content_type(Mime::from_str(<span class="string">&quot;text/html;charset=utf-8&quot;</span>).unwrap())
+        <span class="comment">// .header(&quot;custom-header&quot;, &quot;value&quot;)
+        </span>.build())
 }
 
-<span class="kw">use</span> <span class="ident">openssl::x509::X509</span>;
+<span class="kw">use </span>openssl::x509::X509;
 
-<span class="comment">// #[derive(serde_deserialize, Debug)]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ServerConfig</span> {
-    <span class="kw">pub</span> <span class="ident">bind_address</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">public_hostname</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">tls_cert_path</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">tls_key_path</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">entity_id</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">sp_metadata_files</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">sp_metadata</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">ServiceProvider</span><span class="op">&gt;</span>,
-    <span class="comment">// Default session lifetime across SPs</span>
-    <span class="kw">pub</span> <span class="ident">session_lifetime</span>: <span class="ident">u128</span>,
+<span class="comment">// #[derive(serde_deserialize, Debug)]
+</span><span class="attribute">#[derive(Debug, Clone)]
+</span><span class="kw">pub struct </span>ServerConfig {
+    <span class="kw">pub </span>bind_address: String,
+    <span class="kw">pub </span>public_hostname: String,
+    <span class="kw">pub </span>tls_cert_path: String,
+    <span class="kw">pub </span>tls_key_path: String,
+    <span class="kw">pub </span>entity_id: String,
+    <span class="kw">pub </span>sp_metadata_files: <span class="prelude-ty">Option</span>&lt;Vec&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt;&gt;,
+    <span class="kw">pub </span>sp_metadata: HashMap&lt;String, ServiceProvider&gt;,
+    <span class="comment">// Default session lifetime across SPs
+    </span><span class="kw">pub </span>session_lifetime: u128,
 
-    <span class="kw">pub</span> <span class="ident">saml_cert_path</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">saml_key_path</span>: <span class="ident">String</span>,
+    <span class="kw">pub </span>saml_cert_path: String,
+    <span class="kw">pub </span>saml_key_path: String,
 
-    <span class="kw">pub</span> <span class="ident">saml_signing_key</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">openssl::pkey::PKey</span><span class="op">&lt;</span><span class="ident">openssl::pkey::Private</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">saml_signing_cert</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">X509</span><span class="op">&gt;</span>,
+    <span class="kw">pub </span>saml_signing_key: <span class="prelude-ty">Option</span>&lt;openssl::pkey::PKey&lt;openssl::pkey::Private&gt;&gt;,
+    <span class="kw">pub </span>saml_signing_cert: <span class="prelude-ty">Option</span>&lt;X509&gt;,
 }
 
-<span class="kw">fn</span> <span class="ident">load_sp_metadata</span>(<span class="ident">filenames</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>) -&gt; <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">ServiceProvider</span><span class="op">&gt;</span> {
-    <span class="comment">// load the SP metadata files</span>
+<span class="kw">fn </span>load_sp_metadata(filenames: Vec&lt;String&gt;) -&gt; HashMap&lt;String, ServiceProvider&gt; {
+    <span class="comment">// load the SP metadata files
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sp_metadata</span> <span class="op">=</span> <span class="ident">HashMap::new</span>();
-    <span class="macro">eprintln!</span>(<span class="string">&quot;Configuration has SP metadata filenames: {:?}&quot;</span>, <span class="ident">filenames</span>);
-    <span class="kw">for</span> <span class="ident">filename</span> <span class="kw">in</span> <span class="ident">filenames</span> {
-        <span class="kw">let</span> <span class="ident">expanded_filename</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">shellexpand::tilde</span>(<span class="kw-2">&amp;</span><span class="ident">filename</span>).<span class="ident">into_owned</span>();
-        <span class="kw">if</span> <span class="ident">Path::new</span>(<span class="kw-2">&amp;</span><span class="ident">expanded_filename</span>).<span class="ident">exists</span>() {
-            <span class="macro">log::debug!</span>(<span class="string">&quot;Found SP metadata file: {:?}&quot;</span>, <span class="ident">expanded_filename</span>);
-            <span class="kw">let</span> <span class="ident">filecontents</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">read_to_string</span>(<span class="kw-2">&amp;</span><span class="ident">expanded_filename</span>) {
-                <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; {
+    </span><span class="kw">let </span><span class="kw-2">mut </span>sp_metadata = HashMap::new();
+    <span class="macro">eprintln!</span>(<span class="string">&quot;Configuration has SP metadata filenames: {:?}&quot;</span>, filenames);
+    <span class="kw">for </span>filename <span class="kw">in </span>filenames {
+        <span class="kw">let </span>expanded_filename: String = shellexpand::tilde(<span class="kw-2">&amp;</span>filename).into_owned();
+        <span class="kw">if </span>Path::new(<span class="kw-2">&amp;</span>expanded_filename).exists() {
+            <span class="macro">log::debug!</span>(<span class="string">&quot;Found SP metadata file: {:?}&quot;</span>, expanded_filename);
+            <span class="kw">let </span>filecontents = <span class="kw">match </span>read_to_string(<span class="kw-2">&amp;</span>expanded_filename) {
+                <span class="prelude-val">Err</span>(error) =&gt; {
                     <span class="macro">eprintln!</span>(
                         <span class="string">&quot;Couldn&#39;t load SP Metadata file {} for some reason: {:?}&quot;</span>,
-                        <span class="kw-2">&amp;</span><span class="ident">expanded_filename</span>, <span class="ident">error</span>
+                        <span class="kw-2">&amp;</span>expanded_filename, error
                     );
                     <span class="kw">continue</span>;
                 }
-                <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; <span class="ident">value</span>,
+                <span class="prelude-val">Ok</span>(value) =&gt; value,
             };
-            <span class="comment">// parse the XML</span>
-            <span class="kw">let</span> <span class="ident">parsed_sp</span> <span class="op">=</span> <span class="ident">saml_rs::sp::ServiceProvider::from_str</span>(<span class="kw-2">&amp;</span><span class="ident">filecontents</span>).<span class="ident">unwrap</span>();
-            <span class="macro">eprintln!</span>(<span class="string">&quot;SP Metadata loaded: {:?}&quot;</span>, <span class="ident">parsed_sp</span>);
-            <span class="ident">sp_metadata</span>.<span class="ident">insert</span>(<span class="ident">parsed_sp</span>.<span class="ident">entity_id</span>.<span class="ident">to_string</span>(), <span class="ident">parsed_sp</span>);
-        } <span class="kw">else</span> {
+            <span class="comment">// parse the XML
+            </span><span class="kw">let </span>parsed_sp = saml_rs::sp::ServiceProvider::from_str(<span class="kw-2">&amp;</span>filecontents).unwrap();
+            <span class="macro">eprintln!</span>(<span class="string">&quot;SP Metadata loaded: {:?}&quot;</span>, parsed_sp);
+            sp_metadata.insert(parsed_sp.entity_id.to_string(), parsed_sp);
+        } <span class="kw">else </span>{
             <span class="macro">eprintln!</span>(
                 <span class="string">&quot;Couldn&#39;t find file {:?}, not loading metadata.&quot;</span>,
-                <span class="ident">expanded_filename</span>
+                expanded_filename
             );
         }
     }
-    <span class="ident">sp_metadata</span>
+    sp_metadata
 }
 
-<span class="kw">impl</span> <span class="ident">ServerConfig</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">default</span>() -&gt; <span class="self">Self</span> {
-        <span class="ident">ServerConfig</span> {
-            <span class="ident">bind_address</span>: <span class="string">&quot;127.0.0.1&quot;</span>.<span class="ident">to_string</span>(),
-            <span class="ident">public_hostname</span>: <span class="string">&quot;example.com&quot;</span>.<span class="ident">to_string</span>(),
-            <span class="ident">tls_cert_path</span>: <span class="string">&quot;Need to set this&quot;</span>.<span class="ident">to_string</span>(),
-            <span class="ident">tls_key_path</span>: <span class="string">&quot;Need to set this&quot;</span>.<span class="ident">to_string</span>(),
+<span class="kw">impl </span>ServerConfig {
+    <span class="kw">pub fn </span>default() -&gt; <span class="self">Self </span>{
+        ServerConfig {
+            bind_address: <span class="string">&quot;127.0.0.1&quot;</span>.to_string(),
+            public_hostname: <span class="string">&quot;example.com&quot;</span>.to_string(),
+            tls_cert_path: <span class="string">&quot;Need to set this&quot;</span>.to_string(),
+            tls_key_path: <span class="string">&quot;Need to set this&quot;</span>.to_string(),
 
-            <span class="ident">entity_id</span>: <span class="string">&quot;https://example.com/idp/&quot;</span>.<span class="ident">to_string</span>(),
-            <span class="ident">sp_metadata_files</span>: <span class="prelude-val">None</span>,
-            <span class="ident">sp_metadata</span>: <span class="ident">HashMap::new</span>(),
-            <span class="ident">session_lifetime</span>: <span class="number">43200</span>, <span class="comment">// 12 hours</span>
+            entity_id: <span class="string">&quot;https://example.com/idp/&quot;</span>.to_string(),
+            sp_metadata_files: <span class="prelude-val">None</span>,
+            sp_metadata: HashMap::new(),
+            session_lifetime: <span class="number">43200</span>, <span class="comment">// 12 hours
 
-            <span class="comment">// TODO: possibly remove saml_cert_path from [ServerConfig.default]</span>
-            <span class="ident">saml_cert_path</span>: <span class="string">&quot;Need to set this&quot;</span>.<span class="ident">to_string</span>(),
-            <span class="comment">// TODO: possibly remove saml_key_path from [ServerConfig.default]</span>
-            <span class="ident">saml_key_path</span>: <span class="string">&quot;Need to set this&quot;</span>.<span class="ident">to_string</span>(),
+            // TODO: possibly remove saml_cert_path from [ServerConfig.default]
+            </span>saml_cert_path: <span class="string">&quot;Need to set this&quot;</span>.to_string(),
+            <span class="comment">// TODO: possibly remove saml_key_path from [ServerConfig.default]
+            </span>saml_key_path: <span class="string">&quot;Need to set this&quot;</span>.to_string(),
 
-            <span class="ident">saml_signing_key</span>: <span class="prelude-val">None</span>,
-            <span class="ident">saml_signing_cert</span>: <span class="prelude-val">None</span>,
+            saml_signing_key: <span class="prelude-val">None</span>,
+            saml_signing_cert: <span class="prelude-val">None</span>,
         }
     }
 
-    <span class="doccomment">/// Pass this a filename (with or without extension) and it&#39;ll choose from JSON/YAML/TOML etc and also check</span>
-    <span class="doccomment">/// environment variables starting with SAML_</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_filename_and_env</span>(<span class="ident">path</span>: <span class="ident">String</span>) -&gt; <span class="self">Self</span> {
-        <span class="kw">let</span> <span class="ident">settings</span> <span class="op">=</span> <span class="ident">config::Config::builder</span>()
-            .<span class="ident">add_source</span>(<span class="ident">config::File::with_name</span>(<span class="kw-2">&amp;</span><span class="ident">path</span>))
-            .<span class="ident">add_source</span>(<span class="ident">config::Environment::with_prefix</span>(<span class="string">&quot;SAML&quot;</span>))
-            .<span class="ident">build</span>()
-            .<span class="ident">unwrap</span>();
+    <span class="doccomment">/// Pass this a filename (with or without extension) and it&#39;ll choose from JSON/YAML/TOML etc and also check
+    /// environment variables starting with SAML_
+    </span><span class="kw">pub fn </span>from_filename_and_env(path: String) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span>settings = config::Config::builder()
+            .add_source(config::File::with_name(<span class="kw-2">&amp;</span>path))
+            .add_source(config::Environment::with_prefix(<span class="string">&quot;SAML&quot;</span>))
+            .build()
+            .unwrap();
 
-        <span class="kw">let</span> <span class="ident">filenames</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">settings</span>.<span class="ident">get</span>(<span class="string">&quot;sp_metadata_files&quot;</span>) {
-            <span class="prelude-val">Ok</span>(<span class="ident">filenames</span>) =&gt; <span class="ident">filenames</span>,
-            <span class="kw">_</span> =&gt; <span class="ident">Vec</span>::<span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span><span class="ident">::new</span>(),
+        <span class="kw">let </span>filenames: Vec&lt;String&gt; = <span class="kw">match </span>settings.get(<span class="string">&quot;sp_metadata_files&quot;</span>) {
+            <span class="prelude-val">Ok</span>(filenames) =&gt; filenames,
+            <span class="kw">_ </span>=&gt; Vec::&lt;String&gt;::new(),
         };
 
         <span class="macro">log::debug!</span>(<span class="string">&quot;Loading SP Metadata from config.&quot;</span>);
 
-        <span class="kw">let</span> <span class="ident">sp_metadata</span> <span class="op">=</span> <span class="ident">load_sp_metadata</span>(<span class="ident">filenames</span>);
+        <span class="kw">let </span>sp_metadata = load_sp_metadata(filenames);
         <span class="macro">eprintln!</span>(<span class="string">&quot;Done loading SP Metadata from config.&quot;</span>);
 
-        <span class="kw">let</span> <span class="ident">tilde_cert_path</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">settings</span>.<span class="ident">get</span>(<span class="string">&quot;tls_cert_path&quot;</span>).<span class="ident">unwrap_or_else</span>(<span class="op">|</span><span class="ident">error</span><span class="op">|</span> {
+        <span class="kw">let </span>tilde_cert_path: String = settings.get(<span class="string">&quot;tls_cert_path&quot;</span>).unwrap_or_else(|error| {
             <span class="macro">eprintln!</span>(
                 <span class="string">&quot;You need to specify &#39;tls_cert_path&#39; in configuration, quitting. ({:?})&quot;</span>,
-                <span class="ident">error</span>
+                error
             );
-            <span class="ident">std::process::exit</span>(<span class="number">1</span>)
+            std::process::exit(<span class="number">1</span>)
         });
-        <span class="kw">let</span> <span class="ident">tilde_key_path</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">settings</span>.<span class="ident">get</span>(<span class="string">&quot;tls_key_path&quot;</span>).<span class="ident">unwrap_or_else</span>(<span class="op">|</span><span class="ident">error</span><span class="op">|</span> {
+        <span class="kw">let </span>tilde_key_path: String = settings.get(<span class="string">&quot;tls_key_path&quot;</span>).unwrap_or_else(|error| {
             <span class="macro">eprintln!</span>(
                 <span class="string">&quot;You need to specify &#39;tls_key_path&#39; in configuration, quitting. ({:?})&quot;</span>,
-                <span class="ident">error</span>
+                error
             );
-            <span class="ident">std::process::exit</span>(<span class="number">1</span>)
+            std::process::exit(<span class="number">1</span>)
         });
 
-        <span class="kw">let</span> <span class="ident">tilde_saml_cert_path</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">settings</span>.<span class="ident">get</span>(<span class="string">&quot;saml_cert_path&quot;</span>).<span class="ident">unwrap_or_else</span>(<span class="op">|</span><span class="ident">error</span><span class="op">|</span> {
+        <span class="kw">let </span>tilde_saml_cert_path: String = settings.get(<span class="string">&quot;saml_cert_path&quot;</span>).unwrap_or_else(|error| {
             <span class="macro">eprintln!</span>(
                 <span class="string">&quot;You need to specify &#39;saml_cert_path&#39; in configuration, quitting. ({:?})&quot;</span>,
-                <span class="ident">error</span>
+                error
             );
-            <span class="ident">std::process::exit</span>(<span class="number">1</span>)
+            std::process::exit(<span class="number">1</span>)
         });
-        <span class="kw">let</span> <span class="ident">tilde_saml_key_path</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">settings</span>.<span class="ident">get</span>(<span class="string">&quot;saml_key_path&quot;</span>).<span class="ident">unwrap_or_else</span>(<span class="op">|</span><span class="ident">error</span><span class="op">|</span> {
+        <span class="kw">let </span>tilde_saml_key_path: String = settings.get(<span class="string">&quot;saml_key_path&quot;</span>).unwrap_or_else(|error| {
             <span class="macro">eprintln!</span>(
                 <span class="string">&quot;You need to specify &#39;saml_key_path&#39; in configuration, quitting. ({:?})&quot;</span>,
-                <span class="ident">error</span>
+                error
             );
-            <span class="ident">std::process::exit</span>(<span class="number">1</span>)
+            std::process::exit(<span class="number">1</span>)
         });
-        <span class="kw">let</span> <span class="ident">bind_address</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">settings</span>.<span class="ident">get</span>(<span class="string">&quot;bind_address&quot;</span>).<span class="ident">unwrap_or_else</span>(<span class="op">|</span><span class="ident">error</span><span class="op">|</span> {
+        <span class="kw">let </span>bind_address: String = settings.get(<span class="string">&quot;bind_address&quot;</span>).unwrap_or_else(|error| {
             <span class="macro">eprintln!</span>(
                 <span class="string">&quot;You need to specify &#39;bind_address&#39; in configuration, quitting. ({:?})&quot;</span>,
-                <span class="ident">error</span>
+                error
             );
-            <span class="ident">std::process::exit</span>(<span class="number">1</span>)
+            std::process::exit(<span class="number">1</span>)
         });
-        <span class="kw">let</span> <span class="ident">tls_cert_path</span> <span class="op">=</span> <span class="ident">shellexpand::tilde</span>(<span class="kw-2">&amp;</span><span class="ident">tilde_cert_path</span>).<span class="ident">into_owned</span>();
-        <span class="kw">let</span> <span class="ident">tls_key_path</span> <span class="op">=</span> <span class="ident">shellexpand::tilde</span>(<span class="kw-2">&amp;</span><span class="ident">tilde_key_path</span>).<span class="ident">into_owned</span>();
-        <span class="kw">let</span> <span class="ident">saml_cert_path</span> <span class="op">=</span> <span class="ident">shellexpand::tilde</span>(<span class="kw-2">&amp;</span><span class="ident">tilde_saml_cert_path</span>).<span class="ident">into_owned</span>();
-        <span class="kw">let</span> <span class="ident">saml_key_path</span> <span class="op">=</span> <span class="ident">shellexpand::tilde</span>(<span class="kw-2">&amp;</span><span class="ident">tilde_saml_key_path</span>).<span class="ident">into_owned</span>();
+        <span class="kw">let </span>tls_cert_path = shellexpand::tilde(<span class="kw-2">&amp;</span>tilde_cert_path).into_owned();
+        <span class="kw">let </span>tls_key_path = shellexpand::tilde(<span class="kw-2">&amp;</span>tilde_key_path).into_owned();
+        <span class="kw">let </span>saml_cert_path = shellexpand::tilde(<span class="kw-2">&amp;</span>tilde_saml_cert_path).into_owned();
+        <span class="kw">let </span>saml_key_path = shellexpand::tilde(<span class="kw-2">&amp;</span>tilde_saml_key_path).into_owned();
 
-        <span class="kw">use</span> <span class="ident">saml_rs::sign::load_key_from_filename</span>;
-        <span class="kw">let</span> <span class="ident">saml_signing_key</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">load_key_from_filename</span>(<span class="kw-2">&amp;</span><span class="ident">saml_key_path</span>) {
-            <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; <span class="ident">value</span>,
-            <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; {
+        <span class="kw">use </span>saml_rs::sign::load_key_from_filename;
+        <span class="kw">let </span>saml_signing_key = <span class="kw">match </span>load_key_from_filename(<span class="kw-2">&amp;</span>saml_key_path) {
+            <span class="prelude-val">Ok</span>(value) =&gt; value,
+            <span class="prelude-val">Err</span>(error) =&gt; {
                 <span class="macro">eprintln!</span>(
                     <span class="string">&quot;Failed to load SAML signing key from {}: {:?}&quot;</span>,
-                    <span class="kw-2">&amp;</span><span class="ident">saml_key_path</span>, <span class="ident">error</span>
+                    <span class="kw-2">&amp;</span>saml_key_path, error
                 );
-                <span class="ident">std::process::exit</span>(<span class="number">1</span>);
+                std::process::exit(<span class="number">1</span>);
             }
         };
-        <span class="kw">let</span> <span class="ident">saml_signing_cert</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">saml_rs::sign::load_public_cert_from_filename</span>(<span class="kw-2">&amp;</span><span class="ident">saml_cert_path</span>)
+        <span class="kw">let </span>saml_signing_cert = <span class="kw">match </span>saml_rs::sign::load_public_cert_from_filename(<span class="kw-2">&amp;</span>saml_cert_path)
         {
-            <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; <span class="ident">value</span>,
-            <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; {
+            <span class="prelude-val">Ok</span>(value) =&gt; value,
+            <span class="prelude-val">Err</span>(error) =&gt; {
                 <span class="macro">eprintln!</span>(
                     <span class="string">&quot;Failed to load SAML signing cert from {}: {:?}&quot;</span>,
-                    <span class="kw-2">&amp;</span><span class="ident">saml_key_path</span>, <span class="ident">error</span>
+                    <span class="kw-2">&amp;</span>saml_key_path, error
                 );
-                <span class="ident">std::process::exit</span>(<span class="number">1</span>);
+                std::process::exit(<span class="number">1</span>);
             }
         };
 
-        <span class="macro">eprintln!</span>(<span class="string">&quot;SETTINGS\n{:?}&quot;</span>, <span class="ident">settings</span>);
-        <span class="ident">ServerConfig</span> {
-            <span class="ident">public_hostname</span>: <span class="ident">settings</span>
-                .<span class="ident">get</span>(<span class="string">&quot;public_hostname&quot;</span>)
-                .<span class="ident">unwrap_or</span>(<span class="ident">ServerConfig::default</span>().<span class="ident">public_hostname</span>),
-            <span class="ident">bind_address</span>,
-            <span class="ident">tls_cert_path</span>,
-            <span class="ident">tls_key_path</span>,
-            <span class="ident">entity_id</span>: <span class="ident">settings</span>
-                .<span class="ident">get</span>(<span class="string">&quot;entity_id&quot;</span>)
-                .<span class="ident">unwrap_or</span>(<span class="ident">ServerConfig::default</span>().<span class="ident">entity_id</span>),
-            <span class="ident">sp_metadata_files</span>: <span class="ident">settings</span>
-                .<span class="ident">get</span>(<span class="string">&quot;sp_metadata_files&quot;</span>)
-                .<span class="ident">unwrap_or</span>(<span class="ident">ServerConfig::default</span>().<span class="ident">sp_metadata_files</span>),
-            <span class="ident">sp_metadata</span>,
-            <span class="ident">session_lifetime</span>: <span class="ident">settings</span>
-                .<span class="ident">get</span>(<span class="string">&quot;default_session_lifetime&quot;</span>)
-                .<span class="ident">unwrap_or</span>(<span class="ident">ServerConfig::default</span>().<span class="ident">session_lifetime</span>),
-            <span class="ident">saml_cert_path</span>,
-            <span class="ident">saml_key_path</span>,
+        <span class="macro">eprintln!</span>(<span class="string">&quot;SETTINGS\n{:?}&quot;</span>, settings);
+        ServerConfig {
+            public_hostname: settings
+                .get(<span class="string">&quot;public_hostname&quot;</span>)
+                .unwrap_or(ServerConfig::default().public_hostname),
+            bind_address,
+            tls_cert_path,
+            tls_key_path,
+            entity_id: settings
+                .get(<span class="string">&quot;entity_id&quot;</span>)
+                .unwrap_or(ServerConfig::default().entity_id),
+            sp_metadata_files: settings
+                .get(<span class="string">&quot;sp_metadata_files&quot;</span>)
+                .unwrap_or(ServerConfig::default().sp_metadata_files),
+            sp_metadata,
+            session_lifetime: settings
+                .get(<span class="string">&quot;default_session_lifetime&quot;</span>)
+                .unwrap_or(ServerConfig::default().session_lifetime),
+            saml_cert_path,
+            saml_key_path,
 
-            <span class="ident">saml_signing_key</span>: <span class="prelude-val">Some</span>(<span class="ident">saml_signing_key</span>),
-            <span class="ident">saml_signing_cert</span>: <span class="prelude-val">Some</span>(<span class="ident">saml_signing_cert</span>),
+            saml_signing_key: <span class="prelude-val">Some</span>(saml_signing_key),
+            saml_signing_cert: <span class="prelude-val">Some</span>(saml_signing_cert),
         }
     }
 }
 
-<span class="kw">use</span> <span class="ident">openssl::pkey</span>;
+<span class="kw">use </span>openssl::pkey;
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">AppState</span> {
-    <span class="kw">pub</span> <span class="ident">hostname</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">issuer</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">service_providers</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">ServiceProvider</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">tls_cert_path</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">tls_key_path</span>: <span class="ident">String</span>,
+<span class="attribute">#[derive(Clone, Debug)]
+</span><span class="kw">pub struct </span>AppState {
+    <span class="kw">pub </span>hostname: String,
+    <span class="kw">pub </span>issuer: String,
+    <span class="kw">pub </span>service_providers: HashMap&lt;String, ServiceProvider&gt;,
+    <span class="kw">pub </span>tls_cert_path: String,
+    <span class="kw">pub </span>tls_key_path: String,
 
-    <span class="kw">pub</span> <span class="ident">saml_cert_path</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">saml_key_path</span>: <span class="ident">String</span>,
+    <span class="kw">pub </span>saml_cert_path: String,
+    <span class="kw">pub </span>saml_key_path: String,
 
-    <span class="kw">pub</span> <span class="ident">saml_signing_key</span>: <span class="ident">pkey::PKey</span><span class="op">&lt;</span><span class="ident">pkey::Private</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">saml_signing_cert</span>: <span class="ident">X509</span>,
+    <span class="kw">pub </span>saml_signing_key: pkey::PKey&lt;pkey::Private&gt;,
+    <span class="kw">pub </span>saml_signing_cert: X509,
 }
 
-<span class="kw">use</span> <span class="ident">std::convert::From</span>;
+<span class="kw">use </span>std::convert::From;
 
-<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">ServerConfig</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">AppState</span> {
-    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">server_config</span>: <span class="ident">ServerConfig</span>) -&gt; <span class="ident">AppState</span> {
-        <span class="ident">AppState</span> {
-            <span class="ident">hostname</span>: <span class="ident">server_config</span>.<span class="ident">public_hostname</span>.<span class="ident">to_string</span>(),
-            <span class="ident">issuer</span>: <span class="ident">server_config</span>.<span class="ident">entity_id</span>.<span class="ident">to_string</span>(),
-            <span class="ident">service_providers</span>: <span class="ident">server_config</span>.<span class="ident">sp_metadata</span>,
-            <span class="ident">tls_cert_path</span>: <span class="ident">server_config</span>.<span class="ident">tls_cert_path</span>.<span class="ident">to_string</span>(),
-            <span class="ident">tls_key_path</span>: <span class="ident">server_config</span>.<span class="ident">tls_key_path</span>.<span class="ident">to_string</span>(),
+<span class="kw">impl </span>From&lt;ServerConfig&gt; <span class="kw">for </span>AppState {
+    <span class="kw">fn </span>from(server_config: ServerConfig) -&gt; AppState {
+        AppState {
+            hostname: server_config.public_hostname.to_string(),
+            issuer: server_config.entity_id.to_string(),
+            service_providers: server_config.sp_metadata,
+            tls_cert_path: server_config.tls_cert_path.to_string(),
+            tls_key_path: server_config.tls_key_path.to_string(),
 
-            <span class="ident">saml_cert_path</span>: <span class="ident">server_config</span>.<span class="ident">saml_cert_path</span>,
-            <span class="ident">saml_key_path</span>: <span class="ident">server_config</span>.<span class="ident">saml_key_path</span>,
-            <span class="ident">saml_signing_key</span>: <span class="ident">server_config</span>.<span class="ident">saml_signing_key</span>.<span class="ident">unwrap</span>(),
-            <span class="ident">saml_signing_cert</span>: <span class="ident">server_config</span>.<span class="ident">saml_signing_cert</span>.<span class="ident">unwrap</span>(),
+            saml_cert_path: server_config.saml_cert_path,
+            saml_key_path: server_config.saml_key_path,
+            saml_signing_key: server_config.saml_signing_key.unwrap(),
+            saml_signing_cert: server_config.saml_signing_cert.unwrap(),
         }
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="saml_test_server" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="saml_test_server" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

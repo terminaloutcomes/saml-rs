@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/sp.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>sp.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../saml_rs/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../saml_rs/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../saml_rs/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/sp.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>sp.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../saml_rs/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../saml_rs/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../saml_rs/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -535,520 +535,520 @@
 <span id="535">535</span>
 <span id="536">536</span>
 <span id="537">537</span>
-</pre><pre class="rust"><code><span class="doccomment">//! Service Provider utilities and functions</span>
-<span class="doccomment">//!</span>
+</pre><pre class="rust"><code><span class="doccomment">//! Service Provider utilities and functions
+//!
 
-<span class="comment">// #![deny(unsafe_code)]</span>
+</span><span class="comment">// #![deny(unsafe_code)]
 
-<span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
-<span class="kw">use</span> <span class="ident">std::str::FromStr</span>;
+</span><span class="kw">use </span>serde::{Deserialize, Serialize};
+<span class="kw">use </span>std::str::FromStr;
 
-<span class="kw">use</span> <span class="ident">openssl</span>;
-<span class="kw">use</span> <span class="ident">openssl::x509::X509</span>;
-<span class="kw">use</span> <span class="ident">std::io::Cursor</span>;
-<span class="kw">use</span> <span class="ident">xml::attribute::OwnedAttribute</span>;
-<span class="kw">use</span> <span class="ident">xml::reader</span>::{<span class="ident">EventReader</span>, <span class="ident">XmlEvent</span>};
+<span class="kw">use </span>openssl;
+<span class="kw">use </span>openssl::x509::X509;
+<span class="kw">use </span>std::io::Cursor;
+<span class="kw">use </span>xml::attribute::OwnedAttribute;
+<span class="kw">use </span>xml::reader::{EventReader, XmlEvent};
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>, <span class="ident">Clone</span>, <span class="ident">Copy</span>)]</span>
-<span class="doccomment">/// Different types of name-id formats from the spec</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">NameIdFormat</span> {
-    <span class="doccomment">/// Email Address</span>
-    <span class="ident">EmailAddress</span>,
-    <span class="doccomment">/// TODO: entity?</span>
-    <span class="ident">Entity</span>,
-    <span class="doccomment">/// Kerberos, the worst-eros</span>
-    <span class="ident">Kerberos</span>,
-    <span class="doccomment">/// Should stay the same</span>
-    <span class="ident">Persistent</span>,
-    <span class="doccomment">/// Don&#39;t keep this, it&#39;ll change</span>
-    <span class="ident">Transient</span>,
-    <span class="doccomment">/// 🤷‍♂️🤷‍♀️ who even knows</span>
-    <span class="ident">Unspecified</span>,
-    <span class="doccomment">/// Windows format</span>
-    <span class="ident">WindowsDomainQualifiedName</span>,
-    <span class="doccomment">/// X509 format</span>
-    <span class="ident">X509SubjectName</span>,
+<span class="attribute">#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+</span><span class="doccomment">/// Different types of name-id formats from the spec
+</span><span class="kw">pub enum </span>NameIdFormat {
+    <span class="doccomment">/// Email Address
+    </span>EmailAddress,
+    <span class="doccomment">/// TODO: entity?
+    </span>Entity,
+    <span class="doccomment">/// Kerberos, the worst-eros
+    </span>Kerberos,
+    <span class="doccomment">/// Should stay the same
+    </span>Persistent,
+    <span class="doccomment">/// Don&#39;t keep this, it&#39;ll change
+    </span>Transient,
+    <span class="doccomment">/// 🤷‍♂️🤷‍♀️ who even knows
+    </span>Unspecified,
+    <span class="doccomment">/// Windows format
+    </span>WindowsDomainQualifiedName,
+    <span class="doccomment">/// X509 format
+    </span>X509SubjectName,
 }
 
-<span class="kw">impl</span> <span class="ident">Default</span> <span class="kw">for</span> <span class="ident">NameIdFormat</span> {
-    <span class="kw">fn</span> <span class="ident">default</span>() -&gt; <span class="ident">NameIdFormat</span> {
-        <span class="ident">NameIdFormat::Unspecified</span>
+<span class="kw">impl </span>Default <span class="kw">for </span>NameIdFormat {
+    <span class="kw">fn </span>default() -&gt; NameIdFormat {
+        NameIdFormat::Unspecified
     }
 }
 
-<span class="kw">impl</span> <span class="ident">ToString</span> <span class="kw">for</span> <span class="ident">NameIdFormat</span> {
-    <span class="kw">fn</span> <span class="ident">to_string</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">String</span> {
-        <span class="kw">match</span> <span class="self">self</span> {
-            <span class="ident">NameIdFormat::EmailAddress</span> =&gt; {
-                <span class="string">&quot;urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress&quot;</span>.<span class="ident">to_string</span>()
+<span class="kw">impl </span>ToString <span class="kw">for </span>NameIdFormat {
+    <span class="kw">fn </span>to_string(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="kw">match </span><span class="self">self </span>{
+            NameIdFormat::EmailAddress =&gt; {
+                <span class="string">&quot;urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress&quot;</span>.to_string()
             }
-            <span class="ident">NameIdFormat::Entity</span> =&gt; <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:nameid-format:entity&quot;</span>.<span class="ident">to_string</span>(),
-            <span class="ident">NameIdFormat::Kerberos</span> =&gt; {
-                <span class="string">&quot; urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos&quot;</span>.<span class="ident">to_string</span>()
+            NameIdFormat::Entity =&gt; <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:nameid-format:entity&quot;</span>.to_string(),
+            NameIdFormat::Kerberos =&gt; {
+                <span class="string">&quot; urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos&quot;</span>.to_string()
             }
-            <span class="ident">NameIdFormat::Persistent</span> =&gt; {
-                <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:nameid-format:persistent&quot;</span>.<span class="ident">to_string</span>()
+            NameIdFormat::Persistent =&gt; {
+                <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:nameid-format:persistent&quot;</span>.to_string()
             }
-            <span class="ident">NameIdFormat::Transient</span> =&gt; {
-                <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:nameid-format:transient&quot;</span>.<span class="ident">to_string</span>()
+            NameIdFormat::Transient =&gt; {
+                <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:nameid-format:transient&quot;</span>.to_string()
             }
-            <span class="ident">NameIdFormat::Unspecified</span> =&gt; {
-                <span class="string">&quot;urn:oasis:names:tc:SAML:1.0:nameid-format:unspecified&quot;</span>.<span class="ident">to_string</span>()
+            NameIdFormat::Unspecified =&gt; {
+                <span class="string">&quot;urn:oasis:names:tc:SAML:1.0:nameid-format:unspecified&quot;</span>.to_string()
             }
-            <span class="ident">NameIdFormat::WindowsDomainQualifiedName</span> =&gt; {
-                <span class="string">&quot;urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName&quot;</span>.<span class="ident">to_string</span>()
+            NameIdFormat::WindowsDomainQualifiedName =&gt; {
+                <span class="string">&quot;urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName&quot;</span>.to_string()
             }
-            <span class="ident">NameIdFormat::X509SubjectName</span> =&gt; {
-                <span class="string">&quot;urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName&quot;</span>.<span class="ident">to_string</span>()
+            NameIdFormat::X509SubjectName =&gt; {
+                <span class="string">&quot;urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName&quot;</span>.to_string()
             }
         }
     }
 }
-<span class="kw">impl</span> <span class="ident">FromStr</span> <span class="kw">for</span> <span class="ident">NameIdFormat</span> {
-    <span class="kw">type</span> <span class="prelude-val">Err</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>;
+<span class="kw">impl </span>FromStr <span class="kw">for </span>NameIdFormat {
+    <span class="kw">type </span><span class="prelude-val">Err </span>= <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str;
 
-    <span class="kw">fn</span> <span class="ident">from_str</span>(<span class="ident">s</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident"><span class="self">Self</span>::Err</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> <span class="ident">s</span> {
-            <span class="string">&quot;urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress&quot;</span> =&gt; {
-                <span class="prelude-val">Ok</span>(<span class="ident">NameIdFormat::EmailAddress</span>)
+    <span class="kw">fn </span>from_str(s: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Err&gt; {
+        <span class="kw">match </span>s {
+            <span class="string">&quot;urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress&quot; </span>=&gt; {
+                <span class="prelude-val">Ok</span>(NameIdFormat::EmailAddress)
             }
-            <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:nameid-format:entity&quot;</span> =&gt; <span class="prelude-val">Ok</span>(<span class="ident">NameIdFormat::Entity</span>),
-            <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:nameid-format:persistent&quot;</span> =&gt; <span class="prelude-val">Ok</span>(<span class="ident">NameIdFormat::Persistent</span>),
-            <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos&quot;</span> =&gt; <span class="prelude-val">Ok</span>(<span class="ident">NameIdFormat::Kerberos</span>),
-            <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:nameid-format:transient&quot;</span> =&gt; <span class="prelude-val">Ok</span>(<span class="ident">NameIdFormat::Transient</span>),
-            <span class="string">&quot;urn:oasis:names:tc:SAML:1.0:nameid-format:unspecified&quot;</span> =&gt; {
-                <span class="prelude-val">Ok</span>(<span class="ident">NameIdFormat::Unspecified</span>)
+            <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:nameid-format:entity&quot; </span>=&gt; <span class="prelude-val">Ok</span>(NameIdFormat::Entity),
+            <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:nameid-format:persistent&quot; </span>=&gt; <span class="prelude-val">Ok</span>(NameIdFormat::Persistent),
+            <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos&quot; </span>=&gt; <span class="prelude-val">Ok</span>(NameIdFormat::Kerberos),
+            <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:nameid-format:transient&quot; </span>=&gt; <span class="prelude-val">Ok</span>(NameIdFormat::Transient),
+            <span class="string">&quot;urn:oasis:names:tc:SAML:1.0:nameid-format:unspecified&quot; </span>=&gt; {
+                <span class="prelude-val">Ok</span>(NameIdFormat::Unspecified)
             }
-            <span class="string">&quot;urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName&quot;</span> =&gt; {
-                <span class="prelude-val">Ok</span>(<span class="ident">NameIdFormat::X509SubjectName</span>)
+            <span class="string">&quot;urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName&quot; </span>=&gt; {
+                <span class="prelude-val">Ok</span>(NameIdFormat::X509SubjectName)
             }
-            <span class="string">&quot;urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName&quot;</span> =&gt; {
-                <span class="prelude-val">Ok</span>(<span class="ident">NameIdFormat::WindowsDomainQualifiedName</span>)
+            <span class="string">&quot;urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName&quot; </span>=&gt; {
+                <span class="prelude-val">Ok</span>(NameIdFormat::WindowsDomainQualifiedName)
             }
-            <span class="kw">_</span> =&gt; <span class="prelude-val">Err</span>(<span class="string">&quot;Must be a valid type&quot;</span>),
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(<span class="string">&quot;Must be a valid type&quot;</span>),
         }
     }
 }
 
-<span class="doccomment">/// Allows one to build a definition with [SamlBindingType::AssertionConsumerService]\(s\) and [SamlBindingType::SingleLogoutService]\(s\)</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>, <span class="ident">Clone</span>, <span class="ident">Copy</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">SamlBindingType</span> {
-    <span class="doccomment">/// AssertionConsumerService, where you send Authn Rssponses</span>
-    <span class="ident">AssertionConsumerService</span>,
-    <span class="doccomment">/// Logout endpoints</span>
-    <span class="ident">SingleLogoutService</span>,
+<span class="doccomment">/// Allows one to build a definition with [SamlBindingType::AssertionConsumerService]\(s\) and [SamlBindingType::SingleLogoutService]\(s\)
+</span><span class="attribute">#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+</span><span class="kw">pub enum </span>SamlBindingType {
+    <span class="doccomment">/// AssertionConsumerService, where you send Authn Rssponses
+    </span>AssertionConsumerService,
+    <span class="doccomment">/// Logout endpoints
+    </span>SingleLogoutService,
 }
 
-<span class="kw">impl</span> <span class="ident">ToString</span> <span class="kw">for</span> <span class="ident">SamlBindingType</span> {
-    <span class="kw">fn</span> <span class="ident">to_string</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">String</span> {
-        <span class="kw">match</span> <span class="self">self</span> {
-            <span class="ident">SamlBindingType::AssertionConsumerService</span> =&gt; <span class="string">&quot;AssertionConsumerService&quot;</span>.<span class="ident">to_string</span>(),
-            <span class="ident">SamlBindingType::SingleLogoutService</span> =&gt; <span class="string">&quot;SingleLogoutService&quot;</span>.<span class="ident">to_string</span>(),
+<span class="kw">impl </span>ToString <span class="kw">for </span>SamlBindingType {
+    <span class="kw">fn </span>to_string(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="kw">match </span><span class="self">self </span>{
+            SamlBindingType::AssertionConsumerService =&gt; <span class="string">&quot;AssertionConsumerService&quot;</span>.to_string(),
+            SamlBindingType::SingleLogoutService =&gt; <span class="string">&quot;SingleLogoutService&quot;</span>.to_string(),
         }
     }
 }
-<span class="kw">impl</span> <span class="ident">FromStr</span> <span class="kw">for</span> <span class="ident">SamlBindingType</span> {
-    <span class="kw">type</span> <span class="prelude-val">Err</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>;
+<span class="kw">impl </span>FromStr <span class="kw">for </span>SamlBindingType {
+    <span class="kw">type </span><span class="prelude-val">Err </span>= <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str;
 
-    <span class="kw">fn</span> <span class="ident">from_str</span>(<span class="ident">s</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident"><span class="self">Self</span>::Err</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> <span class="ident">s</span> {
-            <span class="string">&quot;AssertionConsumerService&quot;</span> =&gt; <span class="prelude-val">Ok</span>(<span class="ident">SamlBindingType::AssertionConsumerService</span>),
-            <span class="string">&quot;SingleLogoutService&quot;</span> =&gt; <span class="prelude-val">Ok</span>(<span class="ident">SamlBindingType::SingleLogoutService</span>),
-            <span class="kw">_</span> =&gt; <span class="prelude-val">Err</span>(<span class="string">&quot;Must be a valid type&quot;</span>),
+    <span class="kw">fn </span>from_str(s: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Err&gt; {
+        <span class="kw">match </span>s {
+            <span class="string">&quot;AssertionConsumerService&quot; </span>=&gt; <span class="prelude-val">Ok</span>(SamlBindingType::AssertionConsumerService),
+            <span class="string">&quot;SingleLogoutService&quot; </span>=&gt; <span class="prelude-val">Ok</span>(SamlBindingType::SingleLogoutService),
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(<span class="string">&quot;Must be a valid type&quot;</span>),
         }
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>, <span class="ident">Clone</span>, <span class="ident">Copy</span>)]</span>
-<span class="doccomment">/// Binding methods</span>
-<span class="doccomment">/// TODO: should this be renamed to binding method?</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">SamlBinding</span> {
-    <span class="doccomment">/// HTTP-POST method</span>
-    <span class="ident">HttpPost</span>,
-    <span class="doccomment">/// HTTP-REDIRECT method</span>
-    <span class="ident">HttpRedirect</span>,
+<span class="attribute">#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+</span><span class="doccomment">/// Binding methods
+/// TODO: should this be renamed to binding method?
+</span><span class="kw">pub enum </span>SamlBinding {
+    <span class="doccomment">/// HTTP-POST method
+    </span>HttpPost,
+    <span class="doccomment">/// HTTP-REDIRECT method
+    </span>HttpRedirect,
 }
 
-<span class="comment">// TODO: add these bindings, not that we can use them yet</span>
-<span class="comment">// Failed to parse AssertionConsumerService: &quot;UNMATCHED BINDING: urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST-SimpleSign: Must be a valid type&quot;</span>
-<span class="comment">// Failed to parse AssertionConsumerService: &quot;UNMATCHED BINDING: urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact: Must be a valid type&quot;</span>
-<span class="comment">// Failed to parse AssertionConsumerService: &quot;UNMATCHED BINDING: urn:oasis:names:tc:SAML:2.0:bindings:PAOS: Must be a valid type&quot;</span>
+<span class="comment">// TODO: add these bindings, not that we can use them yet
+// Failed to parse AssertionConsumerService: &quot;UNMATCHED BINDING: urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST-SimpleSign: Must be a valid type&quot;
+// Failed to parse AssertionConsumerService: &quot;UNMATCHED BINDING: urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact: Must be a valid type&quot;
+// Failed to parse AssertionConsumerService: &quot;UNMATCHED BINDING: urn:oasis:names:tc:SAML:2.0:bindings:PAOS: Must be a valid type&quot;
 
-<span class="kw">impl</span> <span class="ident">Default</span> <span class="kw">for</span> <span class="ident">SamlBinding</span> {
-    <span class="kw">fn</span> <span class="ident">default</span>() -&gt; <span class="self">Self</span> {
-        <span class="ident">SamlBinding::HttpPost</span>
+</span><span class="kw">impl </span>Default <span class="kw">for </span>SamlBinding {
+    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
+        SamlBinding::HttpPost
     }
 }
-<span class="kw">impl</span> <span class="ident">ToString</span> <span class="kw">for</span> <span class="ident">SamlBinding</span> {
-    <span class="kw">fn</span> <span class="ident">to_string</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">String</span> {
-        <span class="kw">match</span> <span class="self">self</span> {
-            <span class="ident">SamlBinding::HttpPost</span> =&gt; <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST&quot;</span>.<span class="ident">to_string</span>(),
-            <span class="ident">SamlBinding::HttpRedirect</span> =&gt; {
-                <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:bindings:HTTP-REDIRECT&quot;</span>.<span class="ident">to_string</span>()
+<span class="kw">impl </span>ToString <span class="kw">for </span>SamlBinding {
+    <span class="kw">fn </span>to_string(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="kw">match </span><span class="self">self </span>{
+            SamlBinding::HttpPost =&gt; <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST&quot;</span>.to_string(),
+            SamlBinding::HttpRedirect =&gt; {
+                <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:bindings:HTTP-REDIRECT&quot;</span>.to_string()
             }
         }
     }
 }
-<span class="kw">impl</span> <span class="ident">FromStr</span> <span class="kw">for</span> <span class="ident">SamlBinding</span> {
-    <span class="kw">type</span> <span class="prelude-val">Err</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>;
+<span class="kw">impl </span>FromStr <span class="kw">for </span>SamlBinding {
+    <span class="kw">type </span><span class="prelude-val">Err </span>= <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str;
 
-    <span class="doccomment">/// turn a string into a SamlBinding</span>
-    <span class="kw">fn</span> <span class="ident">from_str</span>(<span class="ident">s</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident"><span class="self">Self</span>::Err</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> <span class="ident">s</span> {
-            <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST&quot;</span> =&gt; <span class="prelude-val">Ok</span>(<span class="ident">SamlBinding::HttpPost</span>),
-            <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:bindings:HTTP-REDIRECT&quot;</span> =&gt; <span class="prelude-val">Ok</span>(<span class="ident">SamlBinding::HttpRedirect</span>),
-            <span class="kw">_</span> =&gt; <span class="prelude-val">Err</span>(<span class="string">&quot;Must be a valid type&quot;</span>),
+    <span class="doccomment">/// turn a string into a SamlBinding
+    </span><span class="kw">fn </span>from_str(s: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Err&gt; {
+        <span class="kw">match </span>s {
+            <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST&quot; </span>=&gt; <span class="prelude-val">Ok</span>(SamlBinding::HttpPost),
+            <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:bindings:HTTP-REDIRECT&quot; </span>=&gt; <span class="prelude-val">Ok</span>(SamlBinding::HttpRedirect),
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(<span class="string">&quot;Must be a valid type&quot;</span>),
         }
     }
 }
 
-<span class="doccomment">/// Types of bindings for service providers</span>
-<span class="doccomment">/// TODO: implement a way of pulling the first/a given logout, or the first/ a given assertionconsumer</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>, <span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ServiceBinding</span> {
-    <span class="doccomment">/// [SamlBindingType] Binding type, things like `HTTP-POST` or `HTTP-REDIRECT`</span>
-    <span class="kw">pub</span> <span class="ident">servicetype</span>: <span class="ident">SamlBindingType</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;Binding&quot;</span>)]</span>
-    <span class="doccomment">/// Binding method</span>
-    <span class="kw">pub</span> <span class="ident">binding</span>: <span class="ident">SamlBinding</span>,
-    <span class="doccomment">/// Where to send the response to</span>
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;Location&quot;</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">location</span>: <span class="ident">String</span>,
-    <span class="doccomment">/// Consumer index, if there&#39;s more than 256 then wow, seriously?</span>
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;Index&quot;</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">index</span>: <span class="ident">u8</span>,
+<span class="doccomment">/// Types of bindings for service providers
+/// TODO: implement a way of pulling the first/a given logout, or the first/ a given assertionconsumer
+</span><span class="attribute">#[derive(Debug, Serialize, Deserialize, Clone)]
+</span><span class="kw">pub struct </span>ServiceBinding {
+    <span class="doccomment">/// [SamlBindingType] Binding type, things like `HTTP-POST` or `HTTP-REDIRECT`
+    </span><span class="kw">pub </span>servicetype: SamlBindingType,
+    <span class="attribute">#[serde(rename = <span class="string">&quot;Binding&quot;</span>)]
+    </span><span class="doccomment">/// Binding method
+    </span><span class="kw">pub </span>binding: SamlBinding,
+    <span class="doccomment">/// Where to send the response to
+    </span><span class="attribute">#[serde(rename = <span class="string">&quot;Location&quot;</span>)]
+    </span><span class="kw">pub </span>location: String,
+    <span class="doccomment">/// Consumer index, if there&#39;s more than 256 then wow, seriously?
+    </span><span class="attribute">#[serde(rename = <span class="string">&quot;Index&quot;</span>)]
+    </span><span class="kw">pub </span>index: u8,
 }
 
-<span class="kw">impl</span> <span class="ident">ServiceBinding</span> {
-    <span class="doccomment">/// return a default broken binding for testing or later changing - the ACS is set to `http://0.0.0.0:0/SAML/acs`</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">default</span>() -&gt; <span class="self">Self</span> {
-        <span class="ident">ServiceBinding</span> {
-            <span class="ident">servicetype</span>: <span class="ident">SamlBindingType::AssertionConsumerService</span>,
-            <span class="ident">binding</span>: <span class="ident">SamlBinding::default</span>(),
-            <span class="ident">location</span>: <span class="string">&quot;http://0.0.0.0:0/SAML/acs&quot;</span>.<span class="ident">to_string</span>(),
-            <span class="ident">index</span>: <span class="number">0</span>,
+<span class="kw">impl </span>ServiceBinding {
+    <span class="doccomment">/// return a default broken binding for testing or later changing - the ACS is set to `http://0.0.0.0:0/SAML/acs`
+    </span><span class="kw">pub fn </span>default() -&gt; <span class="self">Self </span>{
+        ServiceBinding {
+            servicetype: SamlBindingType::AssertionConsumerService,
+            binding: SamlBinding::default(),
+            location: <span class="string">&quot;http://0.0.0.0:0/SAML/acs&quot;</span>.to_string(),
+            index: <span class="number">0</span>,
         }
     }
 
-    <span class="doccomment">/// TODO: actually use this in ServiceProvider from_xml or something</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_binding</span>(<span class="self">self</span>, <span class="ident">binding</span>: <span class="ident">String</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident">String</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> <span class="ident">SamlBinding::from_str</span>(<span class="kw-2">&amp;</span><span class="ident">binding</span>) {
-            <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(<span class="string">&quot;Failed to match binding name&quot;</span>.<span class="ident">to_string</span>()),
-            <span class="prelude-val">Ok</span>(<span class="ident">saml_binding</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="ident">ServiceBinding</span> {
-                <span class="ident">servicetype</span>: <span class="self">self</span>.<span class="ident">servicetype</span>,
-                <span class="ident">binding</span>: <span class="ident">saml_binding</span>,
-                <span class="ident">location</span>: <span class="self">self</span>.<span class="ident">location</span>,
-                <span class="ident">index</span>: <span class="self">self</span>.<span class="ident">index</span>,
+    <span class="doccomment">/// TODO: actually use this in ServiceProvider from_xml or something
+    </span><span class="kw">pub fn </span>set_binding(<span class="self">self</span>, binding: String) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, String&gt; {
+        <span class="kw">match </span>SamlBinding::from_str(<span class="kw-2">&amp;</span>binding) {
+            <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(<span class="string">&quot;Failed to match binding name&quot;</span>.to_string()),
+            <span class="prelude-val">Ok</span>(saml_binding) =&gt; <span class="prelude-val">Ok</span>(ServiceBinding {
+                servicetype: <span class="self">self</span>.servicetype,
+                binding: saml_binding,
+                location: <span class="self">self</span>.location,
+                index: <span class="self">self</span>.index,
             }),
         }
     }
 }
 
-<span class="doccomment">/// Used for showing the details of the SP Metadata XML file</span>
-<span class="kw">fn</span> <span class="ident">xml_indent</span>(<span class="ident">size</span>: <span class="ident">usize</span>) -&gt; <span class="ident">String</span> {
-    <span class="kw">const</span> <span class="ident">INDENT</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;    &quot;</span>;
-    (<span class="number">0</span>..<span class="ident">size</span>)
-        .<span class="ident">map</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">INDENT</span>)
-        .<span class="ident">fold</span>(<span class="ident">String::with_capacity</span>(<span class="ident">size</span> <span class="op">*</span> <span class="ident">INDENT</span>.<span class="ident">len</span>()), <span class="op">|</span><span class="ident">r</span>, <span class="ident">s</span><span class="op">|</span> <span class="ident">r</span> <span class="op">+</span> <span class="ident">s</span>)
+<span class="doccomment">/// Used for showing the details of the SP Metadata XML file
+</span><span class="kw">fn </span>xml_indent(size: usize) -&gt; String {
+    <span class="kw">const </span>INDENT: <span class="kw-2">&amp;</span>str = <span class="string">&quot;    &quot;</span>;
+    (<span class="number">0</span>..size)
+        .map(|<span class="kw">_</span>| INDENT)
+        .fold(String::with_capacity(size * INDENT.len()), |r, s| r + s)
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
-<span class="doccomment">/// SP metadata object, used for being able to find one when an AuthN request comes in (or IdP-initiated, eventually, maymbe?)</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ServiceProvider</span> {
-    <span class="doccomment">/// EntityID</span>
-    <span class="kw">pub</span> <span class="ident">entity_id</span>: <span class="ident">String</span>,
-    <span class="doccomment">/// Will this SP send signed requests? If so, we&#39;ll reject ones that aren&#39;t.</span>
-    <span class="kw">pub</span> <span class="ident">authn_requests_signed</span>: <span class="ident">bool</span>,
-    <span class="doccomment">/// Does this SP expect signed assertions?</span>
-    <span class="kw">pub</span> <span class="ident">want_assertions_signed</span>: <span class="ident">bool</span>,
-    <span class="doccomment">/// The signing (public) certificate for the SP</span>
-    <span class="kw">pub</span> <span class="ident">x509_certificate</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">X509</span><span class="op">&gt;</span>,
-    <span class="doccomment">/// SP Services</span>
-    <span class="kw">pub</span> <span class="ident">services</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">ServiceBinding</span><span class="op">&gt;</span>,
-    <span class="doccomment">/// TODO protocol_support_enumeration? what&#39;s this?</span>
-    <span class="kw">pub</span> <span class="ident">protocol_support_enumeration</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="doccomment">/// [NameIdFormat] - how we should identify the user</span>
-    <span class="kw">pub</span> <span class="ident">nameid_format</span>: <span class="ident">NameIdFormat</span>,
+<span class="attribute">#[derive(Debug, Clone)]
+</span><span class="doccomment">/// SP metadata object, used for being able to find one when an AuthN request comes in (or IdP-initiated, eventually, maymbe?)
+</span><span class="kw">pub struct </span>ServiceProvider {
+    <span class="doccomment">/// EntityID
+    </span><span class="kw">pub </span>entity_id: String,
+    <span class="doccomment">/// Will this SP send signed requests? If so, we&#39;ll reject ones that aren&#39;t.
+    </span><span class="kw">pub </span>authn_requests_signed: bool,
+    <span class="doccomment">/// Does this SP expect signed assertions?
+    </span><span class="kw">pub </span>want_assertions_signed: bool,
+    <span class="doccomment">/// The signing (public) certificate for the SP
+    </span><span class="kw">pub </span>x509_certificate: <span class="prelude-ty">Option</span>&lt;X509&gt;,
+    <span class="doccomment">/// SP Services
+    </span><span class="kw">pub </span>services: Vec&lt;ServiceBinding&gt;,
+    <span class="doccomment">/// TODO protocol_support_enumeration? what&#39;s this?
+    </span><span class="kw">pub </span>protocol_support_enumeration: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="doccomment">/// [NameIdFormat] - how we should identify the user
+    </span><span class="kw">pub </span>nameid_format: NameIdFormat,
 }
 
-<span class="kw">impl</span> <span class="ident">FromStr</span> <span class="kw">for</span> <span class="ident">ServiceProvider</span> {
-    <span class="kw">type</span> <span class="prelude-val">Err</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>;
+<span class="kw">impl </span>FromStr <span class="kw">for </span>ServiceProvider {
+    <span class="kw">type </span><span class="prelude-val">Err </span>= <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str;
 
-    <span class="kw">fn</span> <span class="ident">from_str</span>(<span class="ident">source_xml</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident"><span class="self">Self</span>::Err</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">bufreader</span> <span class="op">=</span> <span class="ident">Cursor::new</span>(<span class="ident">source_xml</span>);
-        <span class="kw">let</span> <span class="ident">parser</span> <span class="op">=</span> <span class="ident">EventReader::new</span>(<span class="ident">bufreader</span>);
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">depth</span> <span class="op">=</span> <span class="number">0</span>;
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">tag_name</span> <span class="op">=</span> <span class="string">&quot;###INVALID###&quot;</span>.<span class="ident">to_string</span>();
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">certificate_data</span> <span class="op">=</span> <span class="prelude-val">None</span>::<span class="op">&lt;</span><span class="ident">X509</span><span class="op">&gt;</span>;
+    <span class="kw">fn </span>from_str(source_xml: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Err&gt; {
+        <span class="kw">let </span>bufreader = Cursor::new(source_xml);
+        <span class="kw">let </span>parser = EventReader::new(bufreader);
+        <span class="kw">let </span><span class="kw-2">mut </span>depth = <span class="number">0</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>tag_name = <span class="string">&quot;###INVALID###&quot;</span>.to_string();
+        <span class="kw">let </span><span class="kw-2">mut </span>certificate_data = <span class="prelude-val">None</span>::&lt;X509&gt;;
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">meta</span> <span class="op">=</span> <span class="ident">ServiceProvider</span> {
-            <span class="ident">entity_id</span>: <span class="string">&quot;&quot;</span>.<span class="ident">to_string</span>(),
-            <span class="ident">authn_requests_signed</span>: <span class="bool-val">false</span>,
-            <span class="ident">want_assertions_signed</span>: <span class="bool-val">false</span>,
-            <span class="ident">x509_certificate</span>: <span class="prelude-val">None</span>,
-            <span class="ident">services</span>: <span class="macro">vec!</span>[],
-            <span class="ident">protocol_support_enumeration</span>: <span class="prelude-val">None</span>,
-            <span class="ident">nameid_format</span>: <span class="ident">NameIdFormat::default</span>(),
+        <span class="kw">let </span><span class="kw-2">mut </span>meta = ServiceProvider {
+            entity_id: <span class="string">&quot;&quot;</span>.to_string(),
+            authn_requests_signed: <span class="bool-val">false</span>,
+            want_assertions_signed: <span class="bool-val">false</span>,
+            x509_certificate: <span class="prelude-val">None</span>,
+            services: <span class="macro">vec!</span>[],
+            protocol_support_enumeration: <span class="prelude-val">None</span>,
+            nameid_format: NameIdFormat::default(),
         };
-        <span class="kw">let</span> <span class="ident">upstream_tag</span> <span class="op">=</span> <span class="string">&quot;&quot;</span>;
-        <span class="kw">for</span> <span class="ident">e</span> <span class="kw">in</span> <span class="ident">parser</span> {
-            <span class="kw">match</span> <span class="ident">e</span> {
-                <span class="prelude-val">Ok</span>(<span class="ident">XmlEvent::StartElement</span> {
-                    <span class="ident">name</span>, <span class="ident">attributes</span>, ..
+        <span class="kw">let </span>upstream_tag = <span class="string">&quot;&quot;</span>;
+        <span class="kw">for </span>e <span class="kw">in </span>parser {
+            <span class="kw">match </span>e {
+                <span class="prelude-val">Ok</span>(XmlEvent::StartElement {
+                    name, attributes, ..
                 }) =&gt; {
-                    <span class="comment">// println!(&quot;{}+{}&quot;, xml_indent(depth), name);</span>
-                    <span class="ident">tag_name</span> <span class="op">=</span> <span class="ident">name</span>.<span class="ident">local_name</span>.<span class="ident">to_string</span>();
+                    <span class="comment">// println!(&quot;{}+{}&quot;, xml_indent(depth), name);
+                    </span>tag_name = name.local_name.to_string();
 
-                    <span class="ident">meta</span>.<span class="ident">attrib_parser</span>(<span class="kw-2">&amp;</span><span class="ident">tag_name</span>, <span class="ident">attributes</span>, <span class="kw-2">&amp;</span><span class="ident">upstream_tag</span>);
-                    <span class="ident">depth</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
+                    meta.attrib_parser(<span class="kw-2">&amp;</span>tag_name, attributes, <span class="kw-2">&amp;</span>upstream_tag);
+                    depth += <span class="number">1</span>;
                 }
-                <span class="prelude-val">Ok</span>(<span class="ident">XmlEvent::EndElement</span> { .. <span class="comment">/* name */</span> }) =&gt; {
-                    <span class="ident">depth</span> <span class="op">-</span><span class="op">=</span> <span class="number">1</span>;
-                    <span class="comment">// println!(&quot;{}-{}&quot;, xml_indent(depth), name);</span>
-                }
-                <span class="prelude-val">Ok</span>(<span class="ident">XmlEvent::Characters</span>(<span class="ident">s</span>)) =&gt; {
-                    <span class="kw">match</span> <span class="ident">tag_name</span>.<span class="ident">as_str</span>() {
-                        <span class="string">&quot;NameIDFormat&quot;</span> =&gt; {
+                <span class="prelude-val">Ok</span>(XmlEvent::EndElement { .. <span class="comment">/* name */ </span>}) =&gt; {
+                    depth -= <span class="number">1</span>;
+                    <span class="comment">// println!(&quot;{}-{}&quot;, xml_indent(depth), name);
+                </span>}
+                <span class="prelude-val">Ok</span>(XmlEvent::Characters(s)) =&gt; {
+                    <span class="kw">match </span>tag_name.as_str() {
+                        <span class="string">&quot;NameIDFormat&quot; </span>=&gt; {
                             <span class="macro">debug!</span>(<span class="string">&quot;Found NameIDFormat!&quot;</span>);
-                            <span class="kw">match</span> <span class="ident">NameIdFormat::from_str</span>(<span class="kw-2">&amp;</span><span class="ident">s</span>) {
-                                <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; <span class="macro">eprintln!</span>(<span class="string">&quot;Failed to parse NameIDFormat: {} {:?}&quot;</span>, <span class="ident">s</span>, <span class="ident">error</span>),
-                                <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; <span class="ident">meta</span>.<span class="ident">nameid_format</span> <span class="op">=</span> <span class="ident">value</span>
+                            <span class="kw">match </span>NameIdFormat::from_str(<span class="kw-2">&amp;</span>s) {
+                                <span class="prelude-val">Err</span>(error) =&gt; <span class="macro">eprintln!</span>(<span class="string">&quot;Failed to parse NameIDFormat: {} {:?}&quot;</span>, s, error),
+                                <span class="prelude-val">Ok</span>(value) =&gt; meta.nameid_format = value
                             }
 
                         }
-                        <span class="string">&quot;X509Certificate&quot;</span> =&gt; {
+                        <span class="string">&quot;X509Certificate&quot; </span>=&gt; {
                             <span class="macro">debug!</span>(<span class="string">&quot;Found certificate!&quot;</span>);
-                            <span class="comment">// certificate_data = s.to_string();</span>
-                            <span class="kw">let</span> <span class="ident">certificate</span> <span class="op">=</span> <span class="ident"><span class="kw">crate</span>::cert::init_cert_from_base64</span>(<span class="kw-2">&amp;</span><span class="ident">s</span>);
-                            <span class="kw">match</span> <span class="ident">certificate</span> {
-                                <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; {
+                            <span class="comment">// certificate_data = s.to_string();
+                            </span><span class="kw">let </span>certificate = <span class="kw">crate</span>::cert::init_cert_from_base64(<span class="kw-2">&amp;</span>s);
+                            <span class="kw">match </span>certificate {
+                                <span class="prelude-val">Ok</span>(value) =&gt; {
                                     <span class="macro">log::debug!</span>(<span class="string">&quot;Parsed cert successfully.&quot;</span>);
-                                    <span class="ident">certificate_data</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">value</span>);
+                                    certificate_data = <span class="prelude-val">Some</span>(value);
                                 }
-                                <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; {
-                                    <span class="macro">eprintln!</span>(<span class="string">&quot;error! {:?}&quot;</span>, <span class="ident">error</span>)
+                                <span class="prelude-val">Err</span>(error) =&gt; {
+                                    <span class="macro">eprintln!</span>(<span class="string">&quot;error! {:?}&quot;</span>, error)
                                 }
                             };
-                            <span class="ident">tag_name</span> <span class="op">=</span> <span class="string">&quot;###INVALID###&quot;</span>.<span class="ident">to_string</span>();
+                            tag_name = <span class="string">&quot;###INVALID###&quot;</span>.to_string();
                         }
-                        <span class="kw">_</span> =&gt; {
-                            <span class="macro">println!</span>(<span class="string">&quot;Characters: {}{}&quot;</span>, <span class="ident">xml_indent</span>(<span class="ident">depth</span> <span class="op">+</span> <span class="number">1</span>), <span class="ident">s</span>);
+                        <span class="kw">_ </span>=&gt; {
+                            <span class="macro">println!</span>(<span class="string">&quot;Characters: {}{}&quot;</span>, xml_indent(depth + <span class="number">1</span>), s);
                         }
                     }
                 }
-                <span class="prelude-val">Err</span>(<span class="ident">e</span>) =&gt; {
-                    <span class="macro">eprintln!</span>(<span class="string">&quot;Failed to parse token: {:?}&quot;</span>, <span class="ident">e</span>);
+                <span class="prelude-val">Err</span>(e) =&gt; {
+                    <span class="macro">eprintln!</span>(<span class="string">&quot;Failed to parse token: {:?}&quot;</span>, e);
                 }
-                <span class="kw">_</span> =&gt; {}
+                <span class="kw">_ </span>=&gt; {}
             }
         }
 
-        <span class="kw">match</span> <span class="ident">certificate_data</span> {
-            <span class="prelude-val">Some</span>(<span class="ident">value</span>) =&gt; {
-                <span class="ident">meta</span>.<span class="ident">x509_certificate</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">value</span>);
+        <span class="kw">match </span>certificate_data {
+            <span class="prelude-val">Some</span>(value) =&gt; {
+                meta.x509_certificate = <span class="prelude-val">Some</span>(value);
             }
-            <span class="prelude-val">None</span> =&gt; {
+            <span class="prelude-val">None </span>=&gt; {
                 <span class="macro">eprintln!</span>(<span class="string">&quot;Didn&#39;t find a certificate&quot;</span>);
             }
         }
-        <span class="prelude-val">Ok</span>(<span class="ident">meta</span>)
+        <span class="prelude-val">Ok</span>(meta)
     }
 }
 
-<span class="kw">impl</span> <span class="ident">ServiceProvider</span> {
-    <span class="doccomment">/// Generate a test generic ServiceProvider with nonsense values for testing</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">test_generic</span>(<span class="ident">entity_id</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) -&gt; <span class="self">Self</span> {
-        <span class="ident">ServiceProvider</span> {
-            <span class="ident">entity_id</span>: <span class="ident">entity_id</span>.<span class="ident">to_string</span>(),
-            <span class="ident">authn_requests_signed</span>: <span class="bool-val">false</span>,
-            <span class="ident">want_assertions_signed</span>: <span class="bool-val">false</span>,
-            <span class="ident">x509_certificate</span>: <span class="prelude-val">None</span>,
-            <span class="ident">services</span>: <span class="ident">Vec::new</span>(),
-            <span class="ident">protocol_support_enumeration</span>: <span class="prelude-val">None</span>,
-            <span class="ident">nameid_format</span>: <span class="ident">NameIdFormat::Transient</span>,
+<span class="kw">impl </span>ServiceProvider {
+    <span class="doccomment">/// Generate a test generic ServiceProvider with nonsense values for testing
+    </span><span class="kw">pub fn </span>test_generic(entity_id: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self </span>{
+        ServiceProvider {
+            entity_id: entity_id.to_string(),
+            authn_requests_signed: <span class="bool-val">false</span>,
+            want_assertions_signed: <span class="bool-val">false</span>,
+            x509_certificate: <span class="prelude-val">None</span>,
+            services: Vec::new(),
+            protocol_support_enumeration: <span class="prelude-val">None</span>,
+            nameid_format: NameIdFormat::Transient,
         }
     }
-    <span class="doccomment">/// Used for handling the attributes of services in the tags of an SP Metadata XML file</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// Types tested (poorly):</span>
-    <span class="doccomment">/// - AssertionConsumerService</span>
-    <span class="doccomment">/// - SingleLogoutService</span>
-    <span class="kw">fn</span> <span class="ident">service_attrib_parser</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">servicetype</span>: <span class="ident">SamlBindingType</span>,
-        <span class="ident">attributes</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">OwnedAttribute</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ServiceBinding</span>, <span class="ident">String</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">tmp_sb</span> <span class="op">=</span> <span class="ident">ServiceBinding</span> {
-            <span class="ident">servicetype</span>,
-            <span class="ident">binding</span>: <span class="ident">SamlBinding::HttpPost</span>,
-            <span class="ident">location</span>: <span class="string">&quot;&quot;</span>.<span class="ident">to_string</span>(),
-            <span class="ident">index</span>: <span class="number">0</span>,
+    <span class="doccomment">/// Used for handling the attributes of services in the tags of an SP Metadata XML file
+    ///
+    /// Types tested (poorly):
+    /// - AssertionConsumerService
+    /// - SingleLogoutService
+    </span><span class="kw">fn </span>service_attrib_parser(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        servicetype: SamlBindingType,
+        attributes: Vec&lt;OwnedAttribute&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;ServiceBinding, String&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>tmp_sb = ServiceBinding {
+            servicetype,
+            binding: SamlBinding::HttpPost,
+            location: <span class="string">&quot;&quot;</span>.to_string(),
+            index: <span class="number">0</span>,
         };
-        <span class="kw">for</span> <span class="ident">attribute</span> <span class="kw">in</span> <span class="ident">attributes</span> {
-            <span class="kw">match</span> <span class="ident">attribute</span>.<span class="ident">name</span>.<span class="ident">local_name</span>.<span class="ident">to_lowercase</span>().<span class="ident">as_str</span>() {
-                <span class="string">&quot;binding&quot;</span> =&gt; {
+        <span class="kw">for </span>attribute <span class="kw">in </span>attributes {
+            <span class="kw">match </span>attribute.name.local_name.to_lowercase().as_str() {
+                <span class="string">&quot;binding&quot; </span>=&gt; {
                     <span class="macro">log::debug!</span>(<span class="string">&quot;Found Binding&quot;</span>);
-                    <span class="kw">let</span> <span class="ident">binding</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">SamlBinding::from_str</span>(<span class="kw-2">&amp;</span><span class="ident">attribute</span>.<span class="ident">value</span>) {
-                        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; <span class="ident">value</span>,
-                        <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; {
-                            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="macro">format!</span>(
+                    <span class="kw">let </span>binding = <span class="kw">match </span>SamlBinding::from_str(<span class="kw-2">&amp;</span>attribute.value) {
+                        <span class="prelude-val">Ok</span>(value) =&gt; value,
+                        <span class="prelude-val">Err</span>(error) =&gt; {
+                            <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">format!</span>(
                                 <span class="string">&quot;UNMATCHED BINDING: {}: {}&quot;</span>,
-                                <span class="kw-2">&amp;</span><span class="ident">attribute</span>.<span class="ident">value</span>, <span class="ident">error</span>
+                                <span class="kw-2">&amp;</span>attribute.value, error
                             ))
                         }
                     };
-                    <span class="ident">tmp_sb</span>.<span class="ident">binding</span> <span class="op">=</span> <span class="ident">binding</span>;
+                    tmp_sb.binding = binding;
                 }
-                <span class="string">&quot;location&quot;</span> =&gt; {
+                <span class="string">&quot;location&quot; </span>=&gt; {
                     <span class="macro">log::debug!</span>(<span class="string">&quot;Found Location&quot;</span>);
-                    <span class="ident">tmp_sb</span>.<span class="ident">location</span> <span class="op">=</span> <span class="ident">attribute</span>.<span class="ident">value</span>;
+                    tmp_sb.location = attribute.value;
                 }
-                <span class="string">&quot;index&quot;</span> =&gt; {
+                <span class="string">&quot;index&quot; </span>=&gt; {
                     <span class="macro">log::debug!</span>(<span class="string">&quot;Found index&quot;</span>);
-                    <span class="ident">tmp_sb</span>.<span class="ident">index</span> <span class="op">=</span> <span class="ident">attribute</span>.<span class="ident">value</span>.<span class="ident">parse</span>::<span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>().<span class="ident">unwrap</span>();
+                    tmp_sb.index = attribute.value.parse::&lt;u8&gt;().unwrap();
                 }
-                <span class="kw">_</span> =&gt; {
+                <span class="kw">_ </span>=&gt; {
                     <span class="macro">eprintln!</span>(
                         <span class="string">&quot;Found unhandled attribute in AssertionConsumerService: {:?}&quot;</span>,
-                        <span class="ident">attribute</span>
+                        attribute
                     );
                 }
             }
         }
-        <span class="macro">log::debug!</span>(<span class="string">&quot;Returning {:?}&quot;</span>, <span class="ident">tmp_sb</span>);
-        <span class="prelude-val">Ok</span>(<span class="ident">tmp_sb</span>)
+        <span class="macro">log::debug!</span>(<span class="string">&quot;Returning {:?}&quot;</span>, tmp_sb);
+        <span class="prelude-val">Ok</span>(tmp_sb)
     }
 
-    <span class="doccomment">/// return the first AssertionConsumerService we find</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">find_first_acs</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ServiceBinding</span>, <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span><span class="op">&gt;</span> {
-        <span class="kw">if</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">services</span>.<span class="ident">is_empty</span>() {
-            <span class="kw">for</span> <span class="ident">service</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">services</span> {
-                <span class="kw">if</span> <span class="kw">let</span> <span class="ident">SamlBindingType::AssertionConsumerService</span> <span class="op">=</span> <span class="ident">service</span>.<span class="ident">servicetype</span> {
-                    <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">service</span>.<span class="ident">to_owned</span>());
+    <span class="doccomment">/// return the first AssertionConsumerService we find
+    </span><span class="kw">pub fn </span>find_first_acs(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;ServiceBinding, <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt; {
+        <span class="kw">if </span>!<span class="self">self</span>.services.is_empty() {
+            <span class="kw">for </span>service <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.services {
+                <span class="kw">if let </span>SamlBindingType::AssertionConsumerService = service.servicetype {
+                    <span class="kw">return </span><span class="prelude-val">Ok</span>(service.to_owned());
                 };
             }
         }
         <span class="prelude-val">Err</span>(<span class="string">&quot;Couldn&#39;t find ACS&quot;</span>)
     }
 
-    <span class="doccomment">/// Let&#39;s parse some attributes!</span>
-    <span class="kw">fn</span> <span class="ident">attrib_parser</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">tag</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">attributes</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">OwnedAttribute</span><span class="op">&gt;</span>, <span class="ident">upstream_tag</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) {
-        <span class="macro">eprintln!</span>(<span class="string">&quot;attrib_parser - tag={}, attr:{:?}&quot;</span>, <span class="ident">tag</span>, <span class="ident">attributes</span>);
-        <span class="macro">eprintln!</span>(<span class="string">&quot;Current upstream tag: {}&quot;</span>, <span class="ident">upstream_tag</span>);
+    <span class="doccomment">/// Let&#39;s parse some attributes!
+    </span><span class="kw">fn </span>attrib_parser(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tag: <span class="kw-2">&amp;</span>str, attributes: Vec&lt;OwnedAttribute&gt;, upstream_tag: <span class="kw-2">&amp;</span>str) {
+        <span class="macro">eprintln!</span>(<span class="string">&quot;attrib_parser - tag={}, attr:{:?}&quot;</span>, tag, attributes);
+        <span class="macro">eprintln!</span>(<span class="string">&quot;Current upstream tag: {}&quot;</span>, upstream_tag);
 
-        <span class="kw">match</span> <span class="ident">tag</span> {
-            <span class="string">&quot;AssertionConsumerService&quot;</span> =&gt; {
-                <span class="macro">log::debug!</span>(<span class="string">&quot;AssertionConsumerService: {:?}&quot;</span>, <span class="ident">attributes</span>);
-                <span class="kw">match</span> <span class="self">self</span>
-                    .<span class="ident">service_attrib_parser</span>(<span class="ident">SamlBindingType::AssertionConsumerService</span>, <span class="ident">attributes</span>)
+        <span class="kw">match </span>tag {
+            <span class="string">&quot;AssertionConsumerService&quot; </span>=&gt; {
+                <span class="macro">log::debug!</span>(<span class="string">&quot;AssertionConsumerService: {:?}&quot;</span>, attributes);
+                <span class="kw">match </span><span class="self">self
+                    </span>.service_attrib_parser(SamlBindingType::AssertionConsumerService, attributes)
                 {
-                    <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; {
-                        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">a</span> <span class="op">=</span> <span class="macro">vec!</span>[<span class="ident">value</span>];
-                        <span class="self">self</span>.<span class="ident">services</span>.<span class="ident">append</span>(<span class="kw-2">&amp;mut</span> <span class="ident">a</span>);
+                    <span class="prelude-val">Ok</span>(value) =&gt; {
+                        <span class="kw">let </span><span class="kw-2">mut </span>a = <span class="macro">vec!</span>[value];
+                        <span class="self">self</span>.services.append(<span class="kw-2">&amp;mut </span>a);
                     }
-                    <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; {
-                        <span class="macro">eprintln!</span>(<span class="string">&quot;Failed to parse AssertionConsumerService: {:?}&quot;</span>, <span class="ident">error</span>)
+                    <span class="prelude-val">Err</span>(error) =&gt; {
+                        <span class="macro">eprintln!</span>(<span class="string">&quot;Failed to parse AssertionConsumerService: {:?}&quot;</span>, error)
                     }
                 }
             }
-            <span class="string">&quot;EntityDescriptor&quot;</span> =&gt; {
-                <span class="kw">for</span> <span class="ident">attribute</span> <span class="kw">in</span> <span class="ident">attributes</span> {
-                    <span class="macro">log::debug!</span>(<span class="string">&quot;attribute: {}&quot;</span>, <span class="ident">attribute</span>);
-                    <span class="kw">match</span> <span class="ident">attribute</span>.<span class="ident">name</span>.<span class="ident">local_name</span>.<span class="ident">as_str</span>() {
-                        <span class="string">&quot;entityID&quot;</span> =&gt; {
-                            <span class="macro">log::debug!</span>(<span class="string">&quot;Setting entityID: {}&quot;</span>, <span class="ident">attribute</span>.<span class="ident">value</span>);
-                            <span class="self">self</span>.<span class="ident">entity_id</span> <span class="op">=</span> <span class="ident">attribute</span>.<span class="ident">value</span>;
+            <span class="string">&quot;EntityDescriptor&quot; </span>=&gt; {
+                <span class="kw">for </span>attribute <span class="kw">in </span>attributes {
+                    <span class="macro">log::debug!</span>(<span class="string">&quot;attribute: {}&quot;</span>, attribute);
+                    <span class="kw">match </span>attribute.name.local_name.as_str() {
+                        <span class="string">&quot;entityID&quot; </span>=&gt; {
+                            <span class="macro">log::debug!</span>(<span class="string">&quot;Setting entityID: {}&quot;</span>, attribute.value);
+                            <span class="self">self</span>.entity_id = attribute.value;
                         }
-                        <span class="string">&quot;ID&quot;</span> =&gt; {
-                            <span class="macro">log::debug!</span>(<span class="string">&quot;Setting entityID: {}&quot;</span>, <span class="ident">attribute</span>.<span class="ident">value</span>);
-                            <span class="self">self</span>.<span class="ident">entity_id</span> <span class="op">=</span> <span class="ident">attribute</span>.<span class="ident">value</span>;
+                        <span class="string">&quot;ID&quot; </span>=&gt; {
+                            <span class="macro">log::debug!</span>(<span class="string">&quot;Setting entityID: {}&quot;</span>, attribute.value);
+                            <span class="self">self</span>.entity_id = attribute.value;
                         }
-                        <span class="comment">// TODO validUntil example value &quot;2100-01-01T00:00:42Z&quot;</span>
-                        <span class="kw">_</span> =&gt; {
+                        <span class="comment">// TODO validUntil example value &quot;2100-01-01T00:00:42Z&quot;
+                        </span><span class="kw">_ </span>=&gt; {
                             <span class="macro">eprintln!</span>(
                                 <span class="string">&quot;found an EntityDescriptor attribute that&#39;s not entityID: {:?}&quot;</span>,
-                                <span class="ident">attribute</span>
+                                attribute
                             );
                         }
                     }
                 }
             }
-            <span class="string">&quot;SingleLogoutService&quot;</span> =&gt; {
-                <span class="macro">log::debug!</span>(<span class="string">&quot;SingleLogoutService: {:?}&quot;</span>, <span class="ident">attributes</span>);
-                <span class="kw">match</span> <span class="self">self</span>.<span class="ident">service_attrib_parser</span>(<span class="ident">SamlBindingType::SingleLogoutService</span>, <span class="ident">attributes</span>) {
-                    <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; {
-                        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">a</span> <span class="op">=</span> <span class="macro">vec!</span>[<span class="ident">value</span>];
-                        <span class="self">self</span>.<span class="ident">services</span>.<span class="ident">append</span>(<span class="kw-2">&amp;mut</span> <span class="ident">a</span>);
+            <span class="string">&quot;SingleLogoutService&quot; </span>=&gt; {
+                <span class="macro">log::debug!</span>(<span class="string">&quot;SingleLogoutService: {:?}&quot;</span>, attributes);
+                <span class="kw">match </span><span class="self">self</span>.service_attrib_parser(SamlBindingType::SingleLogoutService, attributes) {
+                    <span class="prelude-val">Ok</span>(value) =&gt; {
+                        <span class="kw">let </span><span class="kw-2">mut </span>a = <span class="macro">vec!</span>[value];
+                        <span class="self">self</span>.services.append(<span class="kw-2">&amp;mut </span>a);
                     }
-                    <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; <span class="macro">eprintln!</span>(<span class="string">&quot;Failed to parse SingleLogoutService: {:?}&quot;</span>, <span class="ident">error</span>),
+                    <span class="prelude-val">Err</span>(error) =&gt; <span class="macro">eprintln!</span>(<span class="string">&quot;Failed to parse SingleLogoutService: {:?}&quot;</span>, error),
                 }
             }
 
-            <span class="string">&quot;SPSSODescriptor&quot;</span> =&gt; {
-                <span class="macro">log::debug!</span>(<span class="string">&quot;Dumping SPSSODescriptor: {:?}&quot;</span>, <span class="ident">attributes</span>);
-                <span class="kw">for</span> <span class="ident">attribute</span> <span class="kw">in</span> <span class="ident">attributes</span> {
-                    <span class="kw">match</span> <span class="ident">attribute</span>.<span class="ident">name</span>.<span class="ident">local_name</span>.<span class="ident">to_lowercase</span>().<span class="ident">as_str</span>() {
-                        <span class="string">&quot;authnrequestssigned&quot;</span> =&gt; {
-                            <span class="comment">// AuthnRequestsSigned</span>
-                            <span class="kw">match</span> <span class="ident">attribute</span>.<span class="ident">value</span>.<span class="ident">to_lowercase</span>().<span class="ident">as_str</span>() {
-                                <span class="string">&quot;true&quot;</span> =&gt; <span class="self">self</span>.<span class="ident">authn_requests_signed</span> <span class="op">=</span> <span class="bool-val">true</span>,
-                                <span class="string">&quot;false&quot;</span> =&gt; <span class="self">self</span>.<span class="ident">authn_requests_signed</span> <span class="op">=</span> <span class="bool-val">false</span>,
-                                <span class="kw">_</span> =&gt; <span class="macro">eprintln!</span>(
+            <span class="string">&quot;SPSSODescriptor&quot; </span>=&gt; {
+                <span class="macro">log::debug!</span>(<span class="string">&quot;Dumping SPSSODescriptor: {:?}&quot;</span>, attributes);
+                <span class="kw">for </span>attribute <span class="kw">in </span>attributes {
+                    <span class="kw">match </span>attribute.name.local_name.to_lowercase().as_str() {
+                        <span class="string">&quot;authnrequestssigned&quot; </span>=&gt; {
+                            <span class="comment">// AuthnRequestsSigned
+                            </span><span class="kw">match </span>attribute.value.to_lowercase().as_str() {
+                                <span class="string">&quot;true&quot; </span>=&gt; <span class="self">self</span>.authn_requests_signed = <span class="bool-val">true</span>,
+                                <span class="string">&quot;false&quot; </span>=&gt; <span class="self">self</span>.authn_requests_signed = <span class="bool-val">false</span>,
+                                <span class="kw">_ </span>=&gt; <span class="macro">eprintln!</span>(
                                     <span class="string">&quot;Couldn&#39;t parse value of AuthnRequestsSigned: {}&quot;</span>,
-                                    <span class="ident">attribute</span>.<span class="ident">value</span>.<span class="ident">to_lowercase</span>()
+                                    attribute.value.to_lowercase()
                                 ),
                             }
                         }
-                        <span class="string">&quot;wantassertionssigned&quot;</span> =&gt; {
-                            <span class="comment">// WantAssertionsSigned</span>
-                            <span class="kw">match</span> <span class="ident">attribute</span>.<span class="ident">value</span>.<span class="ident">to_lowercase</span>().<span class="ident">as_str</span>() {
-                                <span class="string">&quot;true&quot;</span> =&gt; <span class="self">self</span>.<span class="ident">want_assertions_signed</span> <span class="op">=</span> <span class="bool-val">true</span>,
-                                <span class="string">&quot;false&quot;</span> =&gt; <span class="self">self</span>.<span class="ident">want_assertions_signed</span> <span class="op">=</span> <span class="bool-val">false</span>,
-                                <span class="kw">_</span> =&gt; <span class="macro">eprintln!</span>(
+                        <span class="string">&quot;wantassertionssigned&quot; </span>=&gt; {
+                            <span class="comment">// WantAssertionsSigned
+                            </span><span class="kw">match </span>attribute.value.to_lowercase().as_str() {
+                                <span class="string">&quot;true&quot; </span>=&gt; <span class="self">self</span>.want_assertions_signed = <span class="bool-val">true</span>,
+                                <span class="string">&quot;false&quot; </span>=&gt; <span class="self">self</span>.want_assertions_signed = <span class="bool-val">false</span>,
+                                <span class="kw">_ </span>=&gt; <span class="macro">eprintln!</span>(
                                     <span class="string">&quot;Couldn&#39;t parse value of WantAssertionsSigned: {}&quot;</span>,
-                                    <span class="ident">attribute</span>.<span class="ident">value</span>.<span class="ident">to_lowercase</span>()
+                                    attribute.value.to_lowercase()
                                 ),
                             }
                         }
-                        <span class="string">&quot;protocolsupportenumeration&quot;</span> =&gt; {
-                            <span class="self">self</span>.<span class="ident">protocol_support_enumeration</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">attribute</span>.<span class="ident">value</span>.<span class="ident">to_string</span>())
+                        <span class="string">&quot;protocolsupportenumeration&quot; </span>=&gt; {
+                            <span class="self">self</span>.protocol_support_enumeration = <span class="prelude-val">Some</span>(attribute.value.to_string())
                         }
-                        <span class="kw">_</span> =&gt; <span class="macro">eprintln!</span>(<span class="string">&quot;SPSSODescriptor attribute not handled {:?}&quot;</span>, <span class="ident">attribute</span>), <span class="comment">// protocolSupportEnumeration=&quot;urn:oasis:names:tc:SAML:2.0:protocol&quot;</span>
-                                                                                                 <span class="comment">// WantAssertionsSigned=&quot;true&quot;</span>
-                    }
+                        <span class="kw">_ </span>=&gt; <span class="macro">eprintln!</span>(<span class="string">&quot;SPSSODescriptor attribute not handled {:?}&quot;</span>, attribute), <span class="comment">// protocolSupportEnumeration=&quot;urn:oasis:names:tc:SAML:2.0:protocol&quot;
+                                                                                                 // WantAssertionsSigned=&quot;true&quot;
+                    </span>}
                 }
             }
-            <span class="comment">// TODO: RequestInitiator</span>
-            <span class="string">&quot;RequestInitiator&quot;</span> =&gt; <span class="macro">log::warn!</span>(<span class="string">&quot;RequestInitiator is yet to be implemented, skipping&quot;</span>),
-            <span class="comment">// TODO: SPSSODescriptor?</span>
-            <span class="comment">// &quot;SPSSODescriptor&quot; =&gt; log::warn!(&quot;SPSSODescriptor is yet to be implemented, skipping&quot;),</span>
-            <span class="comment">// TODO: SigningMethod - should be relevant to how we respond</span>
-            <span class="string">&quot;SigningMethod&quot;</span> =&gt; <span class="macro">log::warn!</span>(<span class="string">&quot;SigningMethod is yet to be implemented, skipping&quot;</span>),
-            <span class="comment">// TODO: DigestMethod - should be relevant to how we respond</span>
-            <span class="string">&quot;DigestMethod&quot;</span> =&gt; <span class="macro">log::warn!</span>(<span class="string">&quot;DigestMethod is yet to be implemented, skipping&quot;</span>),
+            <span class="comment">// TODO: RequestInitiator
+            </span><span class="string">&quot;RequestInitiator&quot; </span>=&gt; <span class="macro">log::warn!</span>(<span class="string">&quot;RequestInitiator is yet to be implemented, skipping&quot;</span>),
+            <span class="comment">// TODO: SPSSODescriptor?
+            // &quot;SPSSODescriptor&quot; =&gt; log::warn!(&quot;SPSSODescriptor is yet to be implemented, skipping&quot;),
+            // TODO: SigningMethod - should be relevant to how we respond
+            </span><span class="string">&quot;SigningMethod&quot; </span>=&gt; <span class="macro">log::warn!</span>(<span class="string">&quot;SigningMethod is yet to be implemented, skipping&quot;</span>),
+            <span class="comment">// TODO: DigestMethod - should be relevant to how we respond
+            </span><span class="string">&quot;DigestMethod&quot; </span>=&gt; <span class="macro">log::warn!</span>(<span class="string">&quot;DigestMethod is yet to be implemented, skipping&quot;</span>),
 
-            <span class="string">&quot;NameIDFormat&quot;</span> =&gt; <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for NameIDFormat&quot;</span>),
-            <span class="string">&quot;KeyDescriptor&quot;</span> =&gt; <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for KeyDescriptor&quot;</span>),
-            <span class="string">&quot;KeyInfo&quot;</span> =&gt; <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for KeyInfo&quot;</span>),
-            <span class="string">&quot;X509Certificate&quot;</span> =&gt; <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for X509Certificate&quot;</span>),
-            <span class="string">&quot;X509Data&quot;</span> =&gt; <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for X509Data&quot;</span>),
-            <span class="string">&quot;Logo&quot;</span> =&gt; <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for Logo&quot;</span>),
-            <span class="string">&quot;Description&quot;</span> =&gt; <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for Description&quot;</span>),
-            <span class="kw">_</span> =&gt; <span class="macro">eprintln!</span>(
+            <span class="string">&quot;NameIDFormat&quot; </span>=&gt; <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for NameIDFormat&quot;</span>),
+            <span class="string">&quot;KeyDescriptor&quot; </span>=&gt; <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for KeyDescriptor&quot;</span>),
+            <span class="string">&quot;KeyInfo&quot; </span>=&gt; <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for KeyInfo&quot;</span>),
+            <span class="string">&quot;X509Certificate&quot; </span>=&gt; <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for X509Certificate&quot;</span>),
+            <span class="string">&quot;X509Data&quot; </span>=&gt; <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for X509Data&quot;</span>),
+            <span class="string">&quot;Logo&quot; </span>=&gt; <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for Logo&quot;</span>),
+            <span class="string">&quot;Description&quot; </span>=&gt; <span class="macro">log::debug!</span>(<span class="string">&quot;Don&#39;t need to parse attributes for Description&quot;</span>),
+            <span class="kw">_ </span>=&gt; <span class="macro">eprintln!</span>(
                 <span class="string">&quot;!!! Asked to parse attributes for tag={}, not caught by anything {:?}&quot;</span>,
-                <span class="ident">tag</span>, <span class="ident">attributes</span>
+                tag, attributes
             ),
         }
     }
 
-    <span class="comment">//    pub fn add_to_xmlevent(&amp;self, writer: &amp;mut EventWriter&lt;W&gt;) {</span>
+    <span class="comment">//    pub fn add_to_xmlevent(&amp;self, writer: &amp;mut EventWriter&lt;W&gt;) {
 
-    <span class="comment">// fn ssp_so_descriptor_handler&lt;R: Read&gt;(&amp;self,</span>
-    <span class="comment">//     parser: &amp;mut EventReader&lt;R&gt;,</span>
-    <span class="comment">//     meta: &amp;mut ServiceProvider ) {</span>
+    // fn ssp_so_descriptor_handler&lt;R: Read&gt;(&amp;self,
+    //     parser: &amp;mut EventReader&lt;R&gt;,
+    //     meta: &amp;mut ServiceProvider ) {
 
-    <span class="comment">// }</span>
-}
+    // }
+</span>}
 
 <span class="comment">/*
 From Running ServiceProvider::from_xml over the sp_metadata_splunk_self_signed.xml:
@@ -1071,6 +1071,6 @@ From Running ServiceProvider::from_xml over the sp_metadata_splunk_self_signed.x
     -{urn:oasis:names:tc:SAML:2.0:metadata}md:SPSSODescriptor
 -{urn:oasis:names:tc:SAML:2.0:metadata}md:EntityDescriptor
 
-*/</span>
-</code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="saml_rs" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+*/
+</span></code></pre></div>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="saml_rs" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

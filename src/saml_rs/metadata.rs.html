@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/metadata.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>metadata.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../saml_rs/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../saml_rs/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../saml_rs/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/metadata.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>metadata.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../saml_rs/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../saml_rs/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../saml_rs/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -233,240 +233,240 @@
 <span id="233">233</span>
 <span id="234">234</span>
 <span id="235">235</span>
-</pre><pre class="rust"><code><span class="doccomment">//! Handy for the XML metadata part of SAML</span>
+</pre><pre class="rust"><code><span class="doccomment">//! Handy for the XML metadata part of SAML
 
-<span class="comment">// #![deny(unsafe_code)]</span>
+</span><span class="comment">// #![deny(unsafe_code)]
 
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::xml::X509Utils</span>;
-<span class="kw">use</span> <span class="ident">openssl::x509::X509</span>;
-<span class="kw">use</span> <span class="ident">std::str::from_utf8</span>;
+</span><span class="kw">use </span><span class="kw">crate</span>::xml::X509Utils;
+<span class="kw">use </span>openssl::x509::X509;
+<span class="kw">use </span>std::str::from_utf8;
 
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::xml::write_event</span>;
-<span class="kw">use</span> <span class="ident">std::io::Write</span>;
-<span class="kw">use</span> <span class="ident">xml::writer</span>::{<span class="ident">EmitterConfig</span>, <span class="ident">EventWriter</span>, <span class="ident">XmlEvent</span>};
+<span class="kw">use </span><span class="kw">crate</span>::xml::write_event;
+<span class="kw">use </span>std::io::Write;
+<span class="kw">use </span>xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
-<span class="doccomment">/// Stores the required data for generating a SAML metadata XML file</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SamlMetadata</span> {
-    <span class="doccomment">/// Hostname of the issuer, used for URLs etc</span>
-    <span class="kw">pub</span> <span class="ident">hostname</span>: <span class="ident">String</span>,
-    <span class="doccomment">/// Set this as the base of the suffix-items elsewhere</span>
-    <span class="kw">pub</span> <span class="ident">baseurl</span>: <span class="ident">String</span>,
-    <span class="doccomment">/// entityID is transmitted in all requests</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// Every SAML system entity has an entity ID, a globally-unique identifier used in software configurations, relying-party databases, and client-side cookies. On the wire, every SAML protocol message contains the entity ID of the issuer. If you don&#39;t set it, it&#39;ll fall back to the bare hostname.</span>
-    <span class="comment">// #[serde(rename = &quot;entityID&quot;)]</span>
-    <span class="kw">pub</span> <span class="ident">entity_id</span>: <span class="ident">String</span>,
-    <span class="doccomment">/// Appended to the baseurl when using the [SamlMetadata::logout_url] function</span>
-    <span class="kw">pub</span> <span class="ident">logout_suffix</span>: <span class="ident">String</span>,
-    <span class="doccomment">/// Appended to the baseurl when using the [SamlMetadata::redirect_url] function</span>
-    <span class="kw">pub</span> <span class="ident">redirect_suffix</span>: <span class="ident">String</span>,
-    <span class="doccomment">/// Appended to the baseurl when using the [SamlMetadata::post_url] function</span>
-    <span class="kw">pub</span> <span class="ident">post_suffix</span>: <span class="ident">String</span>,
-    <span class="doccomment">/// Public certificate for signing/encryption</span>
-    <span class="kw">pub</span> <span class="ident">x509_certificate</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">X509</span><span class="op">&gt;</span>,
+<span class="doccomment">/// Stores the required data for generating a SAML metadata XML file
+</span><span class="attribute">#[derive(Debug)]
+</span><span class="kw">pub struct </span>SamlMetadata {
+    <span class="doccomment">/// Hostname of the issuer, used for URLs etc
+    </span><span class="kw">pub </span>hostname: String,
+    <span class="doccomment">/// Set this as the base of the suffix-items elsewhere
+    </span><span class="kw">pub </span>baseurl: String,
+    <span class="doccomment">/// entityID is transmitted in all requests
+    ///
+    /// Every SAML system entity has an entity ID, a globally-unique identifier used in software configurations, relying-party databases, and client-side cookies. On the wire, every SAML protocol message contains the entity ID of the issuer. If you don&#39;t set it, it&#39;ll fall back to the bare hostname.
+    </span><span class="comment">// #[serde(rename = &quot;entityID&quot;)]
+    </span><span class="kw">pub </span>entity_id: String,
+    <span class="doccomment">/// Appended to the baseurl when using the [SamlMetadata::logout_url] function
+    </span><span class="kw">pub </span>logout_suffix: String,
+    <span class="doccomment">/// Appended to the baseurl when using the [SamlMetadata::redirect_url] function
+    </span><span class="kw">pub </span>redirect_suffix: String,
+    <span class="doccomment">/// Appended to the baseurl when using the [SamlMetadata::post_url] function
+    </span><span class="kw">pub </span>post_suffix: String,
+    <span class="doccomment">/// Public certificate for signing/encryption
+    </span><span class="kw">pub </span>x509_certificate: <span class="prelude-ty">Option</span>&lt;X509&gt;,
 }
 
-<span class="kw">impl</span> <span class="ident">SamlMetadata</span> {
-    <span class="doccomment">/// Create a new SamlMetadata object for your IdP</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(
-        <span class="ident">hostname</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-        <span class="ident">baseurl</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-        <span class="ident">entity_id</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-        <span class="ident">logout_suffix</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-        <span class="ident">redirect_suffix</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-        <span class="ident">post_suffix</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-        <span class="ident">x509_certificate</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">X509</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="self">Self</span> {
-        <span class="kw">let</span> <span class="ident">hostname</span> <span class="op">=</span> <span class="ident">hostname</span>.<span class="ident">to_string</span>();
-        <span class="kw">let</span> <span class="ident">baseurl</span> <span class="op">=</span> <span class="ident">baseurl</span>.<span class="ident">unwrap_or</span>(<span class="macro">format!</span>(<span class="string">&quot;https://{}/SAML&quot;</span>, <span class="ident">hostname</span>));
-        <span class="kw">let</span> <span class="ident">entity_id</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">entity_id</span> {
-            <span class="prelude-val">Some</span>(<span class="ident">value</span>) =&gt; <span class="ident">value</span>,
-            <span class="prelude-val">None</span> =&gt; <span class="ident">hostname</span>.<span class="ident">to_string</span>(),
+<span class="kw">impl </span>SamlMetadata {
+    <span class="doccomment">/// Create a new SamlMetadata object for your IdP
+    </span><span class="kw">pub fn </span>new(
+        hostname: <span class="kw-2">&amp;</span>str,
+        baseurl: <span class="prelude-ty">Option</span>&lt;String&gt;,
+        entity_id: <span class="prelude-ty">Option</span>&lt;String&gt;,
+        logout_suffix: <span class="prelude-ty">Option</span>&lt;String&gt;,
+        redirect_suffix: <span class="prelude-ty">Option</span>&lt;String&gt;,
+        post_suffix: <span class="prelude-ty">Option</span>&lt;String&gt;,
+        x509_certificate: <span class="prelude-ty">Option</span>&lt;X509&gt;,
+    ) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span>hostname = hostname.to_string();
+        <span class="kw">let </span>baseurl = baseurl.unwrap_or(<span class="macro">format!</span>(<span class="string">&quot;https://{}/SAML&quot;</span>, hostname));
+        <span class="kw">let </span>entity_id = <span class="kw">match </span>entity_id {
+            <span class="prelude-val">Some</span>(value) =&gt; value,
+            <span class="prelude-val">None </span>=&gt; hostname.to_string(),
         };
-        <span class="kw">let</span> <span class="ident">logout_suffix_default</span> <span class="op">=</span> <span class="ident">String::from</span>(<span class="string">&quot;/Logout&quot;</span>);
-        <span class="ident">SamlMetadata</span> {
-            <span class="ident">hostname</span>,
-            <span class="ident">baseurl</span>,
-            <span class="ident">entity_id</span>,
-            <span class="ident">logout_suffix</span>: <span class="ident">logout_suffix</span>.<span class="ident">unwrap_or</span>(<span class="ident">logout_suffix_default</span>),
-            <span class="ident">redirect_suffix</span>: <span class="ident">redirect_suffix</span>.<span class="ident">unwrap_or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="ident">String::from</span>(<span class="string">&quot;/Redirect&quot;</span>)),
-            <span class="ident">post_suffix</span>: <span class="ident">post_suffix</span>.<span class="ident">unwrap_or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="ident">String::from</span>(<span class="string">&quot;/POST&quot;</span>)),
-            <span class="ident">x509_certificate</span>,
+        <span class="kw">let </span>logout_suffix_default = String::from(<span class="string">&quot;/Logout&quot;</span>);
+        SamlMetadata {
+            hostname,
+            baseurl,
+            entity_id,
+            logout_suffix: logout_suffix.unwrap_or(logout_suffix_default),
+            redirect_suffix: redirect_suffix.unwrap_or_else(|| String::from(<span class="string">&quot;/Redirect&quot;</span>)),
+            post_suffix: post_suffix.unwrap_or_else(|| String::from(<span class="string">&quot;/POST&quot;</span>)),
+            x509_certificate,
         }
     }
 
-    <span class="doccomment">/// really simple version with a self-signed certificate based on just the hostname. Mainly for testing.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_hostname</span>(<span class="ident">hostname</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) -&gt; <span class="ident">SamlMetadata</span> {
-        <span class="kw">let</span> <span class="ident">cert</span> <span class="op">=</span> <span class="ident"><span class="kw">crate</span>::cert::gen_self_signed_certificate</span>(<span class="ident">hostname</span>);
-        <span class="ident">SamlMetadata::new</span>(<span class="ident">hostname</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="ident">cert</span>))
+    <span class="doccomment">/// really simple version with a self-signed certificate based on just the hostname. Mainly for testing.
+    </span><span class="kw">pub fn </span>from_hostname(hostname: <span class="kw-2">&amp;</span>str) -&gt; SamlMetadata {
+        <span class="kw">let </span>cert = <span class="kw">crate</span>::cert::gen_self_signed_certificate(hostname);
+        SamlMetadata::new(hostname, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(cert))
     }
 
-    <span class="doccomment">/// return the generated Logout URL based on the baseurl + logout_suffix</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">logout_url</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">String</span> {
-        <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.<span class="ident">baseurl</span>, <span class="self">self</span>.<span class="ident">logout_suffix</span>)
+    <span class="doccomment">/// return the generated Logout URL based on the baseurl + logout_suffix
+    </span><span class="kw">pub fn </span>logout_url(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.baseurl, <span class="self">self</span>.logout_suffix)
     }
-    <span class="doccomment">/// return the generated redirect URL based on the baseurl + redirect_suffix</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">redirect_url</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">String</span> {
-        <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.<span class="ident">baseurl</span>, <span class="self">self</span>.<span class="ident">redirect_suffix</span>)
+    <span class="doccomment">/// return the generated redirect URL based on the baseurl + redirect_suffix
+    </span><span class="kw">pub fn </span>redirect_url(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.baseurl, <span class="self">self</span>.redirect_suffix)
     }
-    <span class="doccomment">/// return the generated post URL based on the baseurl + post_suffix</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">post_url</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">String</span> {
-        <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.<span class="ident">baseurl</span>, <span class="self">self</span>.<span class="ident">post_suffix</span>)
+    <span class="doccomment">/// return the generated post URL based on the baseurl + post_suffix
+    </span><span class="kw">pub fn </span>post_url(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.baseurl, <span class="self">self</span>.post_suffix)
     }
 }
 
-<span class="doccomment">/// Write a signing key to an XMLEventWriter</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">xml_add_certificate</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span>(
-    <span class="ident">key_use</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-    <span class="ident">base64_encoded_certificate</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-    <span class="ident">writer</span>: <span class="kw-2">&amp;mut</span> <span class="ident">EventWriter</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>,
+<span class="doccomment">/// Write a signing key to an XMLEventWriter
+</span><span class="kw">pub fn </span>xml_add_certificate&lt;W: Write&gt;(
+    key_use: <span class="kw-2">&amp;</span>str,
+    base64_encoded_certificate: <span class="kw-2">&amp;</span>str,
+    writer: <span class="kw-2">&amp;mut </span>EventWriter&lt;W&gt;,
 ) {
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;md&quot;</span>, <span class="string">&quot;KeyDescriptor&quot;</span>))
-            .<span class="ident">attr</span>(<span class="string">&quot;use&quot;</span>, <span class="ident">key_use</span>)
-            .<span class="ident">into</span>(),
-        <span class="ident">writer</span>,
+    write_event(
+        XmlEvent::start_element((<span class="string">&quot;md&quot;</span>, <span class="string">&quot;KeyDescriptor&quot;</span>))
+            .attr(<span class="string">&quot;use&quot;</span>, key_use)
+            .into(),
+        writer,
     );
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;ds&quot;</span>, <span class="string">&quot;KeyInfo&quot;</span>))
-            .<span class="ident">attr</span>(<span class="string">&quot;xmlns:ds&quot;</span>, <span class="string">&quot;http://www.w3.org/2000/09/xmldsig#&quot;</span>)
-            .<span class="ident">into</span>(),
-        <span class="ident">writer</span>,
+    write_event(
+        XmlEvent::start_element((<span class="string">&quot;ds&quot;</span>, <span class="string">&quot;KeyInfo&quot;</span>))
+            .attr(<span class="string">&quot;xmlns:ds&quot;</span>, <span class="string">&quot;http://www.w3.org/2000/09/xmldsig#&quot;</span>)
+            .into(),
+        writer,
     );
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;ds&quot;</span>, <span class="string">&quot;X509Data&quot;</span>)).<span class="ident">into</span>(), <span class="ident">writer</span>);
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;ds&quot;</span>, <span class="string">&quot;X509Certificate&quot;</span>)).<span class="ident">into</span>(),
-        <span class="ident">writer</span>,
+    write_event(XmlEvent::start_element((<span class="string">&quot;ds&quot;</span>, <span class="string">&quot;X509Data&quot;</span>)).into(), writer);
+    write_event(
+        XmlEvent::start_element((<span class="string">&quot;ds&quot;</span>, <span class="string">&quot;X509Certificate&quot;</span>)).into(),
+        writer,
     );
 
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::characters</span>(<span class="kw-2">&amp;</span><span class="ident">base64_encoded_certificate</span>.<span class="ident">replace</span>(<span class="string">&quot;\n&quot;</span>, <span class="string">&quot;&quot;</span>)),
-        <span class="ident">writer</span>,
+    write_event(
+        XmlEvent::characters(<span class="kw-2">&amp;</span>base64_encoded_certificate.replace(<span class="string">&quot;\n&quot;</span>, <span class="string">&quot;&quot;</span>)),
+        writer,
     );
-    <span class="comment">// end the x509certificate</span>
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
-    <span class="comment">// end the x509data</span>
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
-    <span class="comment">// end the ds:keyinfo</span>
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
-    <span class="comment">// end the md:keydescriptor signing</span>
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
+    <span class="comment">// end the x509certificate
+    </span>write_event(XmlEvent::end_element().into(), writer);
+    <span class="comment">// end the x509data
+    </span>write_event(XmlEvent::end_element().into(), writer);
+    <span class="comment">// end the ds:keyinfo
+    </span>write_event(XmlEvent::end_element().into(), writer);
+    <span class="comment">// end the md:keydescriptor signing
+    </span>write_event(XmlEvent::end_element().into(), writer);
 }
 
-<span class="doccomment">/// Generates the XML For a metadata file</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// Current response data is based on the data returned from  &lt;https://samltest.id/saml/idp&gt;</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">generate_metadata_xml</span>(<span class="ident">metadata</span>: <span class="ident">SamlMetadata</span>) -&gt; <span class="ident">String</span> {
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buffer</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">writer</span> <span class="op">=</span> <span class="ident">EmitterConfig::new</span>()
-        .<span class="ident">perform_indent</span>(<span class="bool-val">true</span>)
-        .<span class="ident">write_document_declaration</span>(<span class="bool-val">false</span>)
-        .<span class="ident">create_writer</span>(<span class="kw-2">&amp;mut</span> <span class="ident">buffer</span>);
+<span class="doccomment">/// Generates the XML For a metadata file
+///
+/// Current response data is based on the data returned from  &lt;https://samltest.id/saml/idp&gt;
+</span><span class="kw">pub fn </span>generate_metadata_xml(metadata: SamlMetadata) -&gt; String {
+    <span class="kw">let </span><span class="kw-2">mut </span>buffer = Vec::new();
+    <span class="kw">let </span><span class="kw-2">mut </span>writer = EmitterConfig::new()
+        .perform_indent(<span class="bool-val">true</span>)
+        .write_document_declaration(<span class="bool-val">false</span>)
+        .create_writer(<span class="kw-2">&amp;mut </span>buffer);
 
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;md&quot;</span>, <span class="string">&quot;EntityDescriptor&quot;</span>))
-            .<span class="ident">attr</span>(<span class="string">&quot;xmlns:md&quot;</span>, <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:metadata&quot;</span>)
-            .<span class="ident">attr</span>(<span class="string">&quot;xmlns:ds&quot;</span>, <span class="string">&quot;http://www.w3.org/2000/09/xmldsig#&quot;</span>)
-            .<span class="ident">attr</span>(<span class="string">&quot;entityID&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">metadata</span>.<span class="ident">entity_id</span>)
-            .<span class="ident">into</span>(),
-        <span class="kw-2">&amp;mut</span> <span class="ident">writer</span>,
+    write_event(
+        XmlEvent::start_element((<span class="string">&quot;md&quot;</span>, <span class="string">&quot;EntityDescriptor&quot;</span>))
+            .attr(<span class="string">&quot;xmlns:md&quot;</span>, <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:metadata&quot;</span>)
+            .attr(<span class="string">&quot;xmlns:ds&quot;</span>, <span class="string">&quot;http://www.w3.org/2000/09/xmldsig#&quot;</span>)
+            .attr(<span class="string">&quot;entityID&quot;</span>, <span class="kw-2">&amp;</span>metadata.entity_id)
+            .into(),
+        <span class="kw-2">&amp;mut </span>writer,
     );
 
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;md&quot;</span>, <span class="string">&quot;IDPSSODescriptor&quot;</span>))
-            .<span class="ident">attr</span>(
+    write_event(
+        XmlEvent::start_element((<span class="string">&quot;md&quot;</span>, <span class="string">&quot;IDPSSODescriptor&quot;</span>))
+            .attr(
                 <span class="string">&quot;protocolSupportEnumeration&quot;</span>,
                 <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:protocol&quot;</span>,
             )
-            .<span class="ident">into</span>(),
-        <span class="kw-2">&amp;mut</span> <span class="ident">writer</span>,
+            .into(),
+        <span class="kw-2">&amp;mut </span>writer,
     );
 
-    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">value</span>) <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">metadata</span>.<span class="ident">x509_certificate</span> {
-        <span class="kw">let</span> <span class="ident">base64_encoded_certificate</span> <span class="op">=</span> <span class="ident">value</span>.<span class="ident">get_as_pem_string</span>(<span class="bool-val">false</span>);
-        <span class="ident">xml_add_certificate</span>(<span class="string">&quot;signing&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">base64_encoded_certificate</span>, <span class="kw-2">&amp;mut</span> <span class="ident">writer</span>);
-        <span class="comment">// xml_add_certificate(&quot;encryption&quot;, &amp;base64_encoded_certificate, &amp;mut writer);</span>
-    };
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(value) = <span class="kw-2">&amp;</span>metadata.x509_certificate {
+        <span class="kw">let </span>base64_encoded_certificate = value.get_as_pem_string(<span class="bool-val">false</span>);
+        xml_add_certificate(<span class="string">&quot;signing&quot;</span>, <span class="kw-2">&amp;</span>base64_encoded_certificate, <span class="kw-2">&amp;mut </span>writer);
+        <span class="comment">// xml_add_certificate(&quot;encryption&quot;, &amp;base64_encoded_certificate, &amp;mut writer);
+    </span>};
 
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;md&quot;</span>, <span class="string">&quot;SingleLogoutService&quot;</span>))
-            <span class="comment">// TODO: make the binding configurable, when we support something else 🤔</span>
-            .<span class="ident">attr</span>(
+    write_event(
+        XmlEvent::start_element((<span class="string">&quot;md&quot;</span>, <span class="string">&quot;SingleLogoutService&quot;</span>))
+            <span class="comment">// TODO: make the binding configurable, when we support something else 🤔
+            </span>.attr(
                 <span class="string">&quot;Binding&quot;</span>,
                 <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect&quot;</span>,
             )
-            .<span class="ident">attr</span>(<span class="string">&quot;Location&quot;</span>, <span class="ident">metadata</span>.<span class="ident">logout_url</span>().<span class="ident">as_str</span>())
-            .<span class="ident">into</span>(),
-        <span class="kw-2">&amp;mut</span> <span class="ident">writer</span>,
+            .attr(<span class="string">&quot;Location&quot;</span>, metadata.logout_url().as_str())
+            .into(),
+        <span class="kw-2">&amp;mut </span>writer,
     );
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;mut</span> <span class="ident">writer</span>);
+    write_event(XmlEvent::end_element().into(), <span class="kw-2">&amp;mut </span>writer);
 
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;md&quot;</span>, <span class="string">&quot;NameIDFormat&quot;</span>)).<span class="ident">into</span>(),
-        <span class="kw-2">&amp;mut</span> <span class="ident">writer</span>,
+    write_event(
+        XmlEvent::start_element((<span class="string">&quot;md&quot;</span>, <span class="string">&quot;NameIDFormat&quot;</span>)).into(),
+        <span class="kw-2">&amp;mut </span>writer,
     );
-    <span class="ident">write_event</span>(
-        <span class="comment">// TODO: nameid-format should definitely be configurable</span>
-        <span class="ident">XmlEvent::characters</span>(<span class="kw-2">&amp;</span><span class="string">&quot;urn:oasis:names:tc:SAML:2.0:nameid-format:transient&quot;</span>),
-        <span class="kw-2">&amp;mut</span> <span class="ident">writer</span>,
+    write_event(
+        <span class="comment">// TODO: nameid-format should definitely be configurable
+        </span>XmlEvent::characters(<span class="kw-2">&amp;</span><span class="string">&quot;urn:oasis:names:tc:SAML:2.0:nameid-format:transient&quot;</span>),
+        <span class="kw-2">&amp;mut </span>writer,
     );
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;mut</span> <span class="ident">writer</span>);
+    write_event(XmlEvent::end_element().into(), <span class="kw-2">&amp;mut </span>writer);
 
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;md&quot;</span>, <span class="string">&quot;SingleSignOnService&quot;</span>))
-            <span class="comment">// TODO: make the binding configurable, when we support something else 🤔</span>
-            .<span class="ident">attr</span>(
+    write_event(
+        XmlEvent::start_element((<span class="string">&quot;md&quot;</span>, <span class="string">&quot;SingleSignOnService&quot;</span>))
+            <span class="comment">// TODO: make the binding configurable, when we support something else 🤔
+            </span>.attr(
                 <span class="string">&quot;Binding&quot;</span>,
                 <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect&quot;</span>,
             )
-            .<span class="ident">attr</span>(<span class="string">&quot;Location&quot;</span>, <span class="ident">metadata</span>.<span class="ident">redirect_url</span>().<span class="ident">as_str</span>())
-            .<span class="ident">into</span>(),
-        <span class="kw-2">&amp;mut</span> <span class="ident">writer</span>,
+            .attr(<span class="string">&quot;Location&quot;</span>, metadata.redirect_url().as_str())
+            .into(),
+        <span class="kw-2">&amp;mut </span>writer,
     );
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;mut</span> <span class="ident">writer</span>);
+    write_event(XmlEvent::end_element().into(), <span class="kw-2">&amp;mut </span>writer);
 
-    <span class="comment">// end md:IDPSSODescriptor</span>
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;mut</span> <span class="ident">writer</span>);
+    <span class="comment">// end md:IDPSSODescriptor
+    </span>write_event(XmlEvent::end_element().into(), <span class="kw-2">&amp;mut </span>writer);
 
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;md&quot;</span>, <span class="string">&quot;ContactPerson&quot;</span>))
-            <span class="comment">// TODO: be able to enumerate technical contacts in IdP metadta</span>
-            .<span class="ident">attr</span>(<span class="string">&quot;contactType&quot;</span>, <span class="string">&quot;technical&quot;</span>)
-            .<span class="ident">into</span>(),
-        <span class="kw-2">&amp;mut</span> <span class="ident">writer</span>,
+    write_event(
+        XmlEvent::start_element((<span class="string">&quot;md&quot;</span>, <span class="string">&quot;ContactPerson&quot;</span>))
+            <span class="comment">// TODO: be able to enumerate technical contacts in IdP metadta
+            </span>.attr(<span class="string">&quot;contactType&quot;</span>, <span class="string">&quot;technical&quot;</span>)
+            .into(),
+        <span class="kw-2">&amp;mut </span>writer,
     );
 
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;md&quot;</span>, <span class="string">&quot;GivenName&quot;</span>)).<span class="ident">into</span>(),
-        <span class="kw-2">&amp;mut</span> <span class="ident">writer</span>,
+    write_event(
+        XmlEvent::start_element((<span class="string">&quot;md&quot;</span>, <span class="string">&quot;GivenName&quot;</span>)).into(),
+        <span class="kw-2">&amp;mut </span>writer,
     );
-    <span class="ident">write_event</span>(
-        <span class="comment">// TODO: md:contactperson name should be configurable</span>
-        <span class="ident">XmlEvent::characters</span>(<span class="kw-2">&amp;</span><span class="string">&quot;Admin&quot;</span>),
-        <span class="kw-2">&amp;mut</span> <span class="ident">writer</span>,
+    write_event(
+        <span class="comment">// TODO: md:contactperson name should be configurable
+        </span>XmlEvent::characters(<span class="kw-2">&amp;</span><span class="string">&quot;Admin&quot;</span>),
+        <span class="kw-2">&amp;mut </span>writer,
     );
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;mut</span> <span class="ident">writer</span>);
+    write_event(XmlEvent::end_element().into(), <span class="kw-2">&amp;mut </span>writer);
 
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;md&quot;</span>, <span class="string">&quot;EmailAddress&quot;</span>)).<span class="ident">into</span>(),
-        <span class="kw-2">&amp;mut</span> <span class="ident">writer</span>,
+    write_event(
+        XmlEvent::start_element((<span class="string">&quot;md&quot;</span>, <span class="string">&quot;EmailAddress&quot;</span>)).into(),
+        <span class="kw-2">&amp;mut </span>writer,
     );
-    <span class="ident">write_event</span>(
-        <span class="comment">// TODO: md:contactperson EmailAddress should be configurable</span>
-        <span class="ident">XmlEvent::characters</span>(<span class="kw-2">&amp;</span><span class="string">&quot;mailto:admin@example.com&quot;</span>),
-        <span class="kw-2">&amp;mut</span> <span class="ident">writer</span>,
+    write_event(
+        <span class="comment">// TODO: md:contactperson EmailAddress should be configurable
+        </span>XmlEvent::characters(<span class="kw-2">&amp;</span><span class="string">&quot;mailto:admin@example.com&quot;</span>),
+        <span class="kw-2">&amp;mut </span>writer,
     );
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;mut</span> <span class="ident">writer</span>);
+    write_event(XmlEvent::end_element().into(), <span class="kw-2">&amp;mut </span>writer);
 
-    <span class="comment">// end md:ContactPerson</span>
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;mut</span> <span class="ident">writer</span>);
+    <span class="comment">// end md:ContactPerson
+    </span>write_event(XmlEvent::end_element().into(), <span class="kw-2">&amp;mut </span>writer);
 
-    <span class="comment">// end md:EntityDescriptor</span>
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="kw-2">&amp;mut</span> <span class="ident">writer</span>);
+    <span class="comment">// end md:EntityDescriptor
+    </span>write_event(XmlEvent::end_element().into(), <span class="kw-2">&amp;mut </span>writer);
 
-    <span class="comment">// TODO: figure out if we really need that prepended silliness &#39;&lt;?xml version=\&quot;1.0\&quot;?&gt;&#39;</span>
-    <span class="macro">format!</span>(<span class="string">&quot;&lt;?xml version=\&quot;1.0\&quot;?&gt;\n{}&quot;</span>, <span class="ident">from_utf8</span>(<span class="kw-2">&amp;</span><span class="ident">buffer</span>).<span class="ident">unwrap</span>())
+    <span class="comment">// TODO: figure out if we really need that prepended silliness &#39;&lt;?xml version=\&quot;1.0\&quot;?&gt;&#39;
+    </span><span class="macro">format!</span>(<span class="string">&quot;&lt;?xml version=\&quot;1.0\&quot;?&gt;\n{}&quot;</span>, from_utf8(<span class="kw-2">&amp;</span>buffer).unwrap())
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="saml_rs" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="saml_rs" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

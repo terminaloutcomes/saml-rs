@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/sign.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>sign.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../saml_rs/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../saml_rs/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../saml_rs/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/sign.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>sign.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../saml_rs/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../saml_rs/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../saml_rs/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -305,312 +305,312 @@
 <span id="305">305</span>
 <span id="306">306</span>
 <span id="307">307</span>
-</pre><pre class="rust"><code><span class="doccomment">//! Functions for signing data</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! Here be crypto-dragons.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! - &lt;https://stackoverflow.com/questions/6960886/sign-saml-response-with-or-without-assertion-signature/7073749#7073749&gt;</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! SAML is awful, every time I read answer they are almost correct, here is the correct algorithm distilled:</span>
-<span class="doccomment">//! 1. SHA1 the canonical version of the Assertion.</span>
-<span class="doccomment">//! 2. Generate a SignedInfo XML fragment with the SHA1 signature</span>
-<span class="doccomment">//! 3. Sign the SignedInfo XML fragment, again the canonical form</span>
-<span class="doccomment">//! 4. Take the SignedInfo, the Signature and the key info and create a Signature XML fragment</span>
-<span class="doccomment">//! 5. Insert this SignatureXML into the Assertion ( should go right before the saml:subject)</span>
-<span class="doccomment">//! 6. Now take the assertion(with the signature included) and insert it into the Response</span>
-<span class="doccomment">//! 7. SHA1 this response</span>
-<span class="doccomment">//! 8. Generate a SignedInfo XML fragment with the SHA1 signature</span>
-<span class="doccomment">//! 9. Sign the SignedInfo XML fragment, again the canonical form</span>
-<span class="doccomment">//! 10. Take the SignedInfo, the Signature and the key info and create a Signature XML fragment</span>
-<span class="doccomment">//! 11. Insert this SignatureXML into the Response</span>
-<span class="doccomment">//! 12. Add the XML version info to the response.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! Thats it. SAML is completely awful. There are tons of little subtleties that make implementing SAML a nightmare(like calculating the canonical form of a subset of the XML(the assertion), also the XML version of XML documents is not included.</span>
-<span class="doccomment">//!</span>
+</pre><pre class="rust"><code><span class="doccomment">//! Functions for signing data
+//!
+//! Here be crypto-dragons.
+//!
+//! - &lt;https://stackoverflow.com/questions/6960886/sign-saml-response-with-or-without-assertion-signature/7073749#7073749&gt;
+//!
+//! SAML is awful, every time I read answer they are almost correct, here is the correct algorithm distilled:
+//! 1. SHA1 the canonical version of the Assertion.
+//! 2. Generate a SignedInfo XML fragment with the SHA1 signature
+//! 3. Sign the SignedInfo XML fragment, again the canonical form
+//! 4. Take the SignedInfo, the Signature and the key info and create a Signature XML fragment
+//! 5. Insert this SignatureXML into the Assertion ( should go right before the saml:subject)
+//! 6. Now take the assertion(with the signature included) and insert it into the Response
+//! 7. SHA1 this response
+//! 8. Generate a SignedInfo XML fragment with the SHA1 signature
+//! 9. Sign the SignedInfo XML fragment, again the canonical form
+//! 10. Take the SignedInfo, the Signature and the key info and create a Signature XML fragment
+//! 11. Insert this SignatureXML into the Response
+//! 12. Add the XML version info to the response.
+//!
+//! Thats it. SAML is completely awful. There are tons of little subtleties that make implementing SAML a nightmare(like calculating the canonical form of a subset of the XML(the assertion), also the XML version of XML documents is not included.
+//!
 
-<span class="comment">// use openssl::hash::hash;</span>
-<span class="kw">use</span> <span class="ident">openssl::pkey::PKey</span>;
-<span class="kw">use</span> <span class="ident">openssl::rsa::Rsa</span>;
-<span class="kw">use</span> <span class="ident">openssl::sign</span>::{<span class="ident">Signer</span>, <span class="ident">Verifier</span>};
+</span><span class="comment">// use openssl::hash::hash;
+</span><span class="kw">use </span>openssl::pkey::PKey;
+<span class="kw">use </span>openssl::rsa::Rsa;
+<span class="kw">use </span>openssl::sign::{Signer, Verifier};
 
-<span class="comment">// use std::io;</span>
-<span class="kw">use</span> <span class="ident">openssl::pkey::Private</span>;
-<span class="kw">use</span> <span class="ident">openssl::x509::X509</span>;
-<span class="kw">use</span> <span class="ident">std::fmt</span>;
-<span class="kw">use</span> <span class="ident">std::fs::File</span>;
-<span class="kw">use</span> <span class="ident">std::io::prelude</span>::<span class="kw-2">*</span>;
+<span class="comment">// use std::io;
+</span><span class="kw">use </span>openssl::pkey::Private;
+<span class="kw">use </span>openssl::x509::X509;
+<span class="kw">use </span>std::fmt;
+<span class="kw">use </span>std::fs::File;
+<span class="kw">use </span>std::io::prelude::<span class="kw-2">*</span>;
 
-<span class="doccomment">/// Options of Signing Algorithms for things</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// &lt;https://www.w3.org/TR/xmldsig-core/#sec-PKCS1&gt;</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">SigningAlgorithm</span> {
-    <span class="doccomment">/// SHA1 Algorithm</span>
-    <span class="ident">Sha1</span>,
-    <span class="doccomment">/// Really?</span>
-    <span class="ident">Sha224</span>,
-    <span class="doccomment">/// SHA256 Algorithm</span>
-    <span class="ident">Sha256</span>,
-    <span class="doccomment">/// For when 256 isn&#39;t enough</span>
-    <span class="ident">Sha384</span>,
-    <span class="doccomment">/// Size does matter, I guess?</span>
-    <span class="ident">Sha512</span>,
-    <span class="doccomment">/// If you try to use the wrong one</span>
-    <span class="ident">InvalidAlgorithm</span>,
+<span class="doccomment">/// Options of Signing Algorithms for things
+///
+/// &lt;https://www.w3.org/TR/xmldsig-core/#sec-PKCS1&gt;
+</span><span class="attribute">#[derive(Copy, Clone, Debug)]
+</span><span class="kw">pub enum </span>SigningAlgorithm {
+    <span class="doccomment">/// SHA1 Algorithm
+    </span>Sha1,
+    <span class="doccomment">/// Really?
+    </span>Sha224,
+    <span class="doccomment">/// SHA256 Algorithm
+    </span>Sha256,
+    <span class="doccomment">/// For when 256 isn&#39;t enough
+    </span>Sha384,
+    <span class="doccomment">/// Size does matter, I guess?
+    </span>Sha512,
+    <span class="doccomment">/// If you try to use the wrong one
+    </span>InvalidAlgorithm,
 }
 
-<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">SigningAlgorithm</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">openssl::hash::MessageDigest</span> {
-    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">src</span>: <span class="ident">SigningAlgorithm</span>) -&gt; <span class="ident">openssl::hash::MessageDigest</span> {
-        <span class="kw">match</span> <span class="ident">src</span> {
-            <span class="ident">SigningAlgorithm::Sha1</span> =&gt; <span class="ident">openssl::hash::MessageDigest::sha1</span>(),
-            <span class="ident">SigningAlgorithm::Sha224</span> =&gt; <span class="ident">openssl::hash::MessageDigest::sha224</span>(),
-            <span class="ident">SigningAlgorithm::Sha256</span> =&gt; <span class="ident">openssl::hash::MessageDigest::sha256</span>(),
-            <span class="ident">SigningAlgorithm::Sha384</span> =&gt; <span class="ident">openssl::hash::MessageDigest::sha384</span>(),
-            <span class="ident">SigningAlgorithm::Sha512</span> =&gt; <span class="ident">openssl::hash::MessageDigest::sha512</span>(),
-            <span class="ident">SigningAlgorithm::InvalidAlgorithm</span> =&gt; <span class="macro">panic!</span>(<span class="string">&quot;How did you even get here?&quot;</span>),
+<span class="kw">impl </span>From&lt;SigningAlgorithm&gt; <span class="kw">for </span>openssl::hash::MessageDigest {
+    <span class="kw">fn </span>from(src: SigningAlgorithm) -&gt; openssl::hash::MessageDigest {
+        <span class="kw">match </span>src {
+            SigningAlgorithm::Sha1 =&gt; openssl::hash::MessageDigest::sha1(),
+            SigningAlgorithm::Sha224 =&gt; openssl::hash::MessageDigest::sha224(),
+            SigningAlgorithm::Sha256 =&gt; openssl::hash::MessageDigest::sha256(),
+            SigningAlgorithm::Sha384 =&gt; openssl::hash::MessageDigest::sha384(),
+            SigningAlgorithm::Sha512 =&gt; openssl::hash::MessageDigest::sha512(),
+            SigningAlgorithm::InvalidAlgorithm =&gt; <span class="macro">panic!</span>(<span class="string">&quot;How did you even get here?&quot;</span>),
         }
     }
 }
 
-<span class="comment">// impl SigningAlgorithm {</span>
-<span class="comment">//     fn as_str(self) -&gt; &amp;&#39;static str {</span>
-<span class="comment">//         format!(&quot;{}&quot;, self.to_string()).clone()</span>
-<span class="comment">//     }</span>
-<span class="comment">// }</span>
+<span class="comment">// impl SigningAlgorithm {
+//     fn as_str(self) -&gt; &amp;&#39;static str {
+//         format!(&quot;{}&quot;, self.to_string()).clone()
+//     }
+// }
 
-<span class="kw">impl</span> <span class="ident">fmt::Display</span> <span class="kw">for</span> <span class="ident">SigningAlgorithm</span> {
-    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;mut</span> <span class="ident">fmt::Formatter</span>) -&gt; <span class="ident">fmt::Result</span> {
-        <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;{:?}&quot;</span>, <span class="self">self</span>)
+</span><span class="kw">impl </span>fmt::Display <span class="kw">for </span>SigningAlgorithm {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter) -&gt; fmt::Result {
+        <span class="macro">write!</span>(f, <span class="string">&quot;{:?}&quot;</span>, <span class="self">self</span>)
     }
 }
 
-<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">SigningAlgorithm</span> {
-    <span class="comment">// type Err = &amp;&#39;static str;</span>
+<span class="kw">impl </span>From&lt;String&gt; <span class="kw">for </span>SigningAlgorithm {
+    <span class="comment">// type Err = &amp;&#39;static str;
 
-    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">s</span>: <span class="ident">String</span>) -&gt; <span class="self">Self</span> {
-        <span class="kw">match</span> <span class="ident">s</span>.<span class="ident">to_lowercase</span>().<span class="ident">as_str</span>() {
-            <span class="string">&quot;http://www.w3.org/2000/09/xmldsig#rsa-sha1&quot;</span> =&gt; <span class="ident"><span class="self">Self</span>::Sha1</span>,
-            <span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#rsa-sha224&quot;</span> =&gt; <span class="ident"><span class="self">Self</span>::Sha224</span>,
-            <span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#rsa-sha256&quot;</span> =&gt; <span class="ident"><span class="self">Self</span>::Sha256</span>,
-            <span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#rsa-sha384&quot;</span> =&gt; <span class="ident"><span class="self">Self</span>::Sha384</span>,
-            <span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#rsa-sha512&quot;</span> =&gt; <span class="ident"><span class="self">Self</span>::Sha512</span>,
-            <span class="kw">_</span> =&gt; <span class="ident"><span class="self">Self</span>::InvalidAlgorithm</span>,
+    </span><span class="kw">fn </span>from(s: String) -&gt; <span class="self">Self </span>{
+        <span class="kw">match </span>s.to_lowercase().as_str() {
+            <span class="string">&quot;http://www.w3.org/2000/09/xmldsig#rsa-sha1&quot; </span>=&gt; <span class="self">Self</span>::Sha1,
+            <span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#rsa-sha224&quot; </span>=&gt; <span class="self">Self</span>::Sha224,
+            <span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#rsa-sha256&quot; </span>=&gt; <span class="self">Self</span>::Sha256,
+            <span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#rsa-sha384&quot; </span>=&gt; <span class="self">Self</span>::Sha384,
+            <span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#rsa-sha512&quot; </span>=&gt; <span class="self">Self</span>::Sha512,
+            <span class="kw">_ </span>=&gt; <span class="self">Self</span>::InvalidAlgorithm,
         }
     }
 }
 
-<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">SigningAlgorithm</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">String</span> {
-    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">sa</span>: <span class="ident">SigningAlgorithm</span>) -&gt; <span class="ident">String</span> {
-        <span class="kw">match</span> <span class="ident">sa</span> {
-            <span class="ident">SigningAlgorithm::Sha1</span> =&gt; <span class="ident">String::from</span>(<span class="string">&quot;http://www.w3.org/2000/09/xmldsig#rsa-sha1&quot;</span>),
-            <span class="ident">SigningAlgorithm::Sha224</span> =&gt; {
-                <span class="ident">String::from</span>(<span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#rsa-sha224&quot;</span>)
+<span class="kw">impl </span>From&lt;SigningAlgorithm&gt; <span class="kw">for </span>String {
+    <span class="kw">fn </span>from(sa: SigningAlgorithm) -&gt; String {
+        <span class="kw">match </span>sa {
+            SigningAlgorithm::Sha1 =&gt; String::from(<span class="string">&quot;http://www.w3.org/2000/09/xmldsig#rsa-sha1&quot;</span>),
+            SigningAlgorithm::Sha224 =&gt; {
+                String::from(<span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#rsa-sha224&quot;</span>)
             }
-            <span class="ident">SigningAlgorithm::Sha256</span> =&gt; {
-                <span class="ident">String::from</span>(<span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#rsa-sha256&quot;</span>)
+            SigningAlgorithm::Sha256 =&gt; {
+                String::from(<span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#rsa-sha256&quot;</span>)
             }
-            <span class="ident">SigningAlgorithm::Sha384</span> =&gt; {
-                <span class="ident">String::from</span>(<span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#rsa-sha384&quot;</span>)
+            SigningAlgorithm::Sha384 =&gt; {
+                String::from(<span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#rsa-sha384&quot;</span>)
             }
-            <span class="ident">SigningAlgorithm::Sha512</span> =&gt; {
-                <span class="ident">String::from</span>(<span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#rsa-sha512&quot;</span>)
+            SigningAlgorithm::Sha512 =&gt; {
+                String::from(<span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#rsa-sha512&quot;</span>)
             }
-            <span class="kw">_</span> =&gt; {
-                <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="macro">format!</span>(<span class="string">&quot;Invalid Algorithm specified: {:?}&quot;</span>, <span class="ident">sa</span>);
-                <span class="macro">log::error!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">result</span>);
-                <span class="ident">result</span>
+            <span class="kw">_ </span>=&gt; {
+                <span class="kw">let </span>result = <span class="macro">format!</span>(<span class="string">&quot;Invalid Algorithm specified: {:?}&quot;</span>, sa);
+                <span class="macro">log::error!</span>(<span class="string">&quot;{}&quot;</span>, result);
+                result
             }
         }
     }
 }
 
-<span class="doccomment">/// Loads a PEM-encoded public key into a PKey object</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">load_key_from_filename</span>(<span class="ident">key_filename</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">PKey</span><span class="op">&lt;</span><span class="ident">Private</span><span class="op">&gt;</span>, <span class="ident">String</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">f</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">File::open</span>(<span class="ident">key_filename</span>) {
-        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; <span class="ident">value</span>,
-        <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">&quot;Error loading file {}: {:?}&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">key_filename</span>, <span class="ident">error</span>)),
+<span class="doccomment">/// Loads a PEM-encoded public key into a PKey object
+</span><span class="kw">pub fn </span>load_key_from_filename(key_filename: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;PKey&lt;Private&gt;, String&gt; {
+    <span class="kw">let </span><span class="kw-2">mut </span>f = <span class="kw">match </span>File::open(key_filename) {
+        <span class="prelude-val">Ok</span>(value) =&gt; value,
+        <span class="prelude-val">Err</span>(error) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">&quot;Error loading file {}: {:?}&quot;</span>, <span class="kw-2">&amp;</span>key_filename, error)),
     };
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">pkey_buffer</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
-    <span class="comment">// read the whole file</span>
-    <span class="kw">match</span> <span class="ident">f</span>.<span class="ident">read_to_end</span>(<span class="kw-2">&amp;mut</span> <span class="ident">pkey_buffer</span>) {
+    <span class="kw">let </span><span class="kw-2">mut </span>pkey_buffer = Vec::new();
+    <span class="comment">// read the whole file
+    </span><span class="kw">match </span>f.read_to_end(<span class="kw-2">&amp;mut </span>pkey_buffer) {
         <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="macro">eprintln!</span>(<span class="string">&quot;Read private key OK&quot;</span>),
-        <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">&quot;Failed to read private key? {:?}&quot;</span>, <span class="ident">error</span>));
+        <span class="prelude-val">Err</span>(error) =&gt; {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">&quot;Failed to read private key? {:?}&quot;</span>, error));
         }
     }
 
-    <span class="macro">debug!</span>(<span class="string">&quot;key:  {}&quot;</span>, <span class="ident">key_filename</span>);
-    <span class="kw">let</span> <span class="ident">keypair</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">Rsa::private_key_from_pem</span>(<span class="kw-2">&amp;</span><span class="ident">pkey_buffer</span>) {
-        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; <span class="ident">value</span>,
-        <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">&quot;Failed to load pkey from pem bytes: {:?}&quot;</span>, <span class="ident">error</span>));
+    <span class="macro">debug!</span>(<span class="string">&quot;key:  {}&quot;</span>, key_filename);
+    <span class="kw">let </span>keypair = <span class="kw">match </span>Rsa::private_key_from_pem(<span class="kw-2">&amp;</span>pkey_buffer) {
+        <span class="prelude-val">Ok</span>(value) =&gt; value,
+        <span class="prelude-val">Err</span>(error) =&gt; {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">&quot;Failed to load pkey from pem bytes: {:?}&quot;</span>, error));
         }
     };
-    <span class="comment">// let keypair = Rsa::generate(2048).unwrap();</span>
-    <span class="kw">match</span> <span class="ident">PKey::from_rsa</span>(<span class="ident">keypair</span>) {
-        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="ident">value</span>),
-        <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; <span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">&quot;Failed to convert into PKey object: {:?}&quot;</span>, <span class="ident">error</span>)),
+    <span class="comment">// let keypair = Rsa::generate(2048).unwrap();
+    </span><span class="kw">match </span>PKey::from_rsa(keypair) {
+        <span class="prelude-val">Ok</span>(value) =&gt; <span class="prelude-val">Ok</span>(value),
+        <span class="prelude-val">Err</span>(error) =&gt; <span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">&quot;Failed to convert into PKey object: {:?}&quot;</span>, error)),
     }
 }
 
-<span class="doccomment">/// Options of Digest Algorithms for things</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// &lt;https://www.w3.org/TR/xmldsig-core/#sec-AlgID&gt;</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">DigestAlgorithm</span> {
-    <span class="doccomment">/// SHA1 Algorithm (Use is DISCOURAGED; see SHA-1 Warning)</span>
-    <span class="ident">Sha1</span>,
-    <span class="doccomment">/// Really?</span>
-    <span class="ident">Sha224</span>,
-    <span class="doccomment">/// SHA256 Algorithm</span>
-    <span class="ident">Sha256</span>,
-    <span class="doccomment">/// For when 256 isn&#39;t enough</span>
-    <span class="ident">Sha384</span>,
-    <span class="doccomment">/// Size does matter, I guess?</span>
-    <span class="ident">Sha512</span>,
-    <span class="doccomment">/// If you try to use the wrong one</span>
-    <span class="ident">InvalidAlgorithm</span>,
+<span class="doccomment">/// Options of Digest Algorithms for things
+///
+/// &lt;https://www.w3.org/TR/xmldsig-core/#sec-AlgID&gt;
+</span><span class="attribute">#[derive(Copy, Clone, Debug)]
+</span><span class="kw">pub enum </span>DigestAlgorithm {
+    <span class="doccomment">/// SHA1 Algorithm (Use is DISCOURAGED; see SHA-1 Warning)
+    </span>Sha1,
+    <span class="doccomment">/// Really?
+    </span>Sha224,
+    <span class="doccomment">/// SHA256 Algorithm
+    </span>Sha256,
+    <span class="doccomment">/// For when 256 isn&#39;t enough
+    </span>Sha384,
+    <span class="doccomment">/// Size does matter, I guess?
+    </span>Sha512,
+    <span class="doccomment">/// If you try to use the wrong one
+    </span>InvalidAlgorithm,
 }
 
-<span class="kw">impl</span> <span class="ident">fmt::Display</span> <span class="kw">for</span> <span class="ident">DigestAlgorithm</span> {
-    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;mut</span> <span class="ident">fmt::Formatter</span>) -&gt; <span class="ident">fmt::Result</span> {
-        <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;{:?}&quot;</span>, <span class="self">self</span>)
+<span class="kw">impl </span>fmt::Display <span class="kw">for </span>DigestAlgorithm {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter) -&gt; fmt::Result {
+        <span class="macro">write!</span>(f, <span class="string">&quot;{:?}&quot;</span>, <span class="self">self</span>)
     }
 }
 
-<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">DigestAlgorithm</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">openssl::hash::MessageDigest</span> {
-    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">src</span>: <span class="ident">DigestAlgorithm</span>) -&gt; <span class="ident">openssl::hash::MessageDigest</span> {
-        <span class="kw">match</span> <span class="ident">src</span> {
-            <span class="ident">DigestAlgorithm::Sha1</span> =&gt; <span class="ident">openssl::hash::MessageDigest::sha1</span>(),
-            <span class="ident">DigestAlgorithm::Sha224</span> =&gt; <span class="ident">openssl::hash::MessageDigest::sha224</span>(),
-            <span class="ident">DigestAlgorithm::Sha256</span> =&gt; <span class="ident">openssl::hash::MessageDigest::sha256</span>(),
-            <span class="ident">DigestAlgorithm::Sha384</span> =&gt; <span class="ident">openssl::hash::MessageDigest::sha384</span>(),
-            <span class="ident">DigestAlgorithm::Sha512</span> =&gt; <span class="ident">openssl::hash::MessageDigest::sha512</span>(),
-            <span class="ident">DigestAlgorithm::InvalidAlgorithm</span> =&gt; <span class="macro">panic!</span>(<span class="string">&quot;How did you even get here?&quot;</span>),
+<span class="kw">impl </span>From&lt;DigestAlgorithm&gt; <span class="kw">for </span>openssl::hash::MessageDigest {
+    <span class="kw">fn </span>from(src: DigestAlgorithm) -&gt; openssl::hash::MessageDigest {
+        <span class="kw">match </span>src {
+            DigestAlgorithm::Sha1 =&gt; openssl::hash::MessageDigest::sha1(),
+            DigestAlgorithm::Sha224 =&gt; openssl::hash::MessageDigest::sha224(),
+            DigestAlgorithm::Sha256 =&gt; openssl::hash::MessageDigest::sha256(),
+            DigestAlgorithm::Sha384 =&gt; openssl::hash::MessageDigest::sha384(),
+            DigestAlgorithm::Sha512 =&gt; openssl::hash::MessageDigest::sha512(),
+            DigestAlgorithm::InvalidAlgorithm =&gt; <span class="macro">panic!</span>(<span class="string">&quot;How did you even get here?&quot;</span>),
         }
     }
 }
 
-<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">openssl::hash::MessageDigest</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">DigestAlgorithm</span> {
-    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">_md</span>: <span class="ident">openssl::hash::MessageDigest</span>) -&gt; <span class="self">Self</span> {
-        <span class="ident"><span class="self">Self</span>::InvalidAlgorithm</span>
+<span class="kw">impl </span>From&lt;openssl::hash::MessageDigest&gt; <span class="kw">for </span>DigestAlgorithm {
+    <span class="kw">fn </span>from(_md: openssl::hash::MessageDigest) -&gt; <span class="self">Self </span>{
+        <span class="self">Self</span>::InvalidAlgorithm
     }
 }
 
-<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">DigestAlgorithm</span> {
-    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">s</span>: <span class="ident">String</span>) -&gt; <span class="self">Self</span> {
-        <span class="kw">match</span> <span class="ident">s</span>.<span class="ident">to_lowercase</span>().<span class="ident">as_str</span>() {
-            <span class="string">&quot;http://www.w3.org/2000/09/xmldsig#sha1&quot;</span> =&gt; <span class="ident"><span class="self">Self</span>::Sha1</span>,
-            <span class="string">&quot;http://www.w3.org/2001/04/xmlenc#sha256&quot;</span> =&gt; <span class="ident"><span class="self">Self</span>::Sha256</span>,
+<span class="kw">impl </span>From&lt;String&gt; <span class="kw">for </span>DigestAlgorithm {
+    <span class="kw">fn </span>from(s: String) -&gt; <span class="self">Self </span>{
+        <span class="kw">match </span>s.to_lowercase().as_str() {
+            <span class="string">&quot;http://www.w3.org/2000/09/xmldsig#sha1&quot; </span>=&gt; <span class="self">Self</span>::Sha1,
+            <span class="string">&quot;http://www.w3.org/2001/04/xmlenc#sha256&quot; </span>=&gt; <span class="self">Self</span>::Sha256,
 
-            <span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#sha224&quot;</span> =&gt; <span class="ident"><span class="self">Self</span>::Sha224</span>,
-            <span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#sha384&quot;</span> =&gt; <span class="ident"><span class="self">Self</span>::Sha384</span>,
-            <span class="string">&quot;http://www.w3.org/2001/04/xmlenc#sha512&quot;</span> =&gt; <span class="ident"><span class="self">Self</span>::Sha512</span>,
-            <span class="kw">_</span> =&gt; <span class="ident"><span class="self">Self</span>::InvalidAlgorithm</span>,
+            <span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#sha224&quot; </span>=&gt; <span class="self">Self</span>::Sha224,
+            <span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#sha384&quot; </span>=&gt; <span class="self">Self</span>::Sha384,
+            <span class="string">&quot;http://www.w3.org/2001/04/xmlenc#sha512&quot; </span>=&gt; <span class="self">Self</span>::Sha512,
+            <span class="kw">_ </span>=&gt; <span class="self">Self</span>::InvalidAlgorithm,
         }
     }
 }
 
-<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">DigestAlgorithm</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">String</span> {
-    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">sa</span>: <span class="ident">DigestAlgorithm</span>) -&gt; <span class="ident">String</span> {
-        <span class="kw">match</span> <span class="ident">sa</span> {
-            <span class="ident">DigestAlgorithm::Sha1</span> =&gt; <span class="ident">String::from</span>(<span class="string">&quot;http://www.w3.org/2000/09/xmldsig#sha1&quot;</span>),
-            <span class="ident">DigestAlgorithm::Sha256</span> =&gt; <span class="ident">String::from</span>(<span class="string">&quot;http://www.w3.org/2001/04/xmlenc#sha256&quot;</span>),
+<span class="kw">impl </span>From&lt;DigestAlgorithm&gt; <span class="kw">for </span>String {
+    <span class="kw">fn </span>from(sa: DigestAlgorithm) -&gt; String {
+        <span class="kw">match </span>sa {
+            DigestAlgorithm::Sha1 =&gt; String::from(<span class="string">&quot;http://www.w3.org/2000/09/xmldsig#sha1&quot;</span>),
+            DigestAlgorithm::Sha256 =&gt; String::from(<span class="string">&quot;http://www.w3.org/2001/04/xmlenc#sha256&quot;</span>),
 
-            <span class="ident">DigestAlgorithm::Sha224</span> =&gt; {
-                <span class="ident">String::from</span>(<span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#sha224&quot;</span>)
+            DigestAlgorithm::Sha224 =&gt; {
+                String::from(<span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#sha224&quot;</span>)
             }
-            <span class="ident">DigestAlgorithm::Sha384</span> =&gt; {
-                <span class="ident">String::from</span>(<span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#sha384&quot;</span>)
+            DigestAlgorithm::Sha384 =&gt; {
+                String::from(<span class="string">&quot;http://www.w3.org/2001/04/xmldsig-more#sha384&quot;</span>)
             }
-            <span class="ident">DigestAlgorithm::Sha512</span> =&gt; <span class="ident">String::from</span>(<span class="string">&quot;http://www.w3.org/2001/04/xmlenc#sha512&quot;</span>),
-            <span class="kw">_</span> =&gt; {
-                <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="macro">format!</span>(<span class="string">&quot;Invalid Algorithm specified: {:?}&quot;</span>, <span class="ident">sa</span>);
-                <span class="macro">log::error!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">result</span>);
-                <span class="ident">result</span>
+            DigestAlgorithm::Sha512 =&gt; String::from(<span class="string">&quot;http://www.w3.org/2001/04/xmlenc#sha512&quot;</span>),
+            <span class="kw">_ </span>=&gt; {
+                <span class="kw">let </span>result = <span class="macro">format!</span>(<span class="string">&quot;Invalid Algorithm specified: {:?}&quot;</span>, sa);
+                <span class="macro">log::error!</span>(<span class="string">&quot;{}&quot;</span>, result);
+                result
             }
         }
     }
 }
 
-<span class="doccomment">/// Loads a public cert from a PEM file into an X509 object</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">load_public_cert_from_filename</span>(<span class="ident">cert_filename</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">X509</span>, <span class="ident">String</span><span class="op">&gt;</span> {
-    <span class="macro">log::debug!</span>(<span class="string">&quot;loading cert:  {}&quot;</span>, <span class="ident">cert_filename</span>);
+<span class="doccomment">/// Loads a public cert from a PEM file into an X509 object
+</span><span class="kw">pub fn </span>load_public_cert_from_filename(cert_filename: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;X509, String&gt; {
+    <span class="macro">log::debug!</span>(<span class="string">&quot;loading cert:  {}&quot;</span>, cert_filename);
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">f</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">File::open</span>(<span class="kw-2">&amp;</span><span class="ident">cert_filename</span>) {
-        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; <span class="ident">value</span>,
-        <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="macro">format!</span>(
+    <span class="kw">let </span><span class="kw-2">mut </span>f = <span class="kw">match </span>File::open(<span class="kw-2">&amp;</span>cert_filename) {
+        <span class="prelude-val">Ok</span>(value) =&gt; value,
+        <span class="prelude-val">Err</span>(error) =&gt; {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">format!</span>(
                 <span class="string">&quot;Error loading certificate file {}: {:?}&quot;</span>,
-                <span class="kw-2">&amp;</span><span class="ident">cert_filename</span>, <span class="ident">error</span>
+                <span class="kw-2">&amp;</span>cert_filename, error
             ))
         }
     };
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">cert_buffer</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
-    <span class="comment">// read the whole file</span>
-    <span class="comment">// TODO: handle file read errors, but if we&#39;ve gotten here without bailing then well, how&#39;d the server start up?</span>
-    <span class="kw">match</span> <span class="ident">f</span>.<span class="ident">read_to_end</span>(<span class="kw-2">&amp;mut</span> <span class="ident">cert_buffer</span>) {
+    <span class="kw">let </span><span class="kw-2">mut </span>cert_buffer = Vec::new();
+    <span class="comment">// read the whole file
+    // TODO: handle file read errors, but if we&#39;ve gotten here without bailing then well, how&#39;d the server start up?
+    </span><span class="kw">match </span>f.read_to_end(<span class="kw-2">&amp;mut </span>cert_buffer) {
         <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="macro">eprintln!</span>(<span class="string">&quot;Read certificate OK&quot;</span>),
-        <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">&quot;Failed to read cert? {:?}&quot;</span>, <span class="ident">error</span>));
+        <span class="prelude-val">Err</span>(error) =&gt; {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">&quot;Failed to read cert? {:?}&quot;</span>, error));
         }
     }
 
-    <span class="kw">match</span> <span class="ident">X509::from_pem</span>(<span class="kw-2">&amp;</span><span class="ident">cert_buffer</span>) {
-        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="ident">value</span>),
-        <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; <span class="prelude-val">Err</span>(<span class="macro">format!</span>(
+    <span class="kw">match </span>X509::from_pem(<span class="kw-2">&amp;</span>cert_buffer) {
+        <span class="prelude-val">Ok</span>(value) =&gt; <span class="prelude-val">Ok</span>(value),
+        <span class="prelude-val">Err</span>(error) =&gt; <span class="prelude-val">Err</span>(<span class="macro">format!</span>(
             <span class="string">&quot;Failed to load certificate from pem bytes: {:?}&quot;</span>,
-            <span class="ident">error</span>
+            error
         )),
     }
 }
 
-<span class="kw">impl</span> <span class="ident">DigestAlgorithm</span> {
-    <span class="doccomment">/// Hash a set of bytes using an [openssl::hash::MessageDigest]</span>
-    <span class="doccomment">///</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">hash</span>(
+<span class="kw">impl </span>DigestAlgorithm {
+    <span class="doccomment">/// Hash a set of bytes using an [openssl::hash::MessageDigest]
+    ///
+    </span><span class="kw">pub fn </span>hash(
         <span class="self">self</span>,
-        <span class="ident">bytes_to_hash</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">openssl::hash::DigestBytes</span>, <span class="ident">openssl::error::ErrorStack</span><span class="op">&gt;</span> {
-        <span class="comment">// do the hashy bit</span>
-        <span class="kw">match</span> <span class="ident">openssl::hash::hash</span>(<span class="self">self</span>.<span class="ident">into</span>(), <span class="ident">bytes_to_hash</span>) {
-            <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; {
-                <span class="macro">debug!</span>(<span class="string">&quot;Hashed bytes result: {:?}&quot;</span>, <span class="ident">value</span>);
-                <span class="prelude-val">Ok</span>(<span class="ident">value</span>)
+        bytes_to_hash: <span class="kw-2">&amp;</span>[u8],
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;openssl::hash::DigestBytes, openssl::error::ErrorStack&gt; {
+        <span class="comment">// do the hashy bit
+        </span><span class="kw">match </span>openssl::hash::hash(<span class="self">self</span>.into(), bytes_to_hash) {
+            <span class="prelude-val">Ok</span>(value) =&gt; {
+                <span class="macro">debug!</span>(<span class="string">&quot;Hashed bytes result: {:?}&quot;</span>, value);
+                <span class="prelude-val">Ok</span>(value)
             }
-            <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; {
-                <span class="macro">eprintln!</span>(<span class="string">&quot;Failed to hash bytes: {:?}&quot;</span>, <span class="ident">error</span>);
-                <span class="prelude-val">Err</span>(<span class="ident">error</span>)
+            <span class="prelude-val">Err</span>(error) =&gt; {
+                <span class="macro">eprintln!</span>(<span class="string">&quot;Failed to hash bytes: {:?}&quot;</span>, error);
+                <span class="prelude-val">Err</span>(error)
             }
         }
     }
 }
-<span class="comment">// TODO add some testing, and validation of sign_data</span>
-<span class="comment">// TODO implement sign_data properly</span>
-<span class="doccomment">/// Sign some data, with a key</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">sign_data</span>(
-    <span class="ident">signing_algorithm</span>: <span class="ident"><span class="kw">crate</span>::sign::SigningAlgorithm</span>,
-    <span class="ident">signing_key</span>: <span class="kw-2">&amp;</span><span class="ident">openssl::pkey::PKey</span><span class="op">&lt;</span><span class="ident">openssl::pkey::Private</span><span class="op">&gt;</span>,
-    <span class="ident">bytes_to_sign</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-) -&gt; <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> {
-    <span class="comment">// Sign the data</span>
+<span class="comment">// TODO add some testing, and validation of sign_data
+// TODO implement sign_data properly
+</span><span class="doccomment">/// Sign some data, with a key
+</span><span class="kw">pub fn </span>sign_data(
+    signing_algorithm: <span class="kw">crate</span>::sign::SigningAlgorithm,
+    signing_key: <span class="kw-2">&amp;</span>openssl::pkey::PKey&lt;openssl::pkey::Private&gt;,
+    bytes_to_sign: <span class="kw-2">&amp;</span>[u8],
+) -&gt; Vec&lt;u8&gt; {
+    <span class="comment">// Sign the data
 
-    <span class="kw">let</span> <span class="ident">signing_algorithm</span>: <span class="ident">openssl::hash::MessageDigest</span> <span class="op">=</span> <span class="ident">signing_algorithm</span>.<span class="ident">into</span>();
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">signer</span> <span class="op">=</span> <span class="ident">Signer::new</span>(<span class="ident">signing_algorithm</span>, <span class="kw-2">&amp;</span><span class="ident">signing_key</span>).<span class="ident">unwrap</span>();
-    <span class="ident">signer</span>.<span class="ident">update</span>(<span class="ident">bytes_to_sign</span>).<span class="ident">unwrap</span>();
+    </span><span class="kw">let </span>signing_algorithm: openssl::hash::MessageDigest = signing_algorithm.into();
+    <span class="kw">let </span><span class="kw-2">mut </span>signer = Signer::new(signing_algorithm, <span class="kw-2">&amp;</span>signing_key).unwrap();
+    signer.update(bytes_to_sign).unwrap();
 
-    <span class="kw">let</span> <span class="ident">signature</span> <span class="op">=</span> <span class="ident">signer</span>.<span class="ident">sign_to_vec</span>().<span class="ident">unwrap</span>();
-    <span class="macro">log::debug!</span>(<span class="string">&quot;Signature: {:?}&quot;</span>, <span class="ident">signature</span>);
+    <span class="kw">let </span>signature = signer.sign_to_vec().unwrap();
+    <span class="macro">log::debug!</span>(<span class="string">&quot;Signature: {:?}&quot;</span>, signature);
 
-    <span class="comment">// Verify the data</span>
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">verifier</span> <span class="op">=</span> <span class="ident">Verifier::new</span>(<span class="ident">signing_algorithm</span>, <span class="kw-2">&amp;</span><span class="ident">signing_key</span>).<span class="ident">unwrap</span>();
-    <span class="ident">verifier</span>.<span class="ident">update</span>(<span class="ident">bytes_to_sign</span>).<span class="ident">unwrap</span>();
-    <span class="comment">// verifier.update(data2).unwrap();</span>
-    <span class="macro">assert!</span>(<span class="ident">verifier</span>.<span class="ident">verify</span>(<span class="kw-2">&amp;</span><span class="ident">signature</span>).<span class="ident">unwrap</span>());
+    <span class="comment">// Verify the data
+    </span><span class="kw">let </span><span class="kw-2">mut </span>verifier = Verifier::new(signing_algorithm, <span class="kw-2">&amp;</span>signing_key).unwrap();
+    verifier.update(bytes_to_sign).unwrap();
+    <span class="comment">// verifier.update(data2).unwrap();
+    </span><span class="macro">assert!</span>(verifier.verify(<span class="kw-2">&amp;</span>signature).unwrap());
     <span class="macro">log::error!</span>(<span class="string">&quot;Signed things, maybe?&quot;</span>);
 
-    <span class="ident">signature</span>
+    signature
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="saml_rs" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="saml_rs" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

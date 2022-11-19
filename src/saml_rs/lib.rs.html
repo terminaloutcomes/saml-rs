@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/lib.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../saml_rs/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../saml_rs/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../saml_rs/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/lib.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../saml_rs/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../saml_rs/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../saml_rs/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -480,487 +480,487 @@
 <span id="480">480</span>
 <span id="481">481</span>
 <span id="482">482</span>
-</pre><pre class="rust"><code><span class="doccomment">//! A library for doing SAML things, terribly, in rust.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! My main aim at the moment is to provide IdP capabilities for the [Kanidm](https://github.com/kanidm/kanidm) project.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! `#![deny(unsafe_code)]` is used everywhere to avoid unsafe code tricks. This is why we&#39;re using rust, after all! 🦀</span>
-<span class="doccomment">//! //!</span>
-<span class="doccomment">//! If you would like to help - please log PRs/Issues against [terminaloutcomes/saml-rs](https://github.com/terminaloutcomes/saml-rs).</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! There&#39;s a test application [saml_test_server](../saml_test_server/index.html) based on [tide](https://docs.rs/tide/) to allow one to test functionality.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! # Current progress:</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! - Compiles, most of the time</span>
-<span class="doccomment">//! - `saml_test_server` runs on HTTP and HTTPS, parses Redirect requests as-needed. Doesn&#39;t parse them well... or validate them if they&#39;re signed, but it&#39;s a start!</span>
-<span class="doccomment">//! - Parses and ... seems to handle SP XML data so we can store a representation of it and match them up later</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! # Next steps:</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! - Support the SAML 2.0 Web Browser SSO (SP Redirect Bind/ IdP POST Response) flow</span>
-<span class="doccomment">//! - Sign responses</span>
-<span class="doccomment">//! - Support Signed AuthN Redirect Requests</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! # SAML 2.0 Web Browser SSO (SP Redirect Bind/ IdP POST Response) flow</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! 1. User attempts to access the SP resource (eg `https://example.com/application`)</span>
-<span class="doccomment">//! 2. User is HTTP 302 redirected to the IdP (that&#39;s us!)</span>
-<span class="doccomment">//!    - The URL is provided in the SAML2.0 metadata from the IdP</span>
-<span class="doccomment">//!    - There should be two query parameters, [SAMLRequest](SamlQuery::SAMLRequest) and [RelayState](SamlQuery::RelayState) details about them are available in [SamlQuery]</span>
-<span class="doccomment">//! 3. The SSO Service validates the request and responds with a document containing an XHTML form:</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//!       NOTE: POSTed assertions MUST be signed</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! ```html</span>
-<span class="doccomment">//! &lt;form method=&quot;post&quot; action=&quot;https://example.com/SAML2/SSO/POST&quot; ...&gt;</span>
-<span class="doccomment">//!   &lt;input type=&quot;hidden&quot; name=&quot;SAMLResponse&quot; value=&quot;response&quot; /&gt;</span>
-<span class="doccomment">//!   &lt;input type=&quot;hidden&quot; name=&quot;RelayState&quot; value=&quot;token&quot; /&gt;</span>
-<span class="doccomment">//! etc etc...</span>
-<span class="doccomment">//! &lt;input type=&quot;submit&quot; value=&quot;Submit&quot; /&gt;</span>
-<span class="doccomment">//! &lt;/form&gt;</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//! 4. Request the Assertion Consumer Service at the SP. The user agent issues a POST request to the Assertion Consumer Service at the service provider:</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! ```html</span>
-<span class="doccomment">//! POST /SAML2/SSO/POST HTTP/1.1</span>
-<span class="doccomment">//! Host: sp.example.com</span>
-<span class="doccomment">//! Content-Type: application/x-www-form-urlencoded</span>
-<span class="doccomment">//! Content-Length: nnn</span>
-<span class="doccomment">//! SAMLResponse=response&amp;RelayState=token</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! To automate the submission of the form, the following line of JavaScript may appear anywhere on the XHTML page:</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! ```javascript</span>
-<span class="doccomment">//! window.onload = function () { document.forms[0].submit(); }</span>
-<span class="doccomment">//! ```</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! # Testing tools:</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! * Idp/SP online tester - &lt;https://samltest.id/&gt;</span>
-<span class="doccomment">//! * Parser for requests and responses: &lt;https://samltool.io&gt;</span>
-<span class="doccomment">//! * OneLogin SAMLTool - &lt;https://www.samltool.com/validate_xml.php&gt; great for validating things against schema.</span>
+</pre><pre class="rust"><code><span class="doccomment">//! A library for doing SAML things, terribly, in rust.
+//!
+//! My main aim at the moment is to provide IdP capabilities for the [Kanidm](https://github.com/kanidm/kanidm) project.
+//!
+//! `#![deny(unsafe_code)]` is used everywhere to avoid unsafe code tricks. This is why we&#39;re using rust, after all! 🦀
+//! //!
+//! If you would like to help - please log PRs/Issues against [terminaloutcomes/saml-rs](https://github.com/terminaloutcomes/saml-rs).
+//!
+//! There&#39;s a test application [saml_test_server](../saml_test_server/index.html) based on [tide](https://docs.rs/tide/) to allow one to test functionality.
+//!
+//! # Current progress:
+//!
+//! - Compiles, most of the time
+//! - `saml_test_server` runs on HTTP and HTTPS, parses Redirect requests as-needed. Doesn&#39;t parse them well... or validate them if they&#39;re signed, but it&#39;s a start!
+//! - Parses and ... seems to handle SP XML data so we can store a representation of it and match them up later
+//!
+//! # Next steps:
+//!
+//! - Support the SAML 2.0 Web Browser SSO (SP Redirect Bind/ IdP POST Response) flow
+//! - Sign responses
+//! - Support Signed AuthN Redirect Requests
+//!
+//! # SAML 2.0 Web Browser SSO (SP Redirect Bind/ IdP POST Response) flow
+//!
+//! 1. User attempts to access the SP resource (eg `https://example.com/application`)
+//! 2. User is HTTP 302 redirected to the IdP (that&#39;s us!)
+//!    - The URL is provided in the SAML2.0 metadata from the IdP
+//!    - There should be two query parameters, [SAMLRequest](SamlQuery::SAMLRequest) and [RelayState](SamlQuery::RelayState) details about them are available in [SamlQuery]
+//! 3. The SSO Service validates the request and responds with a document containing an XHTML form:
+//!
+//!       NOTE: POSTed assertions MUST be signed
+//!
+//! ```html
+//! &lt;form method=&quot;post&quot; action=&quot;https://example.com/SAML2/SSO/POST&quot; ...&gt;
+//!   &lt;input type=&quot;hidden&quot; name=&quot;SAMLResponse&quot; value=&quot;response&quot; /&gt;
+//!   &lt;input type=&quot;hidden&quot; name=&quot;RelayState&quot; value=&quot;token&quot; /&gt;
+//! etc etc...
+//! &lt;input type=&quot;submit&quot; value=&quot;Submit&quot; /&gt;
+//! &lt;/form&gt;
+//! ```
+//! 4. Request the Assertion Consumer Service at the SP. The user agent issues a POST request to the Assertion Consumer Service at the service provider:
+//!
+//! ```html
+//! POST /SAML2/SSO/POST HTTP/1.1
+//! Host: sp.example.com
+//! Content-Type: application/x-www-form-urlencoded
+//! Content-Length: nnn
+//! SAMLResponse=response&amp;RelayState=token
+//! ```
+//!
+//! To automate the submission of the form, the following line of JavaScript may appear anywhere on the XHTML page:
+//!
+//! ```javascript
+//! window.onload = function () { document.forms[0].submit(); }
+//! ```
+//!
+//! # Testing tools:
+//!
+//! * Idp/SP online tester - &lt;https://samltest.id/&gt;
+//! * Parser for requests and responses: &lt;https://samltool.io&gt;
+//! * OneLogin SAMLTool - &lt;https://www.samltool.com/validate_xml.php&gt; great for validating things against schema.
 
-<span class="attribute">#![<span class="ident">forbid</span>(<span class="ident">unsafe_code</span>)]</span>
-<span class="attribute">#![<span class="ident">warn</span>(<span class="ident">missing_docs</span>)]</span>
-<span class="attribute">#![<span class="ident">deny</span>(<span class="ident">missing_debug_implementations</span>)]</span>
+</span><span class="attribute">#![forbid(unsafe_code)]
+#![warn(missing_docs)]
+#![deny(missing_debug_implementations)]
 
-<span class="attribute">#[<span class="ident">macro_use</span>]</span>
-<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">log</span>;
+#[macro_use]
+</span><span class="kw">extern crate </span>log;
 
-<span class="comment">// use xmlparser;</span>
-<span class="kw">use</span> <span class="ident">serde::Serialize</span>;
-<span class="kw">use</span> <span class="ident">std::fmt</span>;
-<span class="kw">use</span> <span class="ident">xmlparser</span>::{<span class="ident">StrSpan</span>, <span class="ident">Token</span>};
+<span class="comment">// use xmlparser;
+</span><span class="kw">use </span>serde::Serialize;
+<span class="kw">use </span>std::fmt;
+<span class="kw">use </span>xmlparser::{StrSpan, Token};
 
-<span class="kw">use</span> <span class="ident">inflate::inflate_bytes</span>;
-<span class="kw">use</span> <span class="ident">std::str::from_utf8</span>;
+<span class="kw">use </span>inflate::inflate_bytes;
+<span class="kw">use </span>std::str::from_utf8;
 
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">assertion</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">cert</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">constants</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">metadata</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">response</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">sign</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">sp</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">test_samples</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">utils</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">xml</span>;
+<span class="kw">pub mod </span>assertion;
+<span class="kw">pub mod </span>cert;
+<span class="kw">pub mod </span>constants;
+<span class="kw">pub mod </span>metadata;
+<span class="kw">pub mod </span>response;
+<span class="kw">pub mod </span>sign;
+<span class="kw">pub mod </span>sp;
+<span class="kw">pub mod </span>test_samples;
+<span class="kw">pub mod </span>utils;
+<span class="kw">pub mod </span>xml;
 
-<span class="comment">// #[cfg(feature = &quot;enable_tide&quot;)]</span>
-<span class="comment">// pub mod tide_helpers;</span>
-<span class="kw">use</span> <span class="ident">serde::Deserialize</span>;
+<span class="comment">// #[cfg(feature = &quot;enable_tide&quot;)]
+// pub mod tide_helpers;
+</span><span class="kw">use </span>serde::Deserialize;
 
-<span class="kw">use</span> <span class="ident">chrono</span>::{<span class="ident">DateTime</span>, <span class="ident">SecondsFormat</span>, <span class="ident">Utc</span>};
+<span class="kw">use </span>chrono::{DateTime, SecondsFormat, Utc};
 
-<span class="doccomment">/// Stores the values one would expect in an AuthN Request</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">AuthnRequest</span> {
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;ID&quot;</span>)]</span>
-    <span class="doccomment">/// RelayState provided as part of the request</span>
-    <span class="kw">pub</span> <span class="ident">relay_state</span>: <span class="ident">String</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;IssueInstant&quot;</span>)]</span>
-    <span class="doccomment">/// AuthN request issue time, generated by the SP - or shoved in by the IdP when parsing if missing</span>
-    <span class="comment">// TODO: find out if the IdP can just decide on this</span>
-    <span class="kw">pub</span> <span class="ident">issue_instant</span>: <span class="ident">DateTime</span><span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;AssertionConsumerServiceURL&quot;</span>)]</span>
-    <span class="doccomment">/// Consumer URL - where the SP wants you to send responses to</span>
-    <span class="kw">pub</span> <span class="ident">consumer_service_url</span>: <span class="ident">String</span>,
-    <span class="doccomment">/// Issuer of the request - used for matching to the SP-provided metadata.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// This is a nested element inside a `&lt;saml:Issuer xmlns:saml=&quot;urn:oasis:names:tc:SAML:2.0:assertion&quot;&gt;`</span>
-    <span class="kw">pub</span> <span class="ident">issuer</span>: <span class="ident">String</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;Version&quot;</span>)]</span>
-    <span class="doccomment">/// This better be 2.0!</span>
-    <span class="kw">pub</span> <span class="ident">version</span>: <span class="ident">String</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;Destination&quot;</span>)]</span>
-    <span class="doccomment">/// Destination...</span>
-    <span class="doccomment">/// TODO: work out if/why this is different to the ACS</span>
-    <span class="kw">pub</span> <span class="ident">destination</span>: <span class="ident">String</span>,
+<span class="doccomment">/// Stores the values one would expect in an AuthN Request
+</span><span class="attribute">#[derive(Debug, Serialize)]
+</span><span class="kw">pub struct </span>AuthnRequest {
+    <span class="attribute">#[serde(rename = <span class="string">&quot;ID&quot;</span>)]
+    </span><span class="doccomment">/// RelayState provided as part of the request
+    </span><span class="kw">pub </span>relay_state: String,
+    <span class="attribute">#[serde(rename = <span class="string">&quot;IssueInstant&quot;</span>)]
+    </span><span class="doccomment">/// AuthN request issue time, generated by the SP - or shoved in by the IdP when parsing if missing
+    </span><span class="comment">// TODO: find out if the IdP can just decide on this
+    </span><span class="kw">pub </span>issue_instant: DateTime&lt;Utc&gt;,
+    <span class="attribute">#[serde(rename = <span class="string">&quot;AssertionConsumerServiceURL&quot;</span>)]
+    </span><span class="doccomment">/// Consumer URL - where the SP wants you to send responses to
+    </span><span class="kw">pub </span>consumer_service_url: String,
+    <span class="doccomment">/// Issuer of the request - used for matching to the SP-provided metadata.
+    ///
+    /// This is a nested element inside a `&lt;saml:Issuer xmlns:saml=&quot;urn:oasis:names:tc:SAML:2.0:assertion&quot;&gt;`
+    </span><span class="kw">pub </span>issuer: String,
+    <span class="attribute">#[serde(rename = <span class="string">&quot;Version&quot;</span>)]
+    </span><span class="doccomment">/// This better be 2.0!
+    </span><span class="kw">pub </span>version: String,
+    <span class="attribute">#[serde(rename = <span class="string">&quot;Destination&quot;</span>)]
+    </span><span class="doccomment">/// Destination...
+    /// TODO: work out if/why this is different to the ACS
+    </span><span class="kw">pub </span>destination: String,
 
-    <span class="comment">// Example value http%3A%2F%2Fwww.w3.org%2F2001%2F04%2Fxmldsig-more%23rsa-sha256</span>
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;SigAlg&quot;</span>)]</span>
-    <span class="doccomment">/// Signature algorithm, if the request is signed</span>
-    <span class="kw">pub</span> <span class="ident">sigalg</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+    <span class="comment">// Example value http%3A%2F%2Fwww.w3.org%2F2001%2F04%2Fxmldsig-more%23rsa-sha256
+    </span><span class="attribute">#[serde(rename = <span class="string">&quot;SigAlg&quot;</span>)]
+    </span><span class="doccomment">/// Signature algorithm, if the request is signed
+    </span><span class="kw">pub </span>sigalg: <span class="prelude-ty">Option</span>&lt;String&gt;,
 
-    <span class="comment">// Example signature value Signature=HlQbshvUcfvRY1DYo3B8PJfu%2F32pkFnKNkVtQ%2Fjn%2Bl9DurSUa4DrZH76StCwH1qgJ34v%2FXEfXBPy%2BK79ryojzUs5JR7R1KvlMR%2Fzfvgz7LFGv1fGUIFA9vnbbMsn7G%2FI0%2FXSaFkWiXp9%2BmqTmiBBBhFLsd9A8shXIEjnLVWZNUGR73HwUhEiURhGGAmVkPPGDRW1gU%2BwVdy4YUcsGusqTNEcKvUHZeOe0FC%2BggZ%2BRmCCjr2lTVrAxlXMeNU4NkgBk9VimMFCLA2A6LZ9mtLDn20CHaMEkCbSIessWKfXfz7aXd1VaY6lO1K0aSZ0h3%2BAYRcXcNVl3uvZQUslxh48Nw%3D%3D</span>
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;Signature&quot;</span>)]</span>
-    <span class="doccomment">/// Signature, if signed</span>
-    <span class="kw">pub</span> <span class="ident">signature</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+    <span class="comment">// Example signature value Signature=HlQbshvUcfvRY1DYo3B8PJfu%2F32pkFnKNkVtQ%2Fjn%2Bl9DurSUa4DrZH76StCwH1qgJ34v%2FXEfXBPy%2BK79ryojzUs5JR7R1KvlMR%2Fzfvgz7LFGv1fGUIFA9vnbbMsn7G%2FI0%2FXSaFkWiXp9%2BmqTmiBBBhFLsd9A8shXIEjnLVWZNUGR73HwUhEiURhGGAmVkPPGDRW1gU%2BwVdy4YUcsGusqTNEcKvUHZeOe0FC%2BggZ%2BRmCCjr2lTVrAxlXMeNU4NkgBk9VimMFCLA2A6LZ9mtLDn20CHaMEkCbSIessWKfXfz7aXd1VaY6lO1K0aSZ0h3%2BAYRcXcNVl3uvZQUslxh48Nw%3D%3D
+    </span><span class="attribute">#[serde(rename = <span class="string">&quot;Signature&quot;</span>)]
+    </span><span class="doccomment">/// Signature, if signed
+    </span><span class="kw">pub </span>signature: <span class="prelude-ty">Option</span>&lt;String&gt;,
 }
 
-<span class="kw">impl</span> <span class="ident">AuthnRequest</span> {
-    <span class="doccomment">/// Allows one to turn a [AuthnRequestParser] into a Request object</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// TODO: doctest for AuthnRequest::From&lt;AuthnRequestParser&gt;</span>
-    <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::or_fun_call</span>)]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">parser</span>: <span class="ident">AuthnRequestParser</span>) -&gt; <span class="self">Self</span> {
-        <span class="ident">AuthnRequest</span> {
-            <span class="ident">relay_state</span>: <span class="ident">parser</span>.<span class="ident">relay_state</span>.<span class="ident">unwrap</span>(),
-            <span class="ident">issue_instant</span>: <span class="ident">parser</span>.<span class="ident">issue_instant</span>.<span class="ident">unwrap_or</span>(<span class="ident">Utc::now</span>()),
-            <span class="ident">consumer_service_url</span>: <span class="ident">parser</span>.<span class="ident">consumer_service_url</span>.<span class="ident">unwrap_or</span>(<span class="ident">String::from</span>(<span class="string">&quot;unset&quot;</span>)),
-            <span class="ident">issuer</span>: <span class="ident">parser</span>.<span class="ident">issuer</span>.<span class="ident">unwrap</span>(),
-            <span class="ident">version</span>: <span class="ident">parser</span>.<span class="ident">version</span>,
-            <span class="ident">destination</span>: <span class="ident">parser</span>.<span class="ident">destination</span>.<span class="ident">unwrap_or</span>(<span class="ident">String::from</span>(<span class="string">&quot;unset&quot;</span>)),
-            <span class="ident">sigalg</span>: <span class="ident">parser</span>.<span class="ident">sigalg</span>,
-            <span class="ident">signature</span>: <span class="ident">parser</span>.<span class="ident">signature</span>,
+<span class="kw">impl </span>AuthnRequest {
+    <span class="doccomment">/// Allows one to turn a [AuthnRequestParser] into a Request object
+    ///
+    /// TODO: doctest for AuthnRequest::From&lt;AuthnRequestParser&gt;
+    </span><span class="attribute">#[allow(clippy::or_fun_call)]
+    </span><span class="kw">pub fn </span>from(parser: AuthnRequestParser) -&gt; <span class="self">Self </span>{
+        AuthnRequest {
+            relay_state: parser.relay_state.unwrap(),
+            issue_instant: parser.issue_instant.unwrap_or(Utc::now()),
+            consumer_service_url: parser.consumer_service_url.unwrap_or(String::from(<span class="string">&quot;unset&quot;</span>)),
+            issuer: parser.issuer.unwrap(),
+            version: parser.version,
+            destination: parser.destination.unwrap_or(String::from(<span class="string">&quot;unset&quot;</span>)),
+            sigalg: parser.sigalg,
+            signature: parser.signature,
         }
     }
 
-    <span class="doccomment">/// Return the issue instant in the required form</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">issue_instant_string</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">String</span> {
-        <span class="self">self</span>.<span class="ident">issue_instant</span>
-            .<span class="ident">to_rfc3339_opts</span>(<span class="ident">SecondsFormat::Secs</span>, <span class="bool-val">true</span>)
+    <span class="doccomment">/// Return the issue instant in the required form
+    </span><span class="kw">pub fn </span>issue_instant_string(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="self">self</span>.issue_instant
+            .to_rfc3339_opts(SecondsFormat::Secs, <span class="bool-val">true</span>)
     }
 }
 
-<span class="doccomment">/// Used to pull apart a SAML AuthN Request and build a [AuthnRequest]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Default</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">AuthnRequestParser</span> {
-    <span class="doccomment">/// Request ID / RelayState as provided by the SP</span>
-    <span class="kw">pub</span> <span class="ident">relay_state</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="doccomment">/// AuthN request issue time, generated by the SP - or shoved in by the IdP when parsing if missing</span>
-    <span class="comment">// TODO: find out if the IdP can just decide on this</span>
-    <span class="kw">pub</span> <span class="ident">issue_instant</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">DateTime</span><span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-    <span class="doccomment">/// Consumer URL - where the SP wants you to send responses to</span>
-    <span class="kw">pub</span> <span class="ident">consumer_service_url</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="doccomment">/// Issuer of the request - used for matching to the SP-provided metadata.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// This is a nested element inside a `&lt;saml:Issuer xmlns:saml=&quot;urn:oasis:names:tc:SAML:2.0:assertion&quot;&gt;`</span>
-    <span class="kw">pub</span> <span class="ident">issuer</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="doccomment">/// This better be 2.0!</span>
-    <span class="kw">pub</span> <span class="ident">version</span>: <span class="ident">String</span>,
-    <span class="doccomment">/// Internal state id for the issuer</span>
-    <span class="comment">// TODO: see if I can remove this because I think I replaced this with previous_name</span>
-    <span class="kw">pub</span> <span class="ident">issuer_state</span>: <span class="ident">i8</span>,
-    <span class="doccomment">/// Destination...</span>
-    <span class="comment">// TODO: work out if/why this is different to the ACS</span>
-    <span class="kw">pub</span> <span class="ident">destination</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="comment">// TODO: need to parse the name-id policy ```&lt;samlp:NameIDPolicy AllowCreate=&quot;true&quot; Format=&quot;urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress&quot;/&gt;```</span>
-    <span class="doccomment">/// Signature algorithm, if the request is signed</span>
-    <span class="kw">pub</span> <span class="ident">sigalg</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="doccomment">/// Signature algorithm, if the request is signed</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// We leave this as the string while returning from the parser, so the [AuthnRequest] can verify it.</span>
-    <span class="kw">pub</span> <span class="ident">signature</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+<span class="doccomment">/// Used to pull apart a SAML AuthN Request and build a [AuthnRequest]
+</span><span class="attribute">#[derive(Debug, Default)]
+</span><span class="kw">pub struct </span>AuthnRequestParser {
+    <span class="doccomment">/// Request ID / RelayState as provided by the SP
+    </span><span class="kw">pub </span>relay_state: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="doccomment">/// AuthN request issue time, generated by the SP - or shoved in by the IdP when parsing if missing
+    </span><span class="comment">// TODO: find out if the IdP can just decide on this
+    </span><span class="kw">pub </span>issue_instant: <span class="prelude-ty">Option</span>&lt;DateTime&lt;Utc&gt;&gt;,
+    <span class="doccomment">/// Consumer URL - where the SP wants you to send responses to
+    </span><span class="kw">pub </span>consumer_service_url: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="doccomment">/// Issuer of the request - used for matching to the SP-provided metadata.
+    ///
+    /// This is a nested element inside a `&lt;saml:Issuer xmlns:saml=&quot;urn:oasis:names:tc:SAML:2.0:assertion&quot;&gt;`
+    </span><span class="kw">pub </span>issuer: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="doccomment">/// This better be 2.0!
+    </span><span class="kw">pub </span>version: String,
+    <span class="doccomment">/// Internal state id for the issuer
+    </span><span class="comment">// TODO: see if I can remove this because I think I replaced this with previous_name
+    </span><span class="kw">pub </span>issuer_state: i8,
+    <span class="doccomment">/// Destination...
+    </span><span class="comment">// TODO: work out if/why this is different to the ACS
+    </span><span class="kw">pub </span>destination: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="comment">// TODO: need to parse the name-id policy ```&lt;samlp:NameIDPolicy AllowCreate=&quot;true&quot; Format=&quot;urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress&quot;/&gt;```
+    </span><span class="doccomment">/// Signature algorithm, if the request is signed
+    </span><span class="kw">pub </span>sigalg: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="doccomment">/// Signature algorithm, if the request is signed
+    ///
+    /// We leave this as the string while returning from the parser, so the [AuthnRequest] can verify it.
+    </span><span class="kw">pub </span>signature: <span class="prelude-ty">Option</span>&lt;String&gt;,
 }
 
-<span class="kw">impl</span> <span class="ident">AuthnRequestParser</span> {
-    <span class="doccomment">/// Generate a new [AuthnRequestParser]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() -&gt; <span class="self">Self</span> {
-        <span class="ident">AuthnRequestParser</span> {
-            <span class="ident">relay_state</span>: <span class="prelude-val">None</span>,
-            <span class="ident">issue_instant</span>: <span class="prelude-val">None</span>,
-            <span class="ident">consumer_service_url</span>: <span class="prelude-val">None</span>,
-            <span class="ident">issuer</span>: <span class="prelude-val">None</span>,
-            <span class="ident">version</span>: <span class="ident">String::from</span>(<span class="string">&quot;2.0&quot;</span>),
-            <span class="ident">issuer_state</span>: <span class="number">0</span>,
-            <span class="ident">destination</span>: <span class="prelude-val">None</span>,
-            <span class="ident">sigalg</span>: <span class="prelude-val">None</span>,
-            <span class="ident">signature</span>: <span class="prelude-val">None</span>,
+<span class="kw">impl </span>AuthnRequestParser {
+    <span class="doccomment">/// Generate a new [AuthnRequestParser]
+    </span><span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
+        AuthnRequestParser {
+            relay_state: <span class="prelude-val">None</span>,
+            issue_instant: <span class="prelude-val">None</span>,
+            consumer_service_url: <span class="prelude-val">None</span>,
+            issuer: <span class="prelude-val">None</span>,
+            version: String::from(<span class="string">&quot;2.0&quot;</span>),
+            issuer_state: <span class="number">0</span>,
+            destination: <span class="prelude-val">None</span>,
+            sigalg: <span class="prelude-val">None</span>,
+            signature: <span class="prelude-val">None</span>,
         }
     }
 }
 
-<span class="doccomment">/// Custom error for failing to parse an AuthN request</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">AuthnDecodeError</span> {
-    <span class="doccomment">/// Error message</span>
-    <span class="kw">pub</span> <span class="ident">message</span>: <span class="ident">String</span>,
+<span class="doccomment">/// Custom error for failing to parse an AuthN request
+</span><span class="kw">pub struct </span>AuthnDecodeError {
+    <span class="doccomment">/// Error message
+    </span><span class="kw">pub </span>message: String,
 }
 
-<span class="kw">impl</span> <span class="ident">AuthnDecodeError</span> {
-    <span class="doccomment">/// Generatin&#39; a new AuthDecodeError</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">message</span>: <span class="ident">String</span>) -&gt; <span class="ident">AuthnDecodeError</span> {
-        <span class="ident">AuthnDecodeError</span> { <span class="ident">message</span> }
+<span class="kw">impl </span>AuthnDecodeError {
+    <span class="doccomment">/// Generatin&#39; a new AuthDecodeError
+    </span><span class="kw">pub fn </span>new(message: String) -&gt; AuthnDecodeError {
+        AuthnDecodeError { message }
     }
 }
 
-<span class="comment">// A unique format for dubugging output</span>
-<span class="kw">impl</span> <span class="ident">fmt::Debug</span> <span class="kw">for</span> <span class="ident">AuthnDecodeError</span> {
-    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;mut</span> <span class="ident">fmt::Formatter</span>) -&gt; <span class="ident">fmt::Result</span> {
-        <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;AuthnDecodeError {{ message: {} }}&quot;</span>, <span class="self">self</span>.<span class="ident">message</span>)
+<span class="comment">// A unique format for dubugging output
+</span><span class="kw">impl </span>fmt::Debug <span class="kw">for </span>AuthnDecodeError {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter) -&gt; fmt::Result {
+        <span class="macro">write!</span>(f, <span class="string">&quot;AuthnDecodeError {{ message: {} }}&quot;</span>, <span class="self">self</span>.message)
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Deserialize</span>, <span class="ident">Debug</span>)]</span>
-<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">non_snake_case</span>)]</span>
-<span class="doccomment">/// Used in the SAML Redirect GET request to pull out the query values</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// Snake case is needed to allow the fields to be pulled out correctly</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SamlQuery</span> {
-    <span class="doccomment">/// The value of the SAMLRequest parameter is a deflated, base64-encoded and URL-encoded value of an `&lt;samlp:[AuthnRequest]&gt;` element. The SAMLRequest *may* be signed using the SP signing key.</span>
-    <span class="kw">pub</span> <span class="ident">SAMLRequest</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="doccomment">/// The RelayState token is an opaque reference to state information maintained at the service provider.</span>
-    <span class="kw">pub</span> <span class="ident">RelayState</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="doccomment">/// Stores a base64-encoded signature...</span>
-    <span class="doccomment">/// TODO: is Signature *just* a base64 encoded string? Is there other decoding needed? Can we store this as a better type?</span>
-    <span class="kw">pub</span> <span class="ident">Signature</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="doccomment">/// Stores the signature type - this should be URL-decoded by the web frontend</span>
-    <span class="comment">// TODO: uhh... signature enums?</span>
-    <span class="kw">pub</span> <span class="ident">SigAlg</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+<span class="attribute">#[derive(Deserialize, Debug)]
+#[allow(non_snake_case)]
+</span><span class="doccomment">/// Used in the SAML Redirect GET request to pull out the query values
+///
+/// Snake case is needed to allow the fields to be pulled out correctly
+</span><span class="kw">pub struct </span>SamlQuery {
+    <span class="doccomment">/// The value of the SAMLRequest parameter is a deflated, base64-encoded and URL-encoded value of an `&lt;samlp:[AuthnRequest]&gt;` element. The SAMLRequest *may* be signed using the SP signing key.
+    </span><span class="kw">pub </span>SAMLRequest: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="doccomment">/// The RelayState token is an opaque reference to state information maintained at the service provider.
+    </span><span class="kw">pub </span>RelayState: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="doccomment">/// Stores a base64-encoded signature...
+    /// TODO: is Signature *just* a base64 encoded string? Is there other decoding needed? Can we store this as a better type?
+    </span><span class="kw">pub </span>Signature: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="doccomment">/// Stores the signature type - this should be URL-decoded by the web frontend
+    </span><span class="comment">// TODO: uhh... signature enums?
+    </span><span class="kw">pub </span>SigAlg: <span class="prelude-ty">Option</span>&lt;String&gt;,
 }
 
-<span class="doccomment">/// Does the decoding to hand the signature to the verifier</span>
-<span class="comment">// TODO: is string the best retval for decode_authn_request_signature</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">decode_authn_request_signature</span>(<span class="ident">signature</span>: <span class="ident">String</span>) -&gt; <span class="ident">String</span> {
-    <span class="macro">debug!</span>(<span class="string">&quot;signature: {:?}&quot;</span>, <span class="ident">signature</span>);
-    <span class="ident">signature</span>
+<span class="doccomment">/// Does the decoding to hand the signature to the verifier
+</span><span class="comment">// TODO: is string the best retval for decode_authn_request_signature
+</span><span class="kw">pub fn </span>decode_authn_request_signature(signature: String) -&gt; String {
+    <span class="macro">debug!</span>(<span class="string">&quot;signature: {:?}&quot;</span>, signature);
+    signature
 }
 
-<span class="doccomment">/// Removes base64 encoding and also deflates the input String.</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">decode_authn_request_base64_encoded</span>(<span class="ident">req</span>: <span class="ident">String</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">AuthnDecodeError</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="ident">base64_decoded_samlrequest</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">base64::decode</span>(<span class="ident">req</span>) {
-        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; {
+<span class="doccomment">/// Removes base64 encoding and also deflates the input String.
+</span><span class="kw">pub fn </span>decode_authn_request_base64_encoded(req: String) -&gt; <span class="prelude-ty">Result</span>&lt;String, AuthnDecodeError&gt; {
+    <span class="kw">let </span>base64_decoded_samlrequest: Vec&lt;u8&gt; = <span class="kw">match </span>base64::decode(req) {
+        <span class="prelude-val">Ok</span>(value) =&gt; {
             <span class="macro">debug!</span>(<span class="string">&quot;Successfully Base64 Decoded the SAMLRequest&quot;</span>);
-            <span class="ident">value</span>
+            value
         }
-        <span class="prelude-val">Err</span>(<span class="ident">err</span>) =&gt; {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">AuthnDecodeError::new</span>(<span class="macro">format!</span>(
+        <span class="prelude-val">Err</span>(err) =&gt; {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(AuthnDecodeError::new(<span class="macro">format!</span>(
                 <span class="string">&quot;Failed to base64 decode SAMLRequest in saml_redirect_get {:?}&quot;</span>,
-                <span class="ident">err</span>
+                err
             )));
         }
     };
-    <span class="comment">// here we try and use libflate to deflate the base64-decoded bytes because compression is used</span>
-    <span class="kw">let</span> <span class="ident">inflated_result</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">inflate_bytes</span>(<span class="kw-2">&amp;</span><span class="ident">base64_decoded_samlrequest</span>) {
-        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; {
+    <span class="comment">// here we try and use libflate to deflate the base64-decoded bytes because compression is used
+    </span><span class="kw">let </span>inflated_result = <span class="kw">match </span>inflate_bytes(<span class="kw-2">&amp;</span>base64_decoded_samlrequest) {
+        <span class="prelude-val">Ok</span>(value) =&gt; {
             <span class="macro">debug!</span>(
                 <span class="string">&quot;Successfully inflated the base64-decoded bytes: {:?}&quot;</span>,
-                <span class="ident">from_utf8</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">unwrap_or</span>(<span class="string">&quot;Couldn&#39;t utf-8 decode this mess&quot;</span>)
+                from_utf8(<span class="kw-2">&amp;</span>value).unwrap_or(<span class="string">&quot;Couldn&#39;t utf-8 decode this mess&quot;</span>)
             );
-            <span class="ident">value</span>
+            value
         }
-        <span class="comment">// if it fails, it&#39;s probably fine to return the bare bytes as they&#39;re already a string?</span>
-        <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; {
-            <span class="macro">debug!</span>(<span class="string">&quot;Failed to inflate bytes ({:?})&quot;</span>, <span class="ident">error</span>);
-            <span class="ident">base64_decoded_samlrequest</span>
+        <span class="comment">// if it fails, it&#39;s probably fine to return the bare bytes as they&#39;re already a string?
+        </span><span class="prelude-val">Err</span>(error) =&gt; {
+            <span class="macro">debug!</span>(<span class="string">&quot;Failed to inflate bytes ({:?})&quot;</span>, error);
+            base64_decoded_samlrequest
         }
     };
-    <span class="kw">match</span> <span class="ident">from_utf8</span>(<span class="kw-2">&amp;</span><span class="ident">inflated_result</span>) {
-        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="ident">value</span>.<span class="ident">to_string</span>()),
-        <span class="kw">_</span> =&gt; <span class="prelude-val">Err</span>(<span class="ident">AuthnDecodeError::new</span>(<span class="macro">format!</span>(
+    <span class="kw">match </span>from_utf8(<span class="kw-2">&amp;</span>inflated_result) {
+        <span class="prelude-val">Ok</span>(value) =&gt; <span class="prelude-val">Ok</span>(value.to_string()),
+        <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(AuthnDecodeError::new(<span class="macro">format!</span>(
             <span class="string">&quot;Failed to utf-8 encode the result: {:?}&quot;</span>,
-            <span class="ident">inflated_result</span>
+            inflated_result
         ))),
     }
 }
 
-<span class="doccomment">/// Used inside AuthnRequestParser to help parse the AuthN request</span>
-<span class="kw">fn</span> <span class="ident">parse_authn_tokenizer_attribute</span>(
-    <span class="ident">local</span>: <span class="ident">StrSpan</span>,
-    <span class="ident">value</span>: <span class="ident">StrSpan</span>,
-    <span class="kw-2">mut</span> <span class="ident">req</span>: <span class="ident">AuthnRequestParser</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">AuthnRequestParser</span>, <span class="ident">AuthnDecodeError</span><span class="op">&gt;</span> {
-    <span class="kw">match</span> <span class="ident">local</span>.<span class="ident">to_lowercase</span>().<span class="ident">as_str</span>() {
-        <span class="string">&quot;destination&quot;</span> =&gt; {
-            <span class="ident">req</span>.<span class="ident">destination</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">value</span>.<span class="ident">to_string</span>());
+<span class="doccomment">/// Used inside AuthnRequestParser to help parse the AuthN request
+</span><span class="kw">fn </span>parse_authn_tokenizer_attribute(
+    local: StrSpan,
+    value: StrSpan,
+    <span class="kw-2">mut </span>req: AuthnRequestParser,
+) -&gt; <span class="prelude-ty">Result</span>&lt;AuthnRequestParser, AuthnDecodeError&gt; {
+    <span class="kw">match </span>local.to_lowercase().as_str() {
+        <span class="string">&quot;destination&quot; </span>=&gt; {
+            req.destination = <span class="prelude-val">Some</span>(value.to_string());
         }
-        <span class="string">&quot;id&quot;</span> =&gt; {
-            <span class="ident">req</span>.<span class="ident">relay_state</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">value</span>.<span class="ident">to_string</span>());
+        <span class="string">&quot;id&quot; </span>=&gt; {
+            req.relay_state = <span class="prelude-val">Some</span>(value.to_string());
         }
-        <span class="string">&quot;issueinstant&quot;</span> =&gt; {
-            <span class="macro">debug!</span>(<span class="string">&quot;Found issueinstant: {}&quot;</span>, <span class="ident">value</span>.<span class="ident">to_string</span>());
+        <span class="string">&quot;issueinstant&quot; </span>=&gt; {
+            <span class="macro">debug!</span>(<span class="string">&quot;Found issueinstant: {}&quot;</span>, value.to_string());
 
-            <span class="comment">// Date parsing... 2021-07-19T12:06:25Z</span>
-            <span class="kw">let</span> <span class="ident">parsed_datetime</span> <span class="op">=</span> <span class="ident">DateTime::parse_from_rfc3339</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>);
-            <span class="macro">debug!</span>(<span class="string">&quot;parsed_datetime: {:?}&quot;</span>, <span class="ident">parsed_datetime</span>);
-            <span class="kw">match</span> <span class="ident">parsed_datetime</span> {
-                <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; {
+            <span class="comment">// Date parsing... 2021-07-19T12:06:25Z
+            </span><span class="kw">let </span>parsed_datetime = DateTime::parse_from_rfc3339(<span class="kw-2">&amp;</span>value);
+            <span class="macro">debug!</span>(<span class="string">&quot;parsed_datetime: {:?}&quot;</span>, parsed_datetime);
+            <span class="kw">match </span>parsed_datetime {
+                <span class="prelude-val">Ok</span>(value) =&gt; {
                     <span class="macro">debug!</span>(<span class="string">&quot;Setting issue_instant&quot;</span>);
-                    <span class="kw">let</span> <span class="ident">result</span>: <span class="ident">DateTime</span><span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">value</span>.<span class="ident">into</span>();
-                    <span class="ident">req</span>.<span class="ident">issue_instant</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">result</span>);
+                    <span class="kw">let </span>result: DateTime&lt;Utc&gt; = value.into();
+                    req.issue_instant = <span class="prelude-val">Some</span>(result);
                 }
-                <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; {
+                <span class="prelude-val">Err</span>(error) =&gt; {
                     <span class="macro">eprintln!</span>(
                         <span class="string">&quot;Failed to cast datetime source={:?}, error=\&quot;{}\&quot;&quot;</span>,
-                        <span class="ident">value</span>.<span class="ident">to_string</span>(),
-                        <span class="ident">error</span>
+                        value.to_string(),
+                        error
                     );
                 }
             };
         }
-        <span class="string">&quot;assertionconsumerserviceurl&quot;</span> =&gt; {
-            <span class="ident">req</span>.<span class="ident">consumer_service_url</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">value</span>.<span class="ident">to_string</span>());
+        <span class="string">&quot;assertionconsumerserviceurl&quot; </span>=&gt; {
+            req.consumer_service_url = <span class="prelude-val">Some</span>(value.to_string());
         }
-        <span class="string">&quot;version&quot;</span> =&gt; {
-            <span class="kw">if</span> <span class="ident">value</span>.<span class="ident">to_string</span>() <span class="op">!</span><span class="op">=</span> <span class="string">&quot;2.0&quot;</span> {
-                <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">AuthnDecodeError::new</span>(<span class="macro">format!</span>(
+        <span class="string">&quot;version&quot; </span>=&gt; {
+            <span class="kw">if </span>value.to_string() != <span class="string">&quot;2.0&quot; </span>{
+                <span class="kw">return </span><span class="prelude-val">Err</span>(AuthnDecodeError::new(<span class="macro">format!</span>(
                     <span class="string">&quot;SAML Request where version!=2.0 ({}), this is probably bad.&quot;</span>,
-                    <span class="ident">value</span>.<span class="ident">to_string</span>()
+                    value.to_string()
                 )));
             }
-            <span class="ident">req</span>.<span class="ident">version</span> <span class="op">=</span> <span class="ident">value</span>.<span class="ident">to_string</span>();
+            req.version = value.to_string();
         }
-        <span class="kw">_</span> =&gt; <span class="macro">debug!</span>(
+        <span class="kw">_ </span>=&gt; <span class="macro">debug!</span>(
             <span class="string">&quot;Found tokenizer attribute={}, value={}&quot;</span>,
-            <span class="ident">local</span>.<span class="ident">to_lowercase</span>().<span class="ident">as_str</span>(),
-            <span class="ident">value</span>.<span class="ident">to_string</span>()
+            local.to_lowercase().as_str(),
+            value.to_string()
         ),
     }
 
-    <span class="comment">//eprintln!(&quot;after block {:?}&quot;, req.issue_instant);</span>
-    <span class="prelude-val">Ok</span>(<span class="ident">req</span>)
+    <span class="comment">//eprintln!(&quot;after block {:?}&quot;, req.issue_instant);
+    </span><span class="prelude-val">Ok</span>(req)
 }
 
-<span class="doccomment">/// Used inside AuthnRequestParser to help parse the AuthN request</span>
-<span class="kw">fn</span> <span class="ident">parse_authn_tokenizer_element_start</span>(
-    <span class="ident">local</span>: <span class="ident">StrSpan</span>,
-    <span class="kw-2">mut</span> <span class="ident">req</span>: <span class="ident">AuthnRequestParser</span>,
-) -&gt; <span class="ident">AuthnRequestParser</span> {
+<span class="doccomment">/// Used inside AuthnRequestParser to help parse the AuthN request
+</span><span class="kw">fn </span>parse_authn_tokenizer_element_start(
+    local: StrSpan,
+    <span class="kw-2">mut </span>req: AuthnRequestParser,
+) -&gt; AuthnRequestParser {
     <span class="macro">debug!</span>(
         <span class="string">&quot;parse_authn_tokenizer_element_start: {}&quot;</span>,
-        <span class="ident">local</span>.<span class="ident">to_lowercase</span>().<span class="ident">as_str</span>()
+        local.to_lowercase().as_str()
     );
-    <span class="kw">if</span> <span class="ident">local</span>.<span class="ident">to_lowercase</span>().<span class="ident">as_str</span>() <span class="op">==</span> <span class="string">&quot;issuer&quot;</span> {
-        <span class="kw">if</span> <span class="ident">req</span>.<span class="ident">issuer_state</span> <span class="op">==</span> <span class="number">0</span> {
-            <span class="ident">req</span>.<span class="ident">issuer_state</span> <span class="op">=</span> <span class="number">1</span>;
+    <span class="kw">if </span>local.to_lowercase().as_str() == <span class="string">&quot;issuer&quot; </span>{
+        <span class="kw">if </span>req.issuer_state == <span class="number">0 </span>{
+            req.issuer_state = <span class="number">1</span>;
             <span class="macro">debug!</span>(<span class="string">&quot;Found a text tag called issuer, moving to issuer-finding state machine state 1&quot;</span>)
-        } <span class="kw">else</span> {
+        } <span class="kw">else </span>{
             <span class="macro">debug!</span>(
                 <span class="string">&quot;Found issuer tag and not at issuer_state==0 {}&quot;</span>,
-                <span class="ident">req</span>.<span class="ident">issuer_state</span>
+                req.issuer_state
             );
-            <span class="comment">// TODO: throw an error?</span>
-        }
-    } <span class="kw">else</span> {
-        <span class="macro">debug!</span>(<span class="string">&quot;Found elementStart text={}&quot;</span>, <span class="ident">local</span>.<span class="ident">to_lowercase</span>().<span class="ident">as_str</span>());
+            <span class="comment">// TODO: throw an error?
+        </span>}
+    } <span class="kw">else </span>{
+        <span class="macro">debug!</span>(<span class="string">&quot;Found elementStart text={}&quot;</span>, local.to_lowercase().as_str());
     }
-    <span class="ident">req</span>
+    req
 }
 
-<span class="doccomment">/// Give it a string full of XML and it&#39;ll give you back a [AuthnRequest] object which has the details</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">parse_authn_request</span>(<span class="ident">request_data</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">AuthnRequest</span>, <span class="ident">String</span><span class="op">&gt;</span> {
-    <span class="comment">// more examples here</span>
-    <span class="comment">// https://developers.onelogin.com/saml/examples/authnrequest</span>
+<span class="doccomment">/// Give it a string full of XML and it&#39;ll give you back a [AuthnRequest] object which has the details
+</span><span class="kw">pub fn </span>parse_authn_request(request_data: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;AuthnRequest, String&gt; {
+    <span class="comment">// more examples here
+    // https://developers.onelogin.com/saml/examples/authnrequest
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">saml_request</span> <span class="op">=</span> <span class="ident">AuthnRequestParser::new</span>();
-    <span class="kw">let</span> <span class="ident">tokenizer</span> <span class="op">=</span> <span class="ident">xmlparser::Tokenizer::from</span>(<span class="ident">request_data</span>);
-    <span class="kw">for</span> <span class="ident">token</span> <span class="kw">in</span> <span class="ident">tokenizer</span> {
-        <span class="kw">match</span> <span class="ident">token</span> {
-            <span class="prelude-val">Ok</span>(<span class="ident">token_value</span>) =&gt; {
-                <span class="ident">saml_request</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">token_value</span> {
-                    <span class="ident">Token::Attribute</span> {
-                        <span class="ident">prefix</span>: <span class="kw">_</span>,
-                        <span class="ident">local</span>,
-                        <span class="ident">value</span>,
-                        <span class="ident">span</span>: <span class="kw">_</span>,
-                    } =&gt; <span class="kw">match</span> <span class="ident">parse_authn_tokenizer_attribute</span>(<span class="ident">local</span>, <span class="ident">value</span>, <span class="ident">saml_request</span>) {
-                        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; <span class="ident">value</span>,
-                        <span class="prelude-val">Err</span>(<span class="ident">error</span>) =&gt; {
-                            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">&quot;Failed to parse authn request: {:?}&quot;</span>, <span class="ident">error</span>))
+    </span><span class="kw">let </span><span class="kw-2">mut </span>saml_request = AuthnRequestParser::new();
+    <span class="kw">let </span>tokenizer = xmlparser::Tokenizer::from(request_data);
+    <span class="kw">for </span>token <span class="kw">in </span>tokenizer {
+        <span class="kw">match </span>token {
+            <span class="prelude-val">Ok</span>(token_value) =&gt; {
+                saml_request = <span class="kw">match </span>token_value {
+                    Token::Attribute {
+                        prefix: <span class="kw">_</span>,
+                        local,
+                        value,
+                        span: <span class="kw">_</span>,
+                    } =&gt; <span class="kw">match </span>parse_authn_tokenizer_attribute(local, value, saml_request) {
+                        <span class="prelude-val">Ok</span>(value) =&gt; value,
+                        <span class="prelude-val">Err</span>(error) =&gt; {
+                            <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">&quot;Failed to parse authn request: {:?}&quot;</span>, error))
                         }
                     },
-                    <span class="ident">Token::ElementStart</span> {
-                        <span class="ident">prefix</span>: <span class="kw">_</span>,
-                        <span class="ident">local</span>,
-                        <span class="ident">span</span>: <span class="kw">_</span>,
-                    } =&gt; <span class="ident">parse_authn_tokenizer_element_start</span>(<span class="ident">local</span>, <span class="ident">saml_request</span>),
-                    <span class="ident">Token::Text</span> { <span class="ident">text</span> } =&gt; {
-                        <span class="comment">// if issuer_state == -1 { continue }</span>
-                        <span class="kw">if</span> <span class="ident">saml_request</span>.<span class="ident">issuer_state</span> <span class="op">==</span> <span class="number">1</span> {
-                            <span class="kw">let</span> <span class="ident">issuer</span> <span class="op">=</span> <span class="ident">text</span>.<span class="ident">as_str</span>();
-                            <span class="macro">debug!</span>(<span class="string">&quot;Found issuer: {}&quot;</span>, <span class="ident">issuer</span>);
-                            <span class="ident">saml_request</span>.<span class="ident">issuer</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">issuer</span>.<span class="ident">to_string</span>());
-                            <span class="ident">saml_request</span>.<span class="ident">issuer_state</span> <span class="op">=</span> <span class="op">-</span><span class="number">1</span>; <span class="comment">// reset the state machine so we don&#39;t try and do this again</span>
-                        } <span class="kw">else</span> {
+                    Token::ElementStart {
+                        prefix: <span class="kw">_</span>,
+                        local,
+                        span: <span class="kw">_</span>,
+                    } =&gt; parse_authn_tokenizer_element_start(local, saml_request),
+                    Token::Text { text } =&gt; {
+                        <span class="comment">// if issuer_state == -1 { continue }
+                        </span><span class="kw">if </span>saml_request.issuer_state == <span class="number">1 </span>{
+                            <span class="kw">let </span>issuer = text.as_str();
+                            <span class="macro">debug!</span>(<span class="string">&quot;Found issuer: {}&quot;</span>, issuer);
+                            saml_request.issuer = <span class="prelude-val">Some</span>(issuer.to_string());
+                            saml_request.issuer_state = -<span class="number">1</span>; <span class="comment">// reset the state machine so we don&#39;t try and do this again
+                        </span>} <span class="kw">else </span>{
                             <span class="macro">debug!</span>(
                                 <span class="string">&quot;Found issuer text and not at issuer_state==1 ({}) text={:?}&quot;</span>,
-                                <span class="ident">saml_request</span>.<span class="ident">issuer_state</span>, <span class="ident">text</span>
+                                saml_request.issuer_state, text
                             );
                         }
-                        <span class="ident">saml_request</span>
+                        saml_request
                     }
-                    <span class="kw">_</span> =&gt; <span class="ident">saml_request</span>,
+                    <span class="kw">_ </span>=&gt; saml_request,
                 };
             }
-            <span class="prelude-val">Err</span>(<span class="kw-2">ref</span> <span class="ident">error</span>) =&gt; {
-                <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="macro">format!</span>(
+            <span class="prelude-val">Err</span>(<span class="kw-2">ref </span>error) =&gt; {
+                <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">format!</span>(
                     <span class="string">&quot;Error parsing token: {:?}\n{:?}&quot;</span>,
-                    <span class="ident">error</span>, <span class="ident">request_data</span>
+                    error, request_data
                 ));
             }
         }
     }
 
-    <span class="macro">println!</span>(<span class="string">&quot;found relay_state={:?}&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">saml_request</span>.<span class="ident">relay_state</span>);
-    <span class="prelude-val">Ok</span>(<span class="ident">AuthnRequest::from</span>(<span class="ident">saml_request</span>))
+    <span class="macro">println!</span>(<span class="string">&quot;found relay_state={:?}&quot;</span>, <span class="kw-2">&amp;</span>saml_request.relay_state);
+    <span class="prelude-val">Ok</span>(AuthnRequest::from(saml_request))
 }
 
-<span class="comment">// TODO: This has some interesting code for parsing and handling assertions etc</span>
-<span class="comment">// https://docs.rs/crate/saml2aws-auto/1.10.1/source/src/saml/mod.rs</span>
-<span class="comment">// use crate::prelude::*;</span>
+<span class="comment">// TODO: This has some interesting code for parsing and handling assertions etc
+// https://docs.rs/crate/saml2aws-auto/1.10.1/source/src/saml/mod.rs
+// use crate::prelude::*;
 
-<span class="kw">fn</span> <span class="ident">_get_private_key</span>() {
+</span><span class="kw">fn </span>_get_private_key() {
     <span class="macro">println!</span>(<span class="string">&quot;Generating private key&quot;</span>);
-    <span class="comment">// let rsa = Rsa::generate(2048).unwrap()</span>
-    <span class="comment">// println!(&quot;Dumping RSA Cert {:?}&quot;, rsa.private_key_to_der());</span>
-    <span class="comment">// let data = b&quot;foobar&quot;;</span>
-    <span class="comment">// let mut buf = vec![0; rsa.size() as usize];</span>
-    <span class="comment">// let encrypted_result = rsa.public_encrypt(data, &amp;mut buf, Padding::PKCS1);</span>
-    <span class="comment">// println!(&quot;Dumping encrypted thing: {:?}&quot;, &amp;encrypted_result);</span>
-    <span class="comment">// let encrypted_len = &amp;encrypted_result.unwrap();</span>
+    <span class="comment">// let rsa = Rsa::generate(2048).unwrap()
+    // println!(&quot;Dumping RSA Cert {:?}&quot;, rsa.private_key_to_der());
+    // let data = b&quot;foobar&quot;;
+    // let mut buf = vec![0; rsa.size() as usize];
+    // let encrypted_result = rsa.public_encrypt(data, &amp;mut buf, Padding::PKCS1);
+    // println!(&quot;Dumping encrypted thing: {:?}&quot;, &amp;encrypted_result);
+    // let encrypted_len = &amp;encrypted_result.unwrap();
 
-    <span class="comment">// println!(&quot;Length of encrypted thing: {:?}&quot;, encrypted_len);</span>
-}
+    // println!(&quot;Length of encrypted thing: {:?}&quot;, encrypted_len);
+</span>}
 
-<span class="comment">// fn get_public_cert_base64(cert_path: std::string::String) -&gt; Result&lt;Certificate, ()&gt; {</span>
-<span class="comment">//     let mut buf = Vec::new();</span>
-<span class="comment">//     let file = match File::open(&quot;certpath&quot;) {</span>
-<span class="comment">//         Ok(file) =&gt; file,</span>
-<span class="comment">//         Err(_) =&gt; Err</span>
-<span class="comment">//     }</span>
-<span class="comment">//     .read_to_end(&amp;mut buf)?;</span>
-<span class="comment">//     let cert = Certificate::from_der(&amp;buf)?;</span>
-<span class="comment">//     // cert.to_string()?</span>
-<span class="comment">//     // .read_to_end(&amp;mut buf)?;</span>
+<span class="comment">// fn get_public_cert_base64(cert_path: std::string::String) -&gt; Result&lt;Certificate, ()&gt; {
+//     let mut buf = Vec::new();
+//     let file = match File::open(&quot;certpath&quot;) {
+//         Ok(file) =&gt; file,
+//         Err(_) =&gt; Err
+//     }
+//     .read_to_end(&amp;mut buf)?;
+//     let cert = Certificate::from_der(&amp;buf)?;
+//     // cert.to_string()?
+//     // .read_to_end(&amp;mut buf)?;
 
-<span class="comment">//     // let mut encoded_cert = String::from(&quot;hello world&quot;);</span>
-<span class="comment">//     // encoded_cert.push_str(&amp;cert_path);</span>
-<span class="comment">//     // return encoded_cert</span>
+//     // let mut encoded_cert = String::from(&quot;hello world&quot;);
+//     // encoded_cert.push_str(&amp;cert_path);
+//     // return encoded_cert
 
-<span class="comment">// }</span>
+// }
 
-<span class="comment">// fn encode_cert_as_base64_der() -&gt; std::string::String{</span>
+// fn encode_cert_as_base64_der() -&gt; std::string::String{
 
-<span class="comment">//     use std::io::Write;</span>
-<span class="comment">//     let mut buf = String::new();</span>
+//     use std::io::Write;
+//     let mut buf = String::new();
 
-<span class="comment">//     let mut base64_encoder = base64::write::EncoderStringWriter::from(&amp;mut buf, base64::STANDARD);</span>
+//     let mut base64_encoder = base64::write::EncoderStringWriter::from(&amp;mut buf, base64::STANDARD);
 
-<span class="comment">//     // enc.write_all(b&quot;asdf&quot;).unwrap();</span>
-<span class="comment">//     base64_encoder.write_all(generate_cert(&quot;www.example.com&quot;)).unwrap();</span>
+//     // enc.write_all(b&quot;asdf&quot;).unwrap();
+//     base64_encoder.write_all(generate_cert(&quot;www.example.com&quot;)).unwrap();
 
-<span class="comment">//     // release the &amp;mut reference on buf</span>
-<span class="comment">//     let _ = base64_encoder.into_inner();</span>
-<span class="comment">//     buf</span>
-<span class="comment">//     // assert_eq!(&quot;base64: YXNkZg==&quot;, &amp;buf);</span>
-<span class="comment">//     /*</span>
-<span class="comment">//     pub fn Rsa.private_key_to_der(&amp;self) -&gt; Result&lt;Vec&lt;u8&gt;, ErrorStack&gt;</span>
-<span class="comment">// Serializes the private key to a DER-encoded PKCS#1 RSAPrivateKey structure.</span>
+//     // release the &amp;mut reference on buf
+//     let _ = base64_encoder.into_inner();
+//     buf
+//     // assert_eq!(&quot;base64: YXNkZg==&quot;, &amp;buf);
+//     /*
+//     pub fn Rsa.private_key_to_der(&amp;self) -&gt; Result&lt;Vec&lt;u8&gt;, ErrorStack&gt;
+// Serializes the private key to a DER-encoded PKCS#1 RSAPrivateKey structure.
 
-<span class="comment">// This corresponds to i2d_RSAPrivateKey.</span>
-<span class="comment">// */</span>
-<span class="comment">// }</span>
-</code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="saml_rs" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+// This corresponds to i2d_RSAPrivateKey.
+// */
+// }
+</span></code></pre></div>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="saml_rs" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/assertion.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>assertion.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../saml_rs/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../saml_rs/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../saml_rs/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/assertion.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>assertion.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../saml_rs/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../saml_rs/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../saml_rs/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -486,493 +486,493 @@
 <span id="486">486</span>
 <span id="487">487</span>
 <span id="488">488</span>
-</pre><pre class="rust"><code><span class="doccomment">//! Assertion-related things</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! Assertions *Require* the following (from &lt;http://docs.oasis-open.org/security/saml/v2.0/saml-core-2.0-os.pdf&gt; 2.3.3 Element Assertion):</span>
+</pre><pre class="rust"><code><span class="doccomment">//! Assertion-related things
+//!
+//! Assertions *Require* the following (from &lt;http://docs.oasis-open.org/security/saml/v2.0/saml-core-2.0-os.pdf&gt; 2.3.3 Element Assertion):
 
-<span class="doccomment">//! * Version - The version of this assertion. The identifier for the version of SAML defined in this specification is &quot;2.0&quot;. SAML versioning is discussed in Section 4.</span>
-<span class="doccomment">//! * ID - The identifier for this assertion. It is of type xs:ID, and MUST follow the requirements specified in Section 1.3.4 for identifier uniqueness.</span>
-<span class="doccomment">//! * IssueInstant - The time instant of issue in UTC, as described in Section 1.3.3.</span>
-<span class="doccomment">//! * Issuer - The SAML authority that is making the claim(s) in the assertion. The issuer SHOULD be unambiguous to the intended relying parties. There&#39;s no requirement for this to be the same as the signer, other than in the design of the consumer.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! Optional things:</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! * ds:Signature - an XML signature</span>
-<span class="doccomment">//! * Subject - The subject of the statement(s) in the assertion.</span>
-<span class="doccomment">//! * Conditions - Conditions that MUST be evaluated when assessing the validity of and/or when using the assertion. See Section 2.5 for additional information on how to evaluate conditions.</span>
-<span class="doccomment">//! * Advice - Additional information related to the assertion that assists processing in certain situations but which MAY be ignored by applications that do not understand the advice or do not wish to make use of it.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! Zero or more of the following statement elements:</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! * Statement - A statement of a type defined in an extension schema. An xsi:type attribute MUST be used to indicate the actual statement type.</span>
-<span class="doccomment">//! * AuthnStatement - An authentication statement.</span>
-<span class="doccomment">//! * AuthzDecisionStatement - An authorization decision statement.</span>
-<span class="doccomment">//! * AttributeStatement - An attribute statement.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! An assertion with no statements MUST contain a \&lt;Subject\&gt; element. Such an assertion identifies a principal in a manner which can be referenced or confirmed using SAML methods, but asserts no further information associated with that principal.</span>
+//! * Version - The version of this assertion. The identifier for the version of SAML defined in this specification is &quot;2.0&quot;. SAML versioning is discussed in Section 4.
+//! * ID - The identifier for this assertion. It is of type xs:ID, and MUST follow the requirements specified in Section 1.3.4 for identifier uniqueness.
+//! * IssueInstant - The time instant of issue in UTC, as described in Section 1.3.3.
+//! * Issuer - The SAML authority that is making the claim(s) in the assertion. The issuer SHOULD be unambiguous to the intended relying parties. There&#39;s no requirement for this to be the same as the signer, other than in the design of the consumer.
+//!
+//! Optional things:
+//!
+//! * ds:Signature - an XML signature
+//! * Subject - The subject of the statement(s) in the assertion.
+//! * Conditions - Conditions that MUST be evaluated when assessing the validity of and/or when using the assertion. See Section 2.5 for additional information on how to evaluate conditions.
+//! * Advice - Additional information related to the assertion that assists processing in certain situations but which MAY be ignored by applications that do not understand the advice or do not wish to make use of it.
+//!
+//! Zero or more of the following statement elements:
+//!
+//! * Statement - A statement of a type defined in an extension schema. An xsi:type attribute MUST be used to indicate the actual statement type.
+//! * AuthnStatement - An authentication statement.
+//! * AuthzDecisionStatement - An authorization decision statement.
+//! * AttributeStatement - An attribute statement.
+//!
+//! An assertion with no statements MUST contain a \&lt;Subject\&gt; element. Such an assertion identifies a principal in a manner which can be referenced or confirmed using SAML methods, but asserts no further information associated with that principal.
 
-<span class="kw">use</span> <span class="ident">serde::Serialize</span>;
+</span><span class="kw">use </span>serde::Serialize;
 
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::utils</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::xml::write_event</span>;
-<span class="kw">use</span> <span class="ident">chrono</span>::{<span class="ident">DateTime</span>, <span class="ident">SecondsFormat</span>, <span class="ident">Utc</span>};
-<span class="kw">use</span> <span class="ident">openssl::x509::X509</span>;
-<span class="kw">use</span> <span class="ident">std::io::Write</span>;
-<span class="kw">use</span> <span class="ident">std::str::from_utf8</span>;
-<span class="kw">use</span> <span class="ident">xml::writer</span>::{<span class="ident">EmitterConfig</span>, <span class="ident">EventWriter</span>, <span class="ident">XmlEvent</span>};
+<span class="kw">use </span><span class="kw">crate</span>::utils::<span class="kw-2">*</span>;
+<span class="kw">use </span><span class="kw">crate</span>::xml::write_event;
+<span class="kw">use </span>chrono::{DateTime, SecondsFormat, Utc};
+<span class="kw">use </span>openssl::x509::X509;
+<span class="kw">use </span>std::io::Write;
+<span class="kw">use </span>std::str::from_utf8;
+<span class="kw">use </span>xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
-<span class="doccomment">/// AssertionTypes, from &lt;http://docs.oasis-open.org/security/saml/v2.0/saml-schema-assertion-2.0.xsd&gt; ```&lt;complexType name=&quot;AssertionType&quot;&gt;```</span>
-<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">dead_code</span>)]</span>
-<span class="kw">enum</span> <span class="ident">AssertionType</span> {
-    <span class="ident">Statement</span>,
-    <span class="ident">AuthnStatement</span>,
-    <span class="ident">AuthzDecisionStatement</span>,
-    <span class="ident">AttributeStatement</span>,
+<span class="doccomment">/// AssertionTypes, from &lt;http://docs.oasis-open.org/security/saml/v2.0/saml-schema-assertion-2.0.xsd&gt; ```&lt;complexType name=&quot;AssertionType&quot;&gt;```
+</span><span class="attribute">#[allow(dead_code)]
+</span><span class="kw">enum </span>AssertionType {
+    Statement,
+    AuthnStatement,
+    AuthzDecisionStatement,
+    AttributeStatement,
 }
 
-<span class="doccomment">/// StatusCode values</span>
-<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">dead_code</span>)]</span>
-<span class="kw">enum</span> <span class="ident">StatusCode</span> {
-    <span class="doccomment">/// `urn:oasis:names:tc:SAML:2.0:status:Success`</span>
-    <span class="ident">Success</span>,
+<span class="doccomment">/// StatusCode values
+</span><span class="attribute">#[allow(dead_code)]
+</span><span class="kw">enum </span>StatusCode {
+    <span class="doccomment">/// `urn:oasis:names:tc:SAML:2.0:status:Success`
+    </span>Success,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
-<span class="doccomment">/// The content of an assertion</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Assertion</span> {
-    <span class="doccomment">/// Assertion ID, referred to in the signature as ds:Reference</span>
-    <span class="kw">pub</span> <span class="ident">assertion_id</span>: <span class="ident">String</span>,
-    <span class="doccomment">/// Issuer of the Assertion</span>
-    <span class="kw">pub</span> <span class="ident">issuer</span>: <span class="ident">String</span>,
-    <span class="doccomment">/// Signing algorithm</span>
-    <span class="kw">pub</span> <span class="ident">signing_algorithm</span>: <span class="ident"><span class="kw">crate</span>::sign::SigningAlgorithm</span>,
-    <span class="doccomment">/// Digest algorithm</span>
-    <span class="kw">pub</span> <span class="ident">digest_algorithm</span>: <span class="ident"><span class="kw">crate</span>::sign::DigestAlgorithm</span>,
-    <span class="doccomment">/// Issue/Generatino time of the Assertion</span>
-    <span class="kw">pub</span> <span class="ident">issue_instant</span>: <span class="ident">DateTime</span><span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span>,
-    <span class="doccomment">/// TODO: work out what is necessary for [SubjectData]</span>
-    <span class="kw">pub</span> <span class="ident">subject_data</span>: <span class="ident">SubjectData</span>,
-    <span class="doccomment">/// Please don&#39;t let the user do this until ... now!</span>
-    <span class="kw">pub</span> <span class="ident">conditions_not_before</span>: <span class="ident">DateTime</span><span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span>,
-    <span class="doccomment">/// Please don&#39;t let the user do whatever we&#39;re saying they can do after this.</span>
-    <span class="kw">pub</span> <span class="ident">conditions_not_after</span>: <span class="ident">DateTime</span><span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span>,
-    <span class="doccomment">/// Who/what should be reading this. Probably a [crate::sp::ServiceProvider]</span>
-    <span class="kw">pub</span> <span class="ident">audience</span>: <span class="ident">String</span>,
-    <span class="doccomment">/// Attributes of the assertion, things like groups and email addresses and phone numbers and favourite kind of 🥔🍠</span>
-    <span class="kw">pub</span> <span class="ident">attributes</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">AssertionAttribute</span><span class="op">&gt;</span>,
+<span class="attribute">#[derive(Clone, Debug)]
+</span><span class="doccomment">/// The content of an assertion
+</span><span class="kw">pub struct </span>Assertion {
+    <span class="doccomment">/// Assertion ID, referred to in the signature as ds:Reference
+    </span><span class="kw">pub </span>assertion_id: String,
+    <span class="doccomment">/// Issuer of the Assertion
+    </span><span class="kw">pub </span>issuer: String,
+    <span class="doccomment">/// Signing algorithm
+    </span><span class="kw">pub </span>signing_algorithm: <span class="kw">crate</span>::sign::SigningAlgorithm,
+    <span class="doccomment">/// Digest algorithm
+    </span><span class="kw">pub </span>digest_algorithm: <span class="kw">crate</span>::sign::DigestAlgorithm,
+    <span class="doccomment">/// Issue/Generatino time of the Assertion
+    </span><span class="kw">pub </span>issue_instant: DateTime&lt;Utc&gt;,
+    <span class="doccomment">/// TODO: work out what is necessary for [SubjectData]
+    </span><span class="kw">pub </span>subject_data: SubjectData,
+    <span class="doccomment">/// Please don&#39;t let the user do this until ... now!
+    </span><span class="kw">pub </span>conditions_not_before: DateTime&lt;Utc&gt;,
+    <span class="doccomment">/// Please don&#39;t let the user do whatever we&#39;re saying they can do after this.
+    </span><span class="kw">pub </span>conditions_not_after: DateTime&lt;Utc&gt;,
+    <span class="doccomment">/// Who/what should be reading this. Probably a [crate::sp::ServiceProvider]
+    </span><span class="kw">pub </span>audience: String,
+    <span class="doccomment">/// Attributes of the assertion, things like groups and email addresses and phone numbers and favourite kind of 🥔🍠
+    </span><span class="kw">pub </span>attributes: Vec&lt;AssertionAttribute&gt;,
 
-    <span class="doccomment">/// Should we sign the assertion?</span>
-    <span class="kw">pub</span> <span class="ident">sign_assertion</span>: <span class="ident">bool</span>,
+    <span class="doccomment">/// Should we sign the assertion?
+    </span><span class="kw">pub </span>sign_assertion: bool,
 
-    <span class="doccomment">/// an openssl private key for signing</span>
-    <span class="kw">pub</span> <span class="ident">signing_key</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">openssl::pkey::PKey</span><span class="op">&lt;</span><span class="ident">openssl::pkey::Private</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-    <span class="doccomment">/// Certificate for signing/digest</span>
-    <span class="kw">pub</span> <span class="ident">signing_cert</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">X509</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// an openssl private key for signing
+    </span><span class="kw">pub </span>signing_key: <span class="prelude-ty">Option</span>&lt;openssl::pkey::PKey&lt;openssl::pkey::Private&gt;&gt;,
+    <span class="doccomment">/// Certificate for signing/digest
+    </span><span class="kw">pub </span>signing_cert: <span class="prelude-ty">Option</span>&lt;X509&gt;,
 }
 
-<span class="kw">fn</span> <span class="ident">write_assertion_tmpdir</span>(<span class="ident">buffer</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) {
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">assertionpath</span> <span class="op">=</span> <span class="ident">std::env::temp_dir</span>();
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">assertionfilename</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">chrono::Utc::now</span>().<span class="ident">timestamp</span>().<span class="ident">to_string</span>();
-    <span class="ident">assertionfilename</span>.<span class="ident">push_str</span>(<span class="string">&quot;-assertionout.xml&quot;</span>);
-    <span class="ident">assertionpath</span>.<span class="ident">set_file_name</span>(<span class="ident">assertionfilename</span>);
-    <span class="macro">log::debug!</span>(<span class="string">&quot;Assertion filename: {:?}&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">assertionpath</span>);
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">assertionfile</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">std::fs::OpenOptions::new</span>()
-        .<span class="ident">create</span>(<span class="bool-val">true</span>)
-        .<span class="ident">write</span>(<span class="bool-val">true</span>)
-        <span class="comment">// either use ? or unwrap since it returns a Result</span>
-        .<span class="ident">open</span>(<span class="ident">assertionpath</span>.<span class="ident">into_os_string</span>())
+<span class="kw">fn </span>write_assertion_tmpdir(buffer: <span class="kw-2">&amp;</span>[u8]) {
+    <span class="kw">let </span><span class="kw-2">mut </span>assertionpath = std::env::temp_dir();
+    <span class="kw">let </span><span class="kw-2">mut </span>assertionfilename: String = chrono::Utc::now().timestamp().to_string();
+    assertionfilename.push_str(<span class="string">&quot;-assertionout.xml&quot;</span>);
+    assertionpath.set_file_name(assertionfilename);
+    <span class="macro">log::debug!</span>(<span class="string">&quot;Assertion filename: {:?}&quot;</span>, <span class="kw-2">&amp;</span>assertionpath);
+    <span class="kw">let </span><span class="kw-2">mut </span>assertionfile = <span class="kw">match </span>std::fs::OpenOptions::new()
+        .create(<span class="bool-val">true</span>)
+        .write(<span class="bool-val">true</span>)
+        <span class="comment">// either use ? or unwrap since it returns a Result
+        </span>.open(assertionpath.into_os_string())
     {
-        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; <span class="ident">value</span>,
-        <span class="prelude-val">Err</span>(<span class="ident">e</span>) =&gt; {
-            <span class="macro">log::error!</span>(<span class="string">&quot;Failed to open assertionout {:?}&quot;</span>, <span class="ident">e</span>);
-            <span class="ident">std::process::exit</span>(<span class="number">1</span>)
+        <span class="prelude-val">Ok</span>(value) =&gt; value,
+        <span class="prelude-val">Err</span>(e) =&gt; {
+            <span class="macro">log::error!</span>(<span class="string">&quot;Failed to open assertionout {:?}&quot;</span>, e);
+            std::process::exit(<span class="number">1</span>)
         }
     };
 
-    <span class="kw">match</span> <span class="ident">assertionfile</span>.<span class="ident">write_all</span>(<span class="kw-2">&amp;</span><span class="ident">buffer</span>) {
-        <span class="prelude-val">Ok</span>(<span class="ident">value</span>) =&gt; <span class="macro">log::debug!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="ident">value</span>),
-        <span class="prelude-val">Err</span>(<span class="ident">e</span>) =&gt; <span class="macro">log::error!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="ident">e</span>),
+    <span class="kw">match </span>assertionfile.write_all(<span class="kw-2">&amp;</span>buffer) {
+        <span class="prelude-val">Ok</span>(value) =&gt; <span class="macro">log::debug!</span>(<span class="string">&quot;{:?}&quot;</span>, value),
+        <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">log::error!</span>(<span class="string">&quot;{:?}&quot;</span>, e),
     };
 }
 
-<span class="doccomment">/// Creates a String full of XML based on the ResponsElements</span>
-<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::from_over_into</span>)]</span>
-<span class="kw">impl</span> <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Assertion</span> {
-    <span class="kw">fn</span> <span class="ident">into</span>(<span class="self">self</span>) -&gt; <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> {
-        <span class="comment">// TODO: implement into vec u8 for assertion so we can sign it</span>
+<span class="doccomment">/// Creates a String full of XML based on the ResponsElements
+</span><span class="attribute">#[allow(clippy::from_over_into)]
+</span><span class="kw">impl </span>Into&lt;Vec&lt;u8&gt;&gt; <span class="kw">for </span>Assertion {
+    <span class="kw">fn </span>into(<span class="self">self</span>) -&gt; Vec&lt;u8&gt; {
+        <span class="comment">// TODO: implement into vec u8 for assertion so we can sign it
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buffer</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">writer</span> <span class="op">=</span> <span class="ident">EmitterConfig::new</span>()
-            .<span class="ident">perform_indent</span>(<span class="bool-val">true</span>)
-            .<span class="ident">pad_self_closing</span>(<span class="bool-val">false</span>)
-            .<span class="ident">write_document_declaration</span>(<span class="bool-val">false</span>)
-            .<span class="ident">normalize_empty_elements</span>(<span class="bool-val">false</span>)
-            .<span class="ident">create_writer</span>(<span class="kw-2">&amp;mut</span> <span class="ident">buffer</span>);
+        </span><span class="kw">let </span><span class="kw-2">mut </span>buffer = Vec::new();
+        <span class="kw">let </span><span class="kw-2">mut </span>writer = EmitterConfig::new()
+            .perform_indent(<span class="bool-val">true</span>)
+            .pad_self_closing(<span class="bool-val">false</span>)
+            .write_document_declaration(<span class="bool-val">false</span>)
+            .normalize_empty_elements(<span class="bool-val">false</span>)
+            .create_writer(<span class="kw-2">&amp;mut </span>buffer);
 
-        <span class="self">self</span>.<span class="ident">add_assertion_to_xml</span>(<span class="kw-2">&amp;mut</span> <span class="ident">writer</span>);
+        <span class="self">self</span>.add_assertion_to_xml(<span class="kw-2">&amp;mut </span>writer);
         <span class="macro">log::debug!</span>(<span class="string">&quot;Assertion into vec result:&quot;</span>);
-        <span class="macro">log::debug!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">from_utf8</span>(<span class="kw-2">&amp;</span><span class="ident">buffer</span>).<span class="ident">unwrap</span>());
+        <span class="macro">log::debug!</span>(<span class="string">&quot;{}&quot;</span>, from_utf8(<span class="kw-2">&amp;</span>buffer).unwrap());
 
-        <span class="ident">write_assertion_tmpdir</span>(<span class="kw-2">&amp;</span><span class="ident">buffer</span>);
-        <span class="ident">buffer</span>
+        write_assertion_tmpdir(<span class="kw-2">&amp;</span>buffer);
+        buffer
     }
 }
 
-<span class="kw">impl</span> <span class="ident">Assertion</span> {
-    <span class="doccomment">/// This exists so we can return a copy of an [Assertion] without the signature flags so we can trigger [Assertion.Into&lt;Vec&lt;u8&gt;&gt;] for signing</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">without_signature</span>(<span class="self">self</span>) -&gt; <span class="self">Self</span> {
-        <span class="self">Self</span> {
-            <span class="ident">assertion_id</span>: <span class="self">self</span>.<span class="ident">assertion_id</span>,
-            <span class="ident">issuer</span>: <span class="self">self</span>.<span class="ident">issuer</span>,
-            <span class="ident">signing_algorithm</span>: <span class="self">self</span>.<span class="ident">signing_algorithm</span>,
-            <span class="ident">digest_algorithm</span>: <span class="self">self</span>.<span class="ident">digest_algorithm</span>,
-            <span class="ident">issue_instant</span>: <span class="self">self</span>.<span class="ident">issue_instant</span>,
-            <span class="ident">subject_data</span>: <span class="self">self</span>.<span class="ident">subject_data</span>,
-            <span class="ident">conditions_not_before</span>: <span class="self">self</span>.<span class="ident">conditions_not_before</span>,
-            <span class="ident">conditions_not_after</span>: <span class="self">self</span>.<span class="ident">conditions_not_after</span>,
-            <span class="ident">audience</span>: <span class="self">self</span>.<span class="ident">audience</span>,
-            <span class="ident">attributes</span>: <span class="self">self</span>.<span class="ident">attributes</span>,
-            <span class="ident">sign_assertion</span>: <span class="bool-val">false</span>,
-            <span class="ident">signing_key</span>: <span class="self">self</span>.<span class="ident">signing_key</span>,
-            <span class="ident">signing_cert</span>: <span class="self">self</span>.<span class="ident">signing_cert</span>,
+<span class="kw">impl </span>Assertion {
+    <span class="doccomment">/// This exists so we can return a copy of an [Assertion] without the signature flags so we can trigger [Assertion.Into&lt;Vec&lt;u8&gt;&gt;] for signing
+    </span><span class="kw">pub fn </span>without_signature(<span class="self">self</span>) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            assertion_id: <span class="self">self</span>.assertion_id,
+            issuer: <span class="self">self</span>.issuer,
+            signing_algorithm: <span class="self">self</span>.signing_algorithm,
+            digest_algorithm: <span class="self">self</span>.digest_algorithm,
+            issue_instant: <span class="self">self</span>.issue_instant,
+            subject_data: <span class="self">self</span>.subject_data,
+            conditions_not_before: <span class="self">self</span>.conditions_not_before,
+            conditions_not_after: <span class="self">self</span>.conditions_not_after,
+            audience: <span class="self">self</span>.audience,
+            attributes: <span class="self">self</span>.attributes,
+            sign_assertion: <span class="bool-val">false</span>,
+            signing_key: <span class="self">self</span>.signing_key,
+            signing_cert: <span class="self">self</span>.signing_cert,
         }
     }
 
-    <span class="doccomment">/// Build an assertion based on the Assertion, returns a String of XML.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// If you set sign, it&#39;ll sign the data.. eventually.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">build_assertion</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">sign</span>: <span class="ident">bool</span>) -&gt; <span class="ident">String</span> {
-        <span class="kw">if</span> <span class="ident">sign</span> {
+    <span class="doccomment">/// Build an assertion based on the Assertion, returns a String of XML.
+    ///
+    /// If you set sign, it&#39;ll sign the data.. eventually.
+    </span><span class="kw">pub fn </span>build_assertion(<span class="kw-2">&amp;</span><span class="self">self</span>, sign: bool) -&gt; String {
+        <span class="kw">if </span>sign {
             <span class="macro">unimplemented!</span>(<span class="string">&quot;Still need to refactor building the signed assertion&quot;</span>)
-        } <span class="kw">else</span> {
+        } <span class="kw">else </span>{
             <span class="macro">unimplemented!</span>(<span class="string">&quot;Still need to refactor building the assertion&quot;</span>)
         }
-        <span class="comment">// String::from(&quot;Uh.. wait up.&quot;)</span>
-    }
+        <span class="comment">// String::from(&quot;Uh.. wait up.&quot;)
+    </span>}
 
-    <span class="doccomment">/// adds a `saml:Conditions` statement to the writer</span>
-    <span class="kw">fn</span> <span class="ident">add_conditions</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">writer</span>: <span class="kw-2">&amp;mut</span> <span class="ident">EventWriter</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>) {
-        <span class="comment">// start conditions statement</span>
-        <span class="ident">write_event</span>(
-            <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Conditions&quot;</span>))
-                <span class="comment">// TODO: conditions_not_before</span>
-                .<span class="ident">attr</span>(<span class="string">&quot;NotBefore&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">conditions_not_before</span>.<span class="ident">to_rfc3339</span>())
-                <span class="comment">// TODO: conditions_not_after</span>
-                .<span class="ident">attr</span>(<span class="string">&quot;NotOnOrAfter&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">conditions_not_after</span>.<span class="ident">to_rfc3339</span>())
-                .<span class="ident">into</span>(),
-            <span class="ident">writer</span>,
+    <span class="doccomment">/// adds a `saml:Conditions` statement to the writer
+    </span><span class="kw">fn </span>add_conditions&lt;W: Write&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, writer: <span class="kw-2">&amp;mut </span>EventWriter&lt;W&gt;) {
+        <span class="comment">// start conditions statement
+        </span>write_event(
+            XmlEvent::start_element((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Conditions&quot;</span>))
+                <span class="comment">// TODO: conditions_not_before
+                </span>.attr(<span class="string">&quot;NotBefore&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.conditions_not_before.to_rfc3339())
+                <span class="comment">// TODO: conditions_not_after
+                </span>.attr(<span class="string">&quot;NotOnOrAfter&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.conditions_not_after.to_rfc3339())
+                .into(),
+            writer,
         );
 
-        <span class="ident">write_event</span>(
-            <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;AudienceRestriction&quot;</span>)).<span class="ident">into</span>(),
-            <span class="ident">writer</span>,
+        write_event(
+            XmlEvent::start_element((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;AudienceRestriction&quot;</span>)).into(),
+            writer,
         );
-        <span class="ident">write_event</span>(<span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Audience&quot;</span>)).<span class="ident">into</span>(), <span class="ident">writer</span>);
-        <span class="comment">// TODO: BUG: this is wrong. Assertion contains an unacceptable AudienceRestriction.</span>
-        <span class="ident">write_event</span>(<span class="ident">XmlEvent::characters</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">audience</span>), <span class="ident">writer</span>);
-        <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
-        <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
-        <span class="comment">// end conditions statement</span>
-        <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
+        write_event(XmlEvent::start_element((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Audience&quot;</span>)).into(), writer);
+        <span class="comment">// TODO: BUG: this is wrong. Assertion contains an unacceptable AudienceRestriction.
+        </span>write_event(XmlEvent::characters(<span class="kw-2">&amp;</span><span class="self">self</span>.audience), writer);
+        write_event(XmlEvent::end_element().into(), writer);
+        write_event(XmlEvent::end_element().into(), writer);
+        <span class="comment">// end conditions statement
+        </span>write_event(XmlEvent::end_element().into(), writer);
     }
 
-    <span class="doccomment">/// This adds the data from an Assertion to a given EventWriter.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// If you specify to *sign* the assertion, it&#39;s going to:</span>
-    <span class="doccomment">/// - generate a temporary EventWriter</span>
-    <span class="doccomment">/// - generate the *unsigned* assertion</span>
-    <span class="doccomment">/// - add the signature to the assertion</span>
-    <span class="doccomment">/// - weep quietly</span>
-    <span class="doccomment">/// - return the full pack</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// That&#39;s the plan, anyway.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// ``` xml</span>
-    <span class="doccomment">/// # Assertion Header</span>
-    <span class="doccomment">/// - AttributeStatement</span>
-    <span class="doccomment">/// - AuthnStatement</span>
-    <span class="doccomment">/// - Conditions</span>
-    <span class="doccomment">/// - Issuer</span>
-    <span class="doccomment">/// - Signature</span>
-    <span class="doccomment">/// - Subject</span>
-    <span class="doccomment">/// # End Assertion</span>
-    <span class="doccomment">/// ```</span>
-    <span class="doccomment">///</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">add_assertion_to_xml</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">writer</span>: <span class="kw-2">&amp;mut</span> <span class="ident">EventWriter</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>) {
-        <span class="comment">// start the assertion</span>
-        <span class="macro">log::debug!</span>(<span class="string">&quot;sign_assertion: {}&quot;</span>, <span class="self">self</span>.<span class="ident">sign_assertion</span>);
+    <span class="doccomment">/// This adds the data from an Assertion to a given EventWriter.
+    ///
+    /// If you specify to *sign* the assertion, it&#39;s going to:
+    /// - generate a temporary EventWriter
+    /// - generate the *unsigned* assertion
+    /// - add the signature to the assertion
+    /// - weep quietly
+    /// - return the full pack
+    ///
+    /// That&#39;s the plan, anyway.
+    ///
+    /// ``` xml
+    /// # Assertion Header
+    /// - AttributeStatement
+    /// - AuthnStatement
+    /// - Conditions
+    /// - Issuer
+    /// - Signature
+    /// - Subject
+    /// # End Assertion
+    /// ```
+    ///
+    </span><span class="kw">pub fn </span>add_assertion_to_xml&lt;W: Write&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, writer: <span class="kw-2">&amp;mut </span>EventWriter&lt;W&gt;) {
+        <span class="comment">// start the assertion
+        </span><span class="macro">log::debug!</span>(<span class="string">&quot;sign_assertion: {}&quot;</span>, <span class="self">self</span>.sign_assertion);
 
-        <span class="ident">write_event</span>(
-            <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Assertion&quot;</span>))
-                .<span class="ident">attr</span>(<span class="string">&quot;xmlns:saml&quot;</span>, <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:assertion&quot;</span>)
-                .<span class="ident">attr</span>(<span class="string">&quot;ID&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">assertion_id</span>)
-                .<span class="ident">attr</span>(
+        write_event(
+            XmlEvent::start_element((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Assertion&quot;</span>))
+                .attr(<span class="string">&quot;xmlns:saml&quot;</span>, <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:assertion&quot;</span>)
+                .attr(<span class="string">&quot;ID&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.assertion_id)
+                .attr(
                     <span class="string">&quot;IssueInstant&quot;</span>,
-                    <span class="kw-2">&amp;</span><span class="self">self</span>
-                        .<span class="ident">issue_instant</span>
-                        .<span class="ident">to_rfc3339_opts</span>(<span class="ident">SecondsFormat::Secs</span>, <span class="bool-val">true</span>),
+                    <span class="kw-2">&amp;</span><span class="self">self
+                        </span>.issue_instant
+                        .to_rfc3339_opts(SecondsFormat::Secs, <span class="bool-val">true</span>),
                 )
-                .<span class="ident">attr</span>(<span class="string">&quot;Version&quot;</span>, <span class="string">&quot;2.0&quot;</span>) <span class="comment">// yeah, not going to support anything but 2.0 here. 😅</span>
-                .<span class="ident">into</span>(),
-            <span class="ident">writer</span>,
+                .attr(<span class="string">&quot;Version&quot;</span>, <span class="string">&quot;2.0&quot;</span>) <span class="comment">// yeah, not going to support anything but 2.0 here. 😅
+                </span>.into(),
+            writer,
         );
 
-        <span class="comment">// do the issuer inside the assertion</span>
-        <span class="ident">write_event</span>(<span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Issuer&quot;</span>)).<span class="ident">into</span>(), <span class="ident">writer</span>);
-        <span class="ident">write_event</span>(<span class="ident">XmlEvent::characters</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">issuer</span>), <span class="ident">writer</span>);
-        <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
+        <span class="comment">// do the issuer inside the assertion
+        </span>write_event(XmlEvent::start_element((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Issuer&quot;</span>)).into(), writer);
+        write_event(XmlEvent::characters(<span class="kw-2">&amp;</span><span class="self">self</span>.issuer), writer);
+        write_event(XmlEvent::end_element().into(), writer);
 
-        <span class="comment">// if the assertion needs to be signed, we need to generate the whole assertion as a string, sign that, then add it to this assertion.</span>
-        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">sign_assertion</span> {
+        <span class="comment">// if the assertion needs to be signed, we need to generate the whole assertion as a string, sign that, then add it to this assertion.
+        </span><span class="kw">if </span><span class="self">self</span>.sign_assertion {
             <span class="macro">log::debug!</span>(<span class="string">&quot;Signing assertion&quot;</span>);
-            <span class="kw">if</span> <span class="self">self</span>.<span class="ident">signing_key</span>.<span class="ident">is_none</span>() {
+            <span class="kw">if </span><span class="self">self</span>.signing_key.is_none() {
                 <span class="macro">panic!</span>(<span class="string">&quot;You tried to sign an assertion without setting a signing key...&quot;</span>);
             }
 
-            <span class="comment">// 1. generate the assertion, a big lump of XML</span>
-            <span class="kw">let</span> <span class="ident">unsigned_assertion</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">clone</span>().<span class="ident">without_signature</span>();
-            <span class="kw">let</span> <span class="ident">xmldata</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">unsigned_assertion</span>.<span class="ident">into</span>();
+            <span class="comment">// 1. generate the assertion, a big lump of XML
+            </span><span class="kw">let </span>unsigned_assertion = <span class="self">self</span>.clone().without_signature();
+            <span class="kw">let </span>xmldata: Vec&lt;u8&gt; = unsigned_assertion.into();
 
-            <span class="comment">// 2. take a hash of that.</span>
-            <span class="kw">let</span> <span class="ident">digest_bytes</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">digest_algorithm</span>.<span class="ident">hash</span>(<span class="kw-2">&amp;</span><span class="ident">xmldata</span>).<span class="ident">unwrap</span>();
+            <span class="comment">// 2. take a hash of that.
+            </span><span class="kw">let </span>digest_bytes = <span class="self">self</span>.digest_algorithm.hash(<span class="kw-2">&amp;</span>xmldata).unwrap();
 
-            <span class="comment">// 3. base64 encode #2</span>
-            <span class="kw">let</span> <span class="ident">base64_encoded_digest</span> <span class="op">=</span> <span class="ident">base64::encode</span>(<span class="kw-2">&amp;</span><span class="ident">digest_bytes</span>);
+            <span class="comment">// 3. base64 encode #2
+            </span><span class="kw">let </span>base64_encoded_digest = base64::encode(<span class="kw-2">&amp;</span>digest_bytes);
 
-            <span class="comment">// 4. you put #3 into ANOTHER chunk of XML.</span>
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">signedinfo_buffer</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">signedinfo_writer</span> <span class="op">=</span> <span class="ident">EmitterConfig::new</span>()
-                .<span class="ident">perform_indent</span>(<span class="bool-val">true</span>)
-                .<span class="ident">write_document_declaration</span>(<span class="bool-val">false</span>)
-                .<span class="ident">normalize_empty_elements</span>(<span class="bool-val">true</span>)
-                .<span class="ident">pad_self_closing</span>(<span class="bool-val">false</span>)
-                .<span class="ident">create_writer</span>(<span class="kw-2">&amp;mut</span> <span class="ident">signedinfo_buffer</span>);
+            <span class="comment">// 4. you put #3 into ANOTHER chunk of XML.
+            </span><span class="kw">let </span><span class="kw-2">mut </span>signedinfo_buffer = Vec::new();
+            <span class="kw">let </span><span class="kw-2">mut </span>signedinfo_writer = EmitterConfig::new()
+                .perform_indent(<span class="bool-val">true</span>)
+                .write_document_declaration(<span class="bool-val">false</span>)
+                .normalize_empty_elements(<span class="bool-val">true</span>)
+                .pad_self_closing(<span class="bool-val">false</span>)
+                .create_writer(<span class="kw-2">&amp;mut </span>signedinfo_buffer);
 
-            <span class="ident"><span class="kw">crate</span>::xml::generate_signedinfo</span>(<span class="self">self</span>, <span class="kw-2">&amp;</span><span class="ident">base64_encoded_digest</span>, <span class="kw-2">&amp;mut</span> <span class="ident">signedinfo_writer</span>);
+            <span class="kw">crate</span>::xml::generate_signedinfo(<span class="self">self</span>, <span class="kw-2">&amp;</span>base64_encoded_digest, <span class="kw-2">&amp;mut </span>signedinfo_writer);
             <span class="macro">log::debug!</span>(<span class="string">&quot;SignedInfo Element:&quot;</span>);
-            <span class="macro">log::debug!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">from_utf8</span>(<span class="kw-2">&amp;</span><span class="ident">signedinfo_buffer</span>).<span class="ident">unwrap</span>());
+            <span class="macro">log::debug!</span>(<span class="string">&quot;{}&quot;</span>, from_utf8(<span class="kw-2">&amp;</span>signedinfo_buffer).unwrap());
 
-            <span class="comment">// 5. you hash #4.</span>
-            <span class="kw">let</span> <span class="ident">hashed_signedinfo</span> <span class="op">=</span> <span class="ident">base64::encode</span>(<span class="ident">signedinfo_buffer</span>);
-            <span class="macro">log::debug!</span>(<span class="string">&quot;Hashed Signedinfo: {}&quot;</span>, <span class="ident">hashed_signedinfo</span>);
+            <span class="comment">// 5. you hash #4.
+            </span><span class="kw">let </span>hashed_signedinfo = base64::encode(signedinfo_buffer);
+            <span class="macro">log::debug!</span>(<span class="string">&quot;Hashed Signedinfo: {}&quot;</span>, hashed_signedinfo);
 
-            <span class="comment">// 6. you sign #5</span>
-            <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">signing_key</span>.<span class="ident">as_ref</span>().<span class="ident">unwrap</span>();
-            <span class="kw">let</span> <span class="ident">signed_result</span> <span class="op">=</span>
-                <span class="ident"><span class="kw">crate</span>::sign::sign_data</span>(<span class="self">self</span>.<span class="ident">signing_algorithm</span>, <span class="ident">key</span>, <span class="kw-2">&amp;</span><span class="ident">hashed_signedinfo</span>.<span class="ident">as_bytes</span>());
-            <span class="macro">log::debug!</span>(<span class="string">&quot;Signature result: {:?}&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">signed_result</span>);
+            <span class="comment">// 6. you sign #5
+            </span><span class="kw">let </span>key = <span class="self">self</span>.signing_key.as_ref().unwrap();
+            <span class="kw">let </span>signed_result =
+                <span class="kw">crate</span>::sign::sign_data(<span class="self">self</span>.signing_algorithm, key, <span class="kw-2">&amp;</span>hashed_signedinfo.as_bytes());
+            <span class="macro">log::debug!</span>(<span class="string">&quot;Signature result: {:?}&quot;</span>, <span class="kw-2">&amp;</span>signed_result);
 
-            <span class="kw">let</span> <span class="ident">base64_encoded_signature</span> <span class="op">=</span> <span class="ident">base64::encode</span>(<span class="kw-2">&amp;</span><span class="ident">signed_result</span>);
+            <span class="kw">let </span>base64_encoded_signature = base64::encode(<span class="kw-2">&amp;</span>signed_result);
             <span class="macro">log::debug!</span>(
                 <span class="string">&quot;Base64 encoded signature result: {:?}&quot;</span>,
-                <span class="kw-2">&amp;</span><span class="ident">base64_encoded_signature</span>
+                <span class="kw-2">&amp;</span>base64_encoded_signature
             );
 
-            <span class="comment">// 7. then you put #4 and #6 inside some other xml inside #1.</span>
+            <span class="comment">// 7. then you put #4 and #6 inside some other xml inside #1.
 
-            <span class="ident"><span class="kw">crate</span>::xml::add_assertion_signature</span>(
+            </span><span class="kw">crate</span>::xml::add_assertion_signature(
                 <span class="self">self</span>,
-                <span class="ident">base64_encoded_digest</span>,
-                <span class="ident">base64_encoded_signature</span>,
-                <span class="ident">writer</span>,
+                base64_encoded_digest,
+                base64_encoded_signature,
+                writer,
             );
-        } <span class="kw">else</span> {
-            <span class="comment">// add an extra newline to the thing before signing, per https://www.di-mgt.com.au/xmldsig2.html</span>
-            <span class="comment">// the spaces indent the next tag...</span>
-            <span class="ident">write_event</span>(<span class="ident">XmlEvent::characters</span>(<span class="string">&quot;\n  \n  &quot;</span>), <span class="ident">writer</span>);
+        } <span class="kw">else </span>{
+            <span class="comment">// add an extra newline to the thing before signing, per https://www.di-mgt.com.au/xmldsig2.html
+            // the spaces indent the next tag...
+            </span>write_event(XmlEvent::characters(<span class="string">&quot;\n  \n  &quot;</span>), writer);
 
             <span class="macro">log::warn!</span>(<span class="string">&quot;Unsigned assertion was built, this seems bad!&quot;</span>);
         }
 
-        <span class="comment">// add the subject to the assertion</span>
-        <span class="ident">add_subject</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">subject_data</span>, <span class="ident">writer</span>);
+        <span class="comment">// add the subject to the assertion
+        </span>add_subject(<span class="kw-2">&amp;</span><span class="self">self</span>.subject_data, writer);
 
-        <span class="self">self</span>.<span class="ident">add_conditions</span>(<span class="ident">writer</span>);
+        <span class="self">self</span>.add_conditions(writer);
 
-        <span class="comment">// To do an expiry in an hour, do this</span>
-        <span class="comment">// let session_expiry = Utc::now().checked_add_signed(Duration::seconds(3600));</span>
+        <span class="comment">// To do an expiry in an hour, do this
+        // let session_expiry = Utc::now().checked_add_signed(Duration::seconds(3600));
 
-        <span class="comment">// self.authnstatement.add_to_xmlevent(&amp;mut writer);</span>
+        // self.authnstatement.add_to_xmlevent(&amp;mut writer);
 
-        <span class="comment">// start the AttributeStatement</span>
-        <span class="ident">write_event</span>(
-            <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;AttributeStatement&quot;</span>)).<span class="ident">into</span>(),
-            <span class="ident">writer</span>,
+        // start the AttributeStatement
+        </span>write_event(
+            XmlEvent::start_element((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;AttributeStatement&quot;</span>)).into(),
+            writer,
         );
-        <span class="kw">for</span> <span class="ident">attribute</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">attributes</span>.<span class="ident">to_vec</span>() {
-            <span class="ident">add_attribute</span>(<span class="ident">attribute</span>, <span class="ident">writer</span>);
+        <span class="kw">for </span>attribute <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.attributes.to_vec() {
+            add_attribute(attribute, writer);
         }
 
-        <span class="comment">// end saml:AttributeStatement</span>
-        <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
+        <span class="comment">// end saml:AttributeStatement
+        </span>write_event(XmlEvent::end_element().into(), writer);
 
-        <span class="comment">// end the assertion</span>
-        <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
+        <span class="comment">// end the assertion
+        </span>write_event(XmlEvent::end_element().into(), writer);
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Copy</span>, <span class="ident">Clone</span>)]</span>
-<span class="doccomment">/// Type of `saml:NameId` in a statement.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// &quot;There can be 0 or more of NameQualifier or SPNameQualifier.&quot;</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// I must have been reading the spec again.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// They look like this:</span>
-<span class="doccomment">/// ```xml</span>
-<span class="doccomment">/// &lt;saml:NameID SPNameQualifier=&quot;http://sp.example.com/demo1/metadata.php&quot; Format=&quot;urn:oasis:names:tc:SAML:2.0:nameid-format:transient&quot;&gt;_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7&lt;/saml:NameID&gt;</span>
-<span class="doccomment">/// ```</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">BaseIDAbstractType</span> {
-    <span class="doccomment">///</span>
-    <span class="ident">NameQualifier</span>,
-    <span class="doccomment">/// This&#39;ll be the one you normally use - TODO I think this comes from the metadata itself</span>
-    <span class="ident">SPNameQualifier</span>,
+<span class="attribute">#[derive(Debug, Copy, Clone)]
+</span><span class="doccomment">/// Type of `saml:NameId` in a statement.
+///
+/// &quot;There can be 0 or more of NameQualifier or SPNameQualifier.&quot;
+///
+/// I must have been reading the spec again.
+///
+/// They look like this:
+/// ```xml
+/// &lt;saml:NameID SPNameQualifier=&quot;http://sp.example.com/demo1/metadata.php&quot; Format=&quot;urn:oasis:names:tc:SAML:2.0:nameid-format:transient&quot;&gt;_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7&lt;/saml:NameID&gt;
+/// ```
+</span><span class="kw">pub enum </span>BaseIDAbstractType {
+    <span class="doccomment">///
+    </span>NameQualifier,
+    <span class="doccomment">/// This&#39;ll be the one you normally use - TODO I think this comes from the metadata itself
+    </span>SPNameQualifier,
 }
 
-<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">BaseIDAbstractType</span> {
-    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">name</span>: <span class="ident">String</span>) -&gt; <span class="self">Self</span> {
-        <span class="kw">let</span> <span class="ident">name</span> <span class="op">=</span> <span class="ident">name</span>.<span class="ident">as_str</span>();
-        <span class="kw">match</span> <span class="ident">name</span> {
-            <span class="string">&quot;NameQualifier&quot;</span> =&gt; <span class="ident">BaseIDAbstractType::NameQualifier</span>,
-            <span class="string">&quot;SPNameQualifier&quot;</span> =&gt; <span class="ident">BaseIDAbstractType::SPNameQualifier</span>,
-            <span class="kw">_</span> =&gt; <span class="macro">panic!</span>(<span class="string">&quot;how did you even get here&quot;</span>),
-        }
-    }
-}
-
-<span class="kw">impl</span> <span class="ident">ToString</span> <span class="kw">for</span> <span class="ident">BaseIDAbstractType</span> {
-    <span class="kw">fn</span> <span class="ident">to_string</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">String</span> {
-        <span class="kw">match</span> <span class="self">self</span> {
-            <span class="ident">BaseIDAbstractType::NameQualifier</span> =&gt; <span class="ident">String::from</span>(<span class="string">&quot;NameQualifier&quot;</span>),
-            <span class="ident">BaseIDAbstractType::SPNameQualifier</span> =&gt; <span class="ident">String::from</span>(<span class="string">&quot;SPNameQualifier&quot;</span>),
+<span class="kw">impl </span>From&lt;String&gt; <span class="kw">for </span>BaseIDAbstractType {
+    <span class="kw">fn </span>from(name: String) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span>name = name.as_str();
+        <span class="kw">match </span>name {
+            <span class="string">&quot;NameQualifier&quot; </span>=&gt; BaseIDAbstractType::NameQualifier,
+            <span class="string">&quot;SPNameQualifier&quot; </span>=&gt; BaseIDAbstractType::SPNameQualifier,
+            <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;how did you even get here&quot;</span>),
         }
     }
 }
 
-<span class="comment">// // use xml::name::Name;</span>
-<span class="comment">// use std::convert::From;</span>
-
-<span class="comment">// impl From&lt;xml::name::Name&gt; for BaseIDAbstractType{</span>
-<span class="comment">//     fn from(name: Name) -&gt; Self {</span>
-<span class="comment">//         self.from_string(name.to_string())</span>
-<span class="comment">//     }</span>
-<span class="comment">// }</span>
-
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
-<span class="doccomment">/// Data type for passing subject data in because yeaaaaah, specs</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// TODO: Justify the existence of the elements of this struct ... more completely.</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SubjectData</span> {
-    <span class="doccomment">/// Relay state as provided by the [crate::AuthnRequest]</span>
-    <span class="kw">pub</span> <span class="ident">relay_state</span>: <span class="ident">String</span>,
-    <span class="doccomment">/// Qualifier TODO: What&#39;s the qualifier again?</span>
-    <span class="kw">pub</span> <span class="ident">qualifier</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">BaseIDAbstractType</span><span class="op">&gt;</span>,
-    <span class="doccomment">/// Qualifier value TODO: I really should know what these are</span>
-    <span class="kw">pub</span> <span class="ident">qualifier_value</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="doccomment">/// [crate::sp::NameIdFormat], what kind of format you&#39;re... going TODO oh no I&#39;ve done it again</span>
-    <span class="kw">pub</span> <span class="ident">nameid_format</span>: <span class="ident"><span class="kw">crate</span>::sp::NameIdFormat</span>,
-    <span class="doccomment">/// NameID value - I know this one, it&#39;s the reference to the user, like username or some rando noise if it&#39;s transient. Regret, if it&#39;s [crate::sp::NameIdFormat::Kerberos]</span>
-    <span class="kw">pub</span> <span class="ident">nameid_value</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>,
-    <span class="doccomment">/// The AssertionConsumerService - where we&#39;ll send the request.</span>
-    <span class="kw">pub</span> <span class="ident">acs</span>: <span class="ident">String</span>,
-    <span class="doccomment">/// The expiry of this Assertion. Woo, recovered there at the end.</span>
-    <span class="kw">pub</span> <span class="ident">subject_not_on_or_after</span>: <span class="ident">DateTime</span><span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span>,
+<span class="kw">impl </span>ToString <span class="kw">for </span>BaseIDAbstractType {
+    <span class="kw">fn </span>to_string(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="kw">match </span><span class="self">self </span>{
+            BaseIDAbstractType::NameQualifier =&gt; String::from(<span class="string">&quot;NameQualifier&quot;</span>),
+            BaseIDAbstractType::SPNameQualifier =&gt; String::from(<span class="string">&quot;SPNameQualifier&quot;</span>),
+        }
+    }
 }
 
-<span class="doccomment">/// Adds the Subject statement to an assertion</span>
-<span class="kw">fn</span> <span class="ident">add_subject</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span>(<span class="ident">subjectdata</span>: <span class="kw-2">&amp;</span><span class="ident">SubjectData</span>, <span class="ident">writer</span>: <span class="kw-2">&amp;mut</span> <span class="ident">EventWriter</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>) {
-    <span class="comment">// start subject statement</span>
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Subject&quot;</span>)).<span class="ident">into</span>(), <span class="ident">writer</span>);
-    <span class="comment">// start nameid statement</span>
-    <span class="comment">// TODO: nameid can be 0 or more of NameQualifier or SPNameQualifier</span>
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;NameID&quot;</span>))
-            .<span class="ident">attr</span>(<span class="string">&quot;Format&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">subjectdata</span>.<span class="ident">nameid_format</span>.<span class="ident">to_string</span>())
-            .<span class="ident">attr</span>(
-                <span class="ident">subjectdata</span>.<span class="ident">qualifier</span>.<span class="ident">unwrap</span>().<span class="ident">to_string</span>().<span class="ident">as_str</span>(),
-                <span class="ident">subjectdata</span>.<span class="ident">qualifier_value</span>.<span class="ident">as_ref</span>().<span class="ident">unwrap</span>(),
+<span class="comment">// // use xml::name::Name;
+// use std::convert::From;
+
+// impl From&lt;xml::name::Name&gt; for BaseIDAbstractType{
+//     fn from(name: Name) -&gt; Self {
+//         self.from_string(name.to_string())
+//     }
+// }
+
+</span><span class="attribute">#[derive(Clone, Debug)]
+</span><span class="doccomment">/// Data type for passing subject data in because yeaaaaah, specs
+///
+/// TODO: Justify the existence of the elements of this struct ... more completely.
+</span><span class="kw">pub struct </span>SubjectData {
+    <span class="doccomment">/// Relay state as provided by the [crate::AuthnRequest]
+    </span><span class="kw">pub </span>relay_state: String,
+    <span class="doccomment">/// Qualifier TODO: What&#39;s the qualifier again?
+    </span><span class="kw">pub </span>qualifier: <span class="prelude-ty">Option</span>&lt;BaseIDAbstractType&gt;,
+    <span class="doccomment">/// Qualifier value TODO: I really should know what these are
+    </span><span class="kw">pub </span>qualifier_value: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="doccomment">/// [crate::sp::NameIdFormat], what kind of format you&#39;re... going TODO oh no I&#39;ve done it again
+    </span><span class="kw">pub </span>nameid_format: <span class="kw">crate</span>::sp::NameIdFormat,
+    <span class="doccomment">/// NameID value - I know this one, it&#39;s the reference to the user, like username or some rando noise if it&#39;s transient. Regret, if it&#39;s [crate::sp::NameIdFormat::Kerberos]
+    </span><span class="kw">pub </span>nameid_value: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
+    <span class="doccomment">/// The AssertionConsumerService - where we&#39;ll send the request.
+    </span><span class="kw">pub </span>acs: String,
+    <span class="doccomment">/// The expiry of this Assertion. Woo, recovered there at the end.
+    </span><span class="kw">pub </span>subject_not_on_or_after: DateTime&lt;Utc&gt;,
+}
+
+<span class="doccomment">/// Adds the Subject statement to an assertion
+</span><span class="kw">fn </span>add_subject&lt;W: Write&gt;(subjectdata: <span class="kw-2">&amp;</span>SubjectData, writer: <span class="kw-2">&amp;mut </span>EventWriter&lt;W&gt;) {
+    <span class="comment">// start subject statement
+    </span>write_event(XmlEvent::start_element((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Subject&quot;</span>)).into(), writer);
+    <span class="comment">// start nameid statement
+    // TODO: nameid can be 0 or more of NameQualifier or SPNameQualifier
+    </span>write_event(
+        XmlEvent::start_element((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;NameID&quot;</span>))
+            .attr(<span class="string">&quot;Format&quot;</span>, <span class="kw-2">&amp;</span>subjectdata.nameid_format.to_string())
+            .attr(
+                subjectdata.qualifier.unwrap().to_string().as_str(),
+                subjectdata.qualifier_value.as_ref().unwrap(),
             )
-            .<span class="ident">into</span>(),
-        <span class="ident">writer</span>,
+            .into(),
+        writer,
     );
 
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::characters</span>(<span class="kw-2">&amp;</span><span class="ident">subjectdata</span>.<span class="ident">nameid_value</span>), <span class="ident">writer</span>);
-    <span class="comment">// end nameid statement</span>
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
+    write_event(XmlEvent::characters(<span class="kw-2">&amp;</span>subjectdata.nameid_value), writer);
+    <span class="comment">// end nameid statement
+    </span>write_event(XmlEvent::end_element().into(), writer);
 
-    <span class="comment">//start subjectconfirmation</span>
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;SubjectConfirmation&quot;</span>))
-            .<span class="ident">attr</span>(<span class="string">&quot;Method&quot;</span>, <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:cm:bearer&quot;</span>)
-            .<span class="ident">into</span>(),
-        <span class="ident">writer</span>,
+    <span class="comment">//start subjectconfirmation
+    </span>write_event(
+        XmlEvent::start_element((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;SubjectConfirmation&quot;</span>))
+            .attr(<span class="string">&quot;Method&quot;</span>, <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:cm:bearer&quot;</span>)
+            .into(),
+        writer,
     );
 
-    <span class="comment">//start subjectconfirmationdata</span>
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;SubjectConfirmationData&quot;</span>))
-            .<span class="ident">attr</span>(<span class="string">&quot;InResponseTo&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">subjectdata</span>.<span class="ident">relay_state</span>)
-            .<span class="ident">attr</span>(
+    <span class="comment">//start subjectconfirmationdata
+    </span>write_event(
+        XmlEvent::start_element((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;SubjectConfirmationData&quot;</span>))
+            .attr(<span class="string">&quot;InResponseTo&quot;</span>, <span class="kw-2">&amp;</span>subjectdata.relay_state)
+            .attr(
                 <span class="string">&quot;NotOnOrAfter&quot;</span>,
-                <span class="kw-2">&amp;</span><span class="ident">subjectdata</span>
-                    .<span class="ident">subject_not_on_or_after</span>
-                    .<span class="ident">to_saml_datetime_string</span>(),
+                <span class="kw-2">&amp;</span>subjectdata
+                    .subject_not_on_or_after
+                    .to_saml_datetime_string(),
             )
-            .<span class="ident">attr</span>(<span class="string">&quot;Recipient&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">subjectdata</span>.<span class="ident">acs</span>)
-            .<span class="ident">into</span>(),
-        <span class="ident">writer</span>,
+            .attr(<span class="string">&quot;Recipient&quot;</span>, <span class="kw-2">&amp;</span>subjectdata.acs)
+            .into(),
+        writer,
     );
 
-    <span class="comment">//end subjectconfirmationdata</span>
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
-    <span class="comment">//end subjectconfirmation</span>
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
+    <span class="comment">//end subjectconfirmationdata
+    </span>write_event(XmlEvent::end_element().into(), writer);
+    <span class="comment">//end subjectconfirmation
+    </span>write_event(XmlEvent::end_element().into(), writer);
 
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
-    <span class="comment">// end subject statement</span>
-}
-<span class="comment">// let mut animals: [&amp;str; 2] = [&quot;bird&quot;, &quot;frog&quot;];</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Default</span>, <span class="ident">Serialize</span>, <span class="ident">Clone</span>)]</span>
-<span class="doccomment">/// Attributes for responses</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">AssertionAttribute</span> {
-    <span class="ident">name</span>: <span class="ident">String</span>,
-    <span class="ident">nameformat</span>: <span class="ident">String</span>,
-    <span class="ident">values</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span><span class="op">&gt;</span>,
+    write_event(XmlEvent::end_element().into(), writer);
+    <span class="comment">// end subject statement
+</span>}
+<span class="comment">// let mut animals: [&amp;str; 2] = [&quot;bird&quot;, &quot;frog&quot;];
+</span><span class="attribute">#[derive(Debug, Default, Serialize, Clone)]
+</span><span class="doccomment">/// Attributes for responses
+</span><span class="kw">pub struct </span>AssertionAttribute {
+    name: String,
+    nameformat: String,
+    values: Vec&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt;,
 }
 
-<span class="kw">impl</span> <span class="ident">AssertionAttribute</span> {
-    <span class="doccomment">/// new Response Attribute with `attrname-format:basic`</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">basic</span>(<span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">values</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span><span class="op">&gt;</span>) -&gt; <span class="ident">AssertionAttribute</span> {
-        <span class="ident">AssertionAttribute</span> {
-            <span class="ident">name</span>: <span class="ident">name</span>.<span class="ident">to_string</span>(),
-            <span class="ident">nameformat</span>: <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:attrname-format:basic&quot;</span>.<span class="ident">to_string</span>(),
-            <span class="ident">values</span>,
+<span class="kw">impl </span>AssertionAttribute {
+    <span class="doccomment">/// new Response Attribute with `attrname-format:basic`
+    </span><span class="kw">pub fn </span>basic(name: <span class="kw-2">&amp;</span>str, values: Vec&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt;) -&gt; AssertionAttribute {
+        AssertionAttribute {
+            name: name.to_string(),
+            nameformat: <span class="string">&quot;urn:oasis:names:tc:SAML:2.0:attrname-format:basic&quot;</span>.to_string(),
+            values,
         }
     }
 }
 
-<span class="doccomment">/// add an attribute to the statement</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">add_attribute</span><span class="op">&lt;</span><span class="ident">W</span>: <span class="ident">Write</span><span class="op">&gt;</span>(<span class="ident">attr</span>: <span class="kw-2">&amp;</span><span class="ident">AssertionAttribute</span>, <span class="ident">writer</span>: <span class="kw-2">&amp;mut</span> <span class="ident">EventWriter</span><span class="op">&lt;</span><span class="ident">W</span><span class="op">&gt;</span>) {
-    <span class="ident">write_event</span>(
-        <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Attribute&quot;</span>))
-            .<span class="ident">attr</span>(<span class="string">&quot;Name&quot;</span>, <span class="ident">attr</span>.<span class="ident">name</span>.<span class="ident">as_str</span>())
-            .<span class="ident">attr</span>(<span class="string">&quot;NameFormat&quot;</span>, <span class="ident">attr</span>.<span class="ident">nameformat</span>.<span class="ident">as_str</span>())
-            .<span class="ident">into</span>(),
-        <span class="ident">writer</span>,
+<span class="doccomment">/// add an attribute to the statement
+</span><span class="kw">pub fn </span>add_attribute&lt;W: Write&gt;(attr: <span class="kw-2">&amp;</span>AssertionAttribute, writer: <span class="kw-2">&amp;mut </span>EventWriter&lt;W&gt;) {
+    write_event(
+        XmlEvent::start_element((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;Attribute&quot;</span>))
+            .attr(<span class="string">&quot;Name&quot;</span>, attr.name.as_str())
+            .attr(<span class="string">&quot;NameFormat&quot;</span>, attr.nameformat.as_str())
+            .into(),
+        writer,
     );
-    <span class="kw">for</span> <span class="ident">value</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="ident">attr</span>.<span class="ident">values</span> {
-        <span class="ident">write_event</span>(
-            <span class="ident">XmlEvent::start_element</span>((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;AttributeValue&quot;</span>))
-                .<span class="ident">attr</span>(<span class="string">&quot;xmlns:xsi&quot;</span>, <span class="string">&quot;http://www.w3.org/2001/XMLSchema-instance&quot;</span>) <span class="comment">// TODO: moved 2021-08-26 to make c14n work, is this valid, or is it going to bite me</span>
-                .<span class="ident">attr</span>(<span class="string">&quot;xsi:type&quot;</span>, <span class="string">&quot;xs:string&quot;</span>)
-                .<span class="ident">into</span>(),
-            <span class="ident">writer</span>,
+    <span class="kw">for </span>value <span class="kw">in </span><span class="kw-2">&amp;</span>attr.values {
+        write_event(
+            XmlEvent::start_element((<span class="string">&quot;saml&quot;</span>, <span class="string">&quot;AttributeValue&quot;</span>))
+                .attr(<span class="string">&quot;xmlns:xsi&quot;</span>, <span class="string">&quot;http://www.w3.org/2001/XMLSchema-instance&quot;</span>) <span class="comment">// TODO: moved 2021-08-26 to make c14n work, is this valid, or is it going to bite me
+                </span>.attr(<span class="string">&quot;xsi:type&quot;</span>, <span class="string">&quot;xs:string&quot;</span>)
+                .into(),
+            writer,
         );
-        <span class="ident">write_event</span>(<span class="ident">XmlEvent::characters</span>(<span class="ident">value</span>), <span class="ident">writer</span>);
-        <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
+        write_event(XmlEvent::characters(value), writer);
+        write_event(XmlEvent::end_element().into(), writer);
     }
-    <span class="comment">// write_event(XmlEvent::end_element().into(), writer);</span>
-    <span class="ident">write_event</span>(<span class="ident">XmlEvent::end_element</span>().<span class="ident">into</span>(), <span class="ident">writer</span>);
+    <span class="comment">// write_event(XmlEvent::end_element().into(), writer);
+    </span>write_event(XmlEvent::end_element().into(), writer);
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="saml_rs" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="saml_rs" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>
