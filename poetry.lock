@@ -350,15 +350,15 @@ testing = ["argcomplete", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.
 
 [[package]]
 name = "signxml"
-version = "2.10.1"
+version = "3.0.0"
 description = "Python XML Signature library"
 category = "main"
 optional = false
-python-versions = "*"
+python-versions = ">=3.7"
 
 [package.dependencies]
 certifi = ">=2018.1.18"
-cryptography = ">=2.1.4"
+cryptography = ">=3.4.8"
 lxml = ">=4.2.1,<5"
 pyOpenSSL = ">=17.5.0"
 
@@ -405,7 +405,7 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "7ab7d544c04689b40c6b190c315273bb37d1cf5d88d636b8b894bb2459129172"
+content-hash = "7f9d68c940e541076575e7b62abf63a3c1704678e322ee4073701a2d0bdc9077"
 
 [metadata.files]
 astroid = [
@@ -787,8 +787,8 @@ pytest = [
     {file = "pytest-7.2.0.tar.gz", hash = "sha256:c4014eb40e10f11f355ad4e3c2fb2c6c6d1919c73f3b5a433de4708202cade59"},
 ]
 signxml = [
-    {file = "signxml-2.10.1-py2.py3-none-any.whl", hash = "sha256:61adc4f6c8e7eeea1f8f536fdc55bd45ddaf40854498c68558cb05af8787ffa1"},
-    {file = "signxml-2.10.1.tar.gz", hash = "sha256:2d4205ded5cb97eba380d278f4691606e79ed73ba5facff827f4c86e094d790b"},
+    {file = "signxml-3.0.0-py2.py3-none-any.whl", hash = "sha256:e53c3353b50449d79e0fd5f8a6bb7d30a6313e15c04109906d83adc93cc20459"},
+    {file = "signxml-3.0.0.tar.gz", hash = "sha256:9defd8a61fb28c9ee0cedf51e5c88d41e97ce26752366e9228686d6a20c5117e"},
 ]
 six = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
