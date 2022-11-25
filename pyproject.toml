@@ -12,7 +12,7 @@ signxml = "^3.0.0"
 
 [tool.poetry.dev-dependencies]
 black = "^22.10.0"
-pylint = "^2.15.5"
+pylint = "^2.15.6"
 mypy = "^0.991"
 pytest = "^7.2.0"
 lxml-stubs = "^0.4.0"
