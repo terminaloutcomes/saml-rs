@@ -4,3 +4,4 @@ Cargo.lock
 .pytest*
 **/__pycache__/**
 .coverage
+poetry.lock
