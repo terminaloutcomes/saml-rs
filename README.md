@@ -59,7 +59,7 @@ just live-e2e-down
 If you want to keep the stack running after a test:
 
 ```shell
-KEEP_UP=1 ./scripts/live_e2e.sh run
+KEEP_UP=1 ./scripts/live_e2e.py run
 ```
 
 The verifier drives the complete flow without a browser, including Keycloak's first-broker-login profile form.

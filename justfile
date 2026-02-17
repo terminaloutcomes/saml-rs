@@ -3,13 +3,13 @@ check:
     cargo test
 
 live-e2e:
-    ./scripts/live_e2e.sh run
+    ./scripts/live_e2e.py run
 
 live-e2e-up:
-    ./scripts/live_e2e.sh up
+    ./scripts/live_e2e.py up
 
 live-e2e-down:
-    ./scripts/live_e2e.sh down
+    ./scripts/live_e2e.py down
 
 docs:
     cargo doc --no-deps --workspace --document-private-items

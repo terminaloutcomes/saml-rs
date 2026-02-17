@@ -7,7 +7,7 @@
 - `saml_test_server/` is a workspace member binary for local IdP/SP flow testing.
 - `examples/` stores sample SAML XML payloads and config fixtures used by tests and manual validation.
 - `examples/live_e2e/` contains Keycloak realm import data for local interoperability tests.
-- `scripts/live_e2e.sh` and `scripts/live_e2e_verify.py` run a full headless local SAML round-trip.
+- `scripts/live_e2e.py` and `scripts/live_e2e_verify.py` run a full headless local SAML round-trip.
 - `docker-compose.live-e2e.yml` brings up the Keycloak side of the local live test.
 - Top-level Python files (`test_examples.py`, `test_c14n.py`) support XML/signature validation workflows.
 - Utility scripts live at repo root: `pre-commit.sh`,  `docker_build.sh`, `run_docker_example.sh`.
