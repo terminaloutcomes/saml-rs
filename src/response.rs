@@ -69,9 +69,8 @@ pub struct ResponseElements {
     /// Should we sign the message?
     pub sign_message: bool,
 
-    // TODO: remove the option for signing_key, it should always be set
     /// an openssl private key for signing
-    pub signing_key: Option<openssl::pkey::PKey<openssl::pkey::Private>>,
+    pub signing_key: openssl::pkey::PKey<openssl::pkey::Private>,
     /// The signing certificate
     pub signing_cert: Option<openssl::x509::X509>,
 }
@@ -253,6 +252,9 @@ impl ResponseElementsBuilder {
             Some(_) => return Err("response_id must not be empty"),
             None => ResponseElements::new_response_id(),
         };
+        let Some(signing_key) = self.signing_key else {
+            return Err("signing_key must be set when signing is enabled");
+        };
 
         Ok(ResponseElements {
             response_id,
@@ -269,7 +271,7 @@ impl ResponseElementsBuilder {
             status: self.status,
             sign_assertion: self.sign_assertion,
             sign_message: self.sign_message,
-            signing_key: self.signing_key,
+            signing_key,
             signing_cert: self.signing_cert,
         })
     }
@@ -391,7 +393,7 @@ impl Into<Vec<u8>> for ResponseElements {
             conditions_not_after,
             conditions_not_before,
             sign_assertion: self.sign_assertion,
-            signing_key: self.signing_key,
+            signing_key: Some(self.signing_key),
             signing_cert: self.signing_cert,
         };
 

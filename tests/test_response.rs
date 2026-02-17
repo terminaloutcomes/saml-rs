@@ -4,6 +4,7 @@ mod tests {
 
     use chrono::{DateTime, Duration, NaiveDate, Utc};
 
+    use openssl::pkey::PKey;
     use saml_rs::assertion::AssertionAttribute;
     use saml_rs::response::{AuthNStatement, ResponseElements};
     use saml_rs::test_samples::TEST_SAML_UNSIGNED_RESPONSE_UNSIGNED_ASSERTION;
@@ -73,7 +74,7 @@ mod tests {
             status: saml_rs::constants::StatusCode::AuthnFailed,
             sign_assertion: false,
             sign_message: false,
-            signing_key: None,
+            signing_key: PKey::generate_ed25519().expect("Failed to generate signing key"),
             signing_cert: None,
         };
         let response_vec: Vec<u8> = inputdata.into();
