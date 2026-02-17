@@ -121,7 +121,7 @@ impl ResponseElementsBuilder {
             session_length_seconds: 60,
             status: crate::constants::StatusCode::AuthnFailed,
             sign_assertion: true,
-            sign_message: false,
+            sign_message: true,
             signing_key: None,
             signing_cert: None,
             signing_algorithm: SigningAlgorithm::Sha256,

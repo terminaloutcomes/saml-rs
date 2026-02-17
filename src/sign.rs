@@ -38,8 +38,8 @@ use xml_c14n::{CanonicalizationMode, CanonicalizationOptions, canonicalize_xml};
 /// <https://www.w3.org/TR/xmldsig-core/#sec-PKCS1>
 #[derive(Copy, Clone, Debug)]
 pub enum SigningAlgorithm {
-    // /// SHA1 Algorithm - nope
-    // Sha1,
+    /// SHA1 algorithm.
+    Sha1,
     /// Really?
     Sha224,
     /// SHA256 Algorithm
@@ -52,18 +52,24 @@ pub enum SigningAlgorithm {
     InvalidAlgorithm,
 }
 
-impl From<SigningAlgorithm> for openssl::hash::MessageDigest {
-    fn from(src: SigningAlgorithm) -> openssl::hash::MessageDigest {
-        match src {
-            // SigningAlgorithm::Sha1 => openssl::hash::MessageDigest::sha1(),
-            SigningAlgorithm::Sha224 => openssl::hash::MessageDigest::sha224(),
-            SigningAlgorithm::Sha256 => openssl::hash::MessageDigest::sha256(),
-            SigningAlgorithm::Sha384 => openssl::hash::MessageDigest::sha384(),
-            SigningAlgorithm::Sha512 => openssl::hash::MessageDigest::sha512(),
-            SigningAlgorithm::InvalidAlgorithm => {
-                error!("Invalid signing algorithm requested, falling back to SHA-256");
-                openssl::hash::MessageDigest::sha256()
+impl SigningAlgorithm {
+    fn message_digest(self) -> Result<openssl::hash::MessageDigest, String> {
+        match self {
+            SigningAlgorithm::Sha1 => {
+                if crate::security::weak_algorithms_allowed() {
+                    Ok(openssl::hash::MessageDigest::sha1())
+                } else {
+                    Err("SHA-1 signing algorithms are disabled by default".to_string())
+                }
             }
+            SigningAlgorithm::Sha224 => Ok(openssl::hash::MessageDigest::sha224()),
+            SigningAlgorithm::Sha256 => Ok(openssl::hash::MessageDigest::sha256()),
+            SigningAlgorithm::Sha384 => Ok(openssl::hash::MessageDigest::sha384()),
+            SigningAlgorithm::Sha512 => Ok(openssl::hash::MessageDigest::sha512()),
+            SigningAlgorithm::InvalidAlgorithm => Err(
+                "Invalid signing algorithm requested and strict policy forbids fallback"
+                    .to_string(),
+            ),
         }
     }
 }
@@ -138,7 +144,7 @@ impl From<String> for SigningAlgorithm {
 
     fn from(s: String) -> Self {
         match s.to_lowercase().as_str() {
-            // "http://www.w3.org/2000/09/xmldsig#rsa-sha1" => Self::Sha1,
+            "http://www.w3.org/2000/09/xmldsig#rsa-sha1" => Self::Sha1,
             "http://www.w3.org/2001/04/xmldsig-more#rsa-sha224" => Self::Sha224,
             "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256" => Self::Sha256,
             "http://www.w3.org/2001/04/xmldsig-more#rsa-sha384" => Self::Sha384,
@@ -151,7 +157,7 @@ impl From<String> for SigningAlgorithm {
 impl From<SigningAlgorithm> for String {
     fn from(sa: SigningAlgorithm) -> String {
         match sa {
-            // SigningAlgorithm::Sha1 => String::from("http://www.w3.org/2000/09/xmldsig#rsa-sha1"),
+            SigningAlgorithm::Sha1 => String::from("http://www.w3.org/2000/09/xmldsig#rsa-sha1"),
             SigningAlgorithm::Sha224 => {
                 String::from("http://www.w3.org/2001/04/xmldsig-more#rsa-sha224")
             }
@@ -261,22 +267,6 @@ impl fmt::Display for DigestAlgorithm {
     }
 }
 
-impl From<DigestAlgorithm> for openssl::hash::MessageDigest {
-    fn from(src: DigestAlgorithm) -> openssl::hash::MessageDigest {
-        match src {
-            DigestAlgorithm::Sha1 => openssl::hash::MessageDigest::sha1(),
-            DigestAlgorithm::Sha224 => openssl::hash::MessageDigest::sha224(),
-            DigestAlgorithm::Sha256 => openssl::hash::MessageDigest::sha256(),
-            DigestAlgorithm::Sha384 => openssl::hash::MessageDigest::sha384(),
-            DigestAlgorithm::Sha512 => openssl::hash::MessageDigest::sha512(),
-            DigestAlgorithm::InvalidAlgorithm => {
-                error!("Invalid digest algorithm requested, falling back to SHA-256");
-                openssl::hash::MessageDigest::sha256()
-            }
-        }
-    }
-}
-
 impl From<openssl::hash::MessageDigest> for DigestAlgorithm {
     fn from(_md: openssl::hash::MessageDigest) -> Self {
         Self::InvalidAlgorithm
@@ -368,14 +358,36 @@ pub async fn load_public_cert_from_filename_async(cert_filename: &str) -> Result
 }
 
 impl DigestAlgorithm {
+    fn message_digest(self) -> Result<openssl::hash::MessageDigest, String> {
+        match self {
+            DigestAlgorithm::Sha1 => {
+                if crate::security::weak_algorithms_allowed() {
+                    Ok(openssl::hash::MessageDigest::sha1())
+                } else {
+                    Err("SHA-1 digest algorithms are disabled by default".to_string())
+                }
+            }
+            DigestAlgorithm::Sha224 => Ok(openssl::hash::MessageDigest::sha224()),
+            DigestAlgorithm::Sha256 => Ok(openssl::hash::MessageDigest::sha256()),
+            DigestAlgorithm::Sha384 => Ok(openssl::hash::MessageDigest::sha384()),
+            DigestAlgorithm::Sha512 => Ok(openssl::hash::MessageDigest::sha512()),
+            DigestAlgorithm::InvalidAlgorithm => Err(
+                "Invalid digest algorithm requested and strict policy forbids fallback".to_string(),
+            ),
+        }
+    }
+
     /// Hash a set of bytes using an [openssl::hash::MessageDigest]
     ///
     pub fn hash(
         self,
         bytes_to_hash: &[u8],
     ) -> Result<openssl::hash::DigestBytes, openssl::error::ErrorStack> {
+        let digest = self
+            .message_digest()
+            .map_err(|_| openssl::error::ErrorStack::get())?;
         // do the hashy bit
-        match openssl::hash::hash(self.into(), bytes_to_hash) {
+        match openssl::hash::hash(digest, bytes_to_hash) {
             Ok(value) => {
                 debug!("Hashed bytes result: {:?}", value);
                 Ok(value)
@@ -393,7 +405,13 @@ pub fn sign_data(
     signing_key: &openssl::pkey::PKey<openssl::pkey::Private>,
     bytes_to_sign: &[u8],
 ) -> Vec<u8> {
-    let signing_algorithm: openssl::hash::MessageDigest = signing_algorithm.into();
+    let signing_algorithm = match signing_algorithm.message_digest() {
+        Ok(value) => value,
+        Err(error) => {
+            error!("{}", error);
+            return Vec::new();
+        }
+    };
     let mut signer = match Signer::new(signing_algorithm, signing_key) {
         Ok(value) => value,
         Err(error) => {
@@ -422,7 +440,7 @@ pub fn verify_data(
     bytes_to_verify: &[u8],
     signature: &[u8],
 ) -> Result<bool, String> {
-    let signing_algorithm: openssl::hash::MessageDigest = signing_algorithm.into();
+    let signing_algorithm = signing_algorithm.message_digest()?;
     let mut verifier = Verifier::new(signing_algorithm, verification_key)
         .map_err(|error| format!("Failed to create verifier: {:?}", error))?;
     verifier

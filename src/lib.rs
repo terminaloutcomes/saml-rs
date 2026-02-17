@@ -77,17 +77,18 @@
 
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use inflate::inflate_bytes;
-use log::{debug, error};
+use log::debug;
 use serde::Serialize;
 use std::convert::TryFrom;
 use std::fmt;
 use std::str::from_utf8;
-use xmlparser::{StrSpan, Token};
+use xmlparser::{ElementEnd, StrSpan, Token};
 pub mod assertion;
 pub mod cert;
 pub mod constants;
 pub mod metadata;
 pub mod response;
+pub mod security;
 pub mod sign;
 pub mod sp;
 pub mod test_samples;
@@ -334,41 +335,67 @@ pub fn decode_authn_request_base64_encoded(req: String) -> Result<String, AuthnD
 }
 
 /// Used inside AuthnRequestParser to help parse the AuthN request
+fn set_once_string_field(
+    target: &mut Option<String>,
+    field: &'static str,
+    value: &str,
+) -> Result<(), AuthnDecodeError> {
+    if target.is_some() {
+        return Err(AuthnDecodeError::new(format!(
+            "AuthnRequest has duplicate {} attribute",
+            field
+        )));
+    }
+    *target = Some(value.to_string());
+    Ok(())
+}
+
+/// Used inside AuthnRequestParser to help parse the AuthN request
 fn parse_authn_tokenizer_attribute(
     local: StrSpan,
     value: StrSpan,
     mut req: AuthnRequestParser,
+    inside_authn_request_root: bool,
 ) -> Result<AuthnRequestParser, AuthnDecodeError> {
+    if !inside_authn_request_root {
+        return Ok(req);
+    }
+
     match local.to_lowercase().as_str() {
         "destination" => {
-            req.destination = Some(value.to_string());
+            set_once_string_field(&mut req.destination, "Destination", value.as_str())?;
         }
         "id" => {
-            req.relay_state = Some(value.to_string());
+            set_once_string_field(&mut req.relay_state, "ID", value.as_str())?;
         }
         "issueinstant" => {
             debug!("Found issueinstant: {}", value);
-
-            // Date parsing... 2021-07-19T12:06:25Z
             let parsed_datetime = DateTime::parse_from_rfc3339(&value);
             debug!("parsed_datetime: {:?}", parsed_datetime);
             match parsed_datetime {
                 Ok(value) => {
-                    debug!("Setting issue_instant");
-                    let result: DateTime<Utc> = value.into();
-                    req.issue_instant = Some(result);
+                    if req.issue_instant.is_some() {
+                        return Err(AuthnDecodeError::new(
+                            "AuthnRequest has duplicate IssueInstant attribute".to_string(),
+                        ));
+                    }
+                    req.issue_instant = Some(value.into());
                 }
                 Err(error) => {
-                    error!(
-                        "Failed to cast datetime source={:?}, error=\"{}\"",
+                    return Err(AuthnDecodeError::new(format!(
+                        "Failed to parse IssueInstant value {:?}: {}",
                         value.to_string(),
                         error
-                    );
+                    )));
                 }
             };
         }
         "assertionconsumerserviceurl" => {
-            req.consumer_service_url = Some(value.to_string());
+            set_once_string_field(
+                &mut req.consumer_service_url,
+                "AssertionConsumerServiceURL",
+                value.as_str(),
+            )?;
         }
         "version" => {
             if value != "2.0" {
@@ -390,39 +417,22 @@ fn parse_authn_tokenizer_attribute(
     Ok(req)
 }
 
-/// Used inside AuthnRequestParser to help parse the AuthN request
-fn parse_authn_tokenizer_element_start(
-    local: StrSpan,
-    mut req: AuthnRequestParser,
-) -> AuthnRequestParser {
-    debug!(
-        "parse_authn_tokenizer_element_start: {}",
-        local.to_lowercase().as_str()
-    );
-    if local.to_lowercase().as_str() == "issuer" {
-        if req.issuer_state == 0 {
-            req.issuer_state = 1;
-            debug!("Found a text tag called issuer, moving to issuer-finding state machine state 1")
-        } else {
-            debug!(
-                "Found issuer tag and not at issuer_state==0 {}",
-                req.issuer_state
-            );
-            // TODO: throw an error?
-        }
-    } else {
-        debug!("Found elementStart text={}", local.to_lowercase().as_str());
-    }
-    req
-}
-
 /// Give it a string full of XML and it'll give you back a [AuthnRequest] object which has the details
 // TODO: turn this into a `TryFrom<&str>` for AuthnRequest and return a Result so we can handle errors better
 pub fn parse_authn_request(request_data: &str) -> Result<AuthnRequest, AuthnDecodeError> {
-    // more examples here
-    // https://developers.onelogin.com/saml/examples/authnrequest
+    let policy = security::SecurityPolicy::default().effective();
+    if let Err(error) = security::inspect_xml_payload(request_data, policy.xml_limits) {
+        return Err(AuthnDecodeError::new(format!(
+            "AuthnRequest XML preflight check failed: {}",
+            error
+        )));
+    }
 
     let mut saml_request = AuthnRequestParser::new();
+    let mut current_depth = 0usize;
+    let mut current_element = String::new();
+    let mut authn_request_depth: Option<usize> = None;
+
     let tokenizer = xmlparser::Tokenizer::from(request_data);
     for token in tokenizer {
         match token {
@@ -433,32 +443,112 @@ pub fn parse_authn_request(request_data: &str) -> Result<AuthnRequest, AuthnDeco
                         local,
                         value,
                         span: _,
-                    } => match parse_authn_tokenizer_attribute(local, value, saml_request) {
-                        Ok(value) => value,
-                        Err(error) => {
-                            return Err(AuthnDecodeError::new(format!(
-                                "Failed to parse authn request: {:?}",
-                                error
-                            )));
+                    } => {
+                        let inside_authn_request_root = authn_request_depth == Some(current_depth)
+                            && current_element.eq_ignore_ascii_case("authnrequest");
+                        match parse_authn_tokenizer_attribute(
+                            local,
+                            value,
+                            saml_request,
+                            inside_authn_request_root,
+                        ) {
+                            Ok(value) => value,
+                            Err(error) => {
+                                return Err(AuthnDecodeError::new(format!(
+                                    "Failed to parse authn request: {:?}",
+                                    error
+                                )));
+                            }
                         }
-                    },
+                    }
                     Token::ElementStart {
                         prefix: _,
                         local,
                         span: _,
-                    } => parse_authn_tokenizer_element_start(local, saml_request),
+                    } => {
+                        current_depth = current_depth.saturating_add(1);
+                        current_element = local.to_string();
+                        if local.as_str().eq_ignore_ascii_case("authnrequest") {
+                            if authn_request_depth.is_some() {
+                                return Err(AuthnDecodeError::new(
+                                    "AuthnRequest contains nested/duplicate AuthnRequest elements"
+                                        .to_string(),
+                                ));
+                            }
+                            authn_request_depth = Some(current_depth);
+                        }
+
+                        if local.as_str().eq_ignore_ascii_case("issuer") {
+                            if saml_request.issuer_state != 0 {
+                                return Err(AuthnDecodeError::new(
+                                    "AuthnRequest contains duplicate Issuer elements".to_string(),
+                                ));
+                            }
+                            saml_request.issuer_state = 1;
+                        }
+                        saml_request
+                    }
+                    Token::ElementEnd { end, .. } => {
+                        let mut saw_issuer_close_without_text = false;
+                        let mut saw_authn_request_close = false;
+                        match end {
+                            ElementEnd::Open => {}
+                            ElementEnd::Empty => {
+                                if current_depth == 0 {
+                                    return Err(AuthnDecodeError::new(
+                                        "Malformed AuthnRequest XML nesting".to_string(),
+                                    ));
+                                }
+                                if current_element.eq_ignore_ascii_case("issuer")
+                                    && saml_request.issuer_state == 1
+                                {
+                                    saw_issuer_close_without_text = true;
+                                }
+                                if current_element.eq_ignore_ascii_case("authnrequest")
+                                    && authn_request_depth == Some(current_depth)
+                                {
+                                    saw_authn_request_close = true;
+                                }
+                                current_depth -= 1;
+                            }
+                            ElementEnd::Close(_, local) => {
+                                if current_depth == 0 {
+                                    return Err(AuthnDecodeError::new(
+                                        "Malformed AuthnRequest XML nesting".to_string(),
+                                    ));
+                                }
+                                if local.as_str().eq_ignore_ascii_case("issuer")
+                                    && saml_request.issuer_state == 1
+                                {
+                                    saw_issuer_close_without_text = true;
+                                }
+                                if local.as_str().eq_ignore_ascii_case("authnrequest")
+                                    && authn_request_depth == Some(current_depth)
+                                {
+                                    saw_authn_request_close = true;
+                                }
+                                current_depth -= 1;
+                            }
+                        }
+                        if saw_issuer_close_without_text {
+                            return Err(AuthnDecodeError::new(
+                                "Issuer element was present but empty".to_string(),
+                            ));
+                        }
+                        if saw_authn_request_close {
+                            authn_request_depth = None;
+                        }
+                        saml_request
+                    }
                     Token::Text { text } => {
-                        // if issuer_state == -1 { continue }
                         if saml_request.issuer_state == 1 {
-                            let issuer = text.as_str();
-                            debug!("Found issuer: {}", issuer);
-                            saml_request.issuer = Some(issuer.to_string());
-                            saml_request.issuer_state = -1; // reset the state machine so we don't try and do this again
-                        } else {
-                            debug!(
-                                "Found issuer text and not at issuer_state==1 ({}) text={:?}",
-                                saml_request.issuer_state, text
-                            );
+                            if saml_request.issuer.is_some() {
+                                return Err(AuthnDecodeError::new(
+                                    "AuthnRequest contains multiple Issuer values".to_string(),
+                                ));
+                            }
+                            saml_request.issuer = Some(text.as_str().to_string());
+                            saml_request.issuer_state = -1;
                         }
                         saml_request
                     }
@@ -474,7 +564,17 @@ pub fn parse_authn_request(request_data: &str) -> Result<AuthnRequest, AuthnDeco
         }
     }
 
-    println!("found relay_state={:?}", &saml_request.relay_state);
+    if authn_request_depth.is_some() {
+        return Err(AuthnDecodeError::new(
+            "AuthnRequest root element did not close".to_string(),
+        ));
+    }
+    if saml_request.issuer_state == 1 {
+        return Err(AuthnDecodeError::new(
+            "Issuer element was opened but no value was parsed".to_string(),
+        ));
+    }
+
     AuthnRequest::try_from(saml_request)
 }
 

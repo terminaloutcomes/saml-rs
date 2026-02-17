@@ -55,7 +55,9 @@ mod tests {
             sign_assertion,
             sign_message,
             signing_key: PKey::from_rsa(Rsa::generate(2048).unwrap()).unwrap(),
-            signing_cert: Some(saml_rs::cert::gen_self_signed_certificate("idp.example.com")),
+            signing_cert: Some(saml_rs::cert::gen_self_signed_certificate(
+                "idp.example.com",
+            )),
             signing_algorithm: SigningAlgorithm::Sha256,
             digest_algorithm: DigestAlgorithm::Sha256,
             canonicalization_method,

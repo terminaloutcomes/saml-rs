@@ -194,6 +194,25 @@ impl ServerConfig {
                 .get::<String>("c14n_method")
                 .unwrap_or_else(|_| "exclusive".to_string()),
         );
+        let allow_unknown_sp: bool = settings.get("allow_unknown_sp").unwrap_or(false);
+        let sign_assertion: bool = settings.get("sign_assertion").unwrap_or(true);
+        let sign_message: bool = settings.get("sign_message").unwrap_or(true);
+        let require_signed_authn_requests: bool = settings
+            .get("require_signed_authn_requests")
+            .unwrap_or(true);
+
+        if allow_unknown_sp && !saml_rs::security::unknown_service_providers_allowed() {
+            error!(
+                "allow_unknown_sp=true requested but strict policy forbids unknown SPs. Enable feature danger_i_want_to_risk_it_all and explicit runtime toggle if you really need this."
+            );
+            std::process::exit(1);
+        }
+        if !require_signed_authn_requests && !saml_rs::security::unsigned_authn_requests_allowed() {
+            error!(
+                "require_signed_authn_requests=false requested but strict policy forbids unsigned AuthnRequests. Enable feature danger_i_want_to_risk_it_all and explicit runtime toggle if you really need this."
+            );
+            std::process::exit(1);
+        }
 
         ServerConfig {
             bind_address,
@@ -201,7 +220,7 @@ impl ServerConfig {
             listen_scheme,
             public_hostname,
             public_base_url,
-            allow_unknown_sp: settings.get("allow_unknown_sp").unwrap_or(false),
+            allow_unknown_sp,
             entity_id,
             tls_cert_path,
             tls_key_path,
@@ -212,11 +231,9 @@ impl ServerConfig {
                 .unwrap_or(ServerConfig::default().session_lifetime),
             saml_cert_path,
             saml_key_path,
-            sign_assertion: settings.get("sign_assertion").unwrap_or(true),
-            sign_message: settings.get("sign_message").unwrap_or(false),
-            require_signed_authn_requests: settings
-                .get("require_signed_authn_requests")
-                .unwrap_or(false),
+            sign_assertion,
+            sign_message,
+            require_signed_authn_requests,
             canonicalization_method,
 
             saml_signing_key: Some(saml_signing_key),
@@ -247,8 +264,8 @@ impl Default for ServerConfig {
             // TODO: possibly remove saml_key_path from [ServerConfig.default]
             saml_key_path: "Need to set this".to_string(),
             sign_assertion: true,
-            sign_message: false,
-            require_signed_authn_requests: false,
+            sign_message: true,
+            require_signed_authn_requests: true,
             canonicalization_method: CanonicalizationMethod::ExclusiveCanonical10,
 
             saml_signing_key: None,

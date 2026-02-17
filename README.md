@@ -22,6 +22,20 @@ The automatically-generated documentation based on the `main` branch is here: <h
 - Assertion encryption (`EncryptedAssertion`) is not currently implemented.
 - The local `live-e2e` harness uses HTTP endpoints for local-only automation.
 
+## Security defaults
+
+This crate now defaults to strict parsing and strict cryptographic policy:
+
+- XML payloads reject `DOCTYPE`/DTD/entity-expansion, processing instructions, and XInclude-style include attempts.
+- SHA-1 digest/signature use is rejected by default.
+- `saml_test_server` defaults to requiring signed AuthnRequests and signed response messages.
+- Unknown SP fallback is disabled by default.
+
+Dangerous compatibility behavior is only available when both conditions are met:
+
+1. compile with `--features danger_i_want_to_risk_it_all`
+2. explicitly unlock runtime danger toggles via `saml_rs::security::danger::*`
+
 ## Live local interoperability test (no browser automation)
 
 You can run a fully local SAML round-trip with:
@@ -92,6 +106,9 @@ Key fields used by current code:
 - `public_base_url` / `SAML_PUBLIC_BASE_URL` (used for metadata URLs)
 - `entity_id` / `SAML_ENTITY_ID`
 - `allow_unknown_sp` / `SAML_ALLOW_UNKNOWN_SP`
+- `require_signed_authn_requests` / `SAML_REQUIRE_SIGNED_AUTHN_REQUESTS` (default `true`)
+- `sign_assertion` / `SAML_SIGN_ASSERTION` (default `true`)
+- `sign_message` / `SAML_SIGN_MESSAGE` (default `true`)
 - `sp_metadata_files` / `SAML_SP_METADATA_FILES`
 - `saml_cert_path` / `SAML_SAML_CERT_PATH` (IdP signing cert)
 - `saml_key_path` / `SAML_SAML_KEY_PATH` (IdP signing key)

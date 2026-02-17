@@ -264,7 +264,9 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     {
         Some(value) => value.to_owned(),
         None => {
-            if req.state().allow_unknown_sp {
+            if req.state().allow_unknown_sp
+                && saml_rs::security::unknown_service_providers_allowed()
+            {
                 info!(
                     "SP {:?} was not in configured metadata; using generated fallback profile.",
                     &parsed_saml_request.issuer
@@ -279,8 +281,9 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         }
     };
 
-    let signed_request_required =
-        req.state().require_signed_authn_requests || service_provider.authn_requests_signed;
+    let signed_request_required = (req.state().require_signed_authn_requests
+        || service_provider.authn_requests_signed)
+        && !saml_rs::security::unsigned_authn_requests_allowed();
     match query.Signature {
         Some(ref signature_value) => {
             let sigalg = match query.SigAlg.clone() {

