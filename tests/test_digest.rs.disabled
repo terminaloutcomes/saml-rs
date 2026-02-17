@@ -175,7 +175,7 @@ The canonicalized version of the SignedInfo element is as follows, with newlines
 These 626 bytes are shown in this hexdump. Note that:
 
     The first character is "<" and the last character is ">".
-    All leading space characters inbetween (shown as  ) are retained.
+    All leading space characters in between (shown as  ) are retained.
     Empty elements of the form <tag /> are changed to the form <tag></tag>
     Line-endings are converted to the LF character (0x0A).
     The namespace xmlns="http://www.w3.org/2000/09/xmldsig#" is propagated down from the parent Signature element. This "over-rules" the default namespace from the Envelope element.

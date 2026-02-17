@@ -4,7 +4,7 @@
 //!
 //! - <https://stackoverflow.com/questions/6960886/sign-saml-response-with-or-without-assertion-signature/7073749#7073749>
 //!
-//! SAML is awful, every time I read answer they are almost correct, here is the correct algorithm distilled:
+//! SAML is awful, every time I read answers they are almost correct, here is the correct algorithm distilled:
 //! 1. SHA1 the canonical version of the Assertion.
 //! 2. Generate a SignedInfo XML fragment with the SHA1 signature
 //! 3. Sign the SignedInfo XML fragment, again the canonical form
@@ -18,7 +18,7 @@
 //! 11. Insert this SignatureXML into the Response
 //! 12. Add the XML version info to the response.
 //!
-//! Thats it. SAML is completely awful. There are tons of little subtleties that make implementing SAML a nightmare(like calculating the canonical form of a subset of the XML(the assertion), also the XML version of XML documents is not included.
+//! That's it. SAML is completely awful. There are tons of little subtleties that make implementing SAML a nightmare (like calculating the canonical form of a subset of the XML (the assertion), also the XML version of XML documents is not included.
 //!
 
 use log::debug;

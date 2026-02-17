@@ -15,7 +15,7 @@ use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 #[derive(Debug)]
 /// Stores all the required elements of a SAML response... maybe?
 pub struct ResponseElements {
-    //TODO: why do I have a response_id and an assertion_id?
+    // TODO: why do I have a response_id and an assertion_id?
 
     // #[serde(rename = "ID")]
     /// ID of the response
@@ -28,7 +28,7 @@ pub struct ResponseElements {
 
     // #[serde(rename = "Destination")]
     /// Destination endpoint of the request
-    // TODO just like with the authnrequest, find out if destination is the right name/referecne
+    // TODO just like with the authnrequest, find out if destination is the right name/reference
     pub destination: String,
 
     // #[serde(rename = "InResponseTo")]
@@ -36,7 +36,7 @@ pub struct ResponseElements {
     pub relay_state: String,
 
     // #[serde(rename = "Issuer")]
-    /// Issuer of the resposne?
+    /// Issuer of the response?
     // TODO: Figure out if this is right :P
     pub issuer: String,
 

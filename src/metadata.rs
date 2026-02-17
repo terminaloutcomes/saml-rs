@@ -194,7 +194,7 @@ pub fn generate_metadata_xml(metadata: &SamlMetadata) -> String {
 
     write_event(
         XmlEvent::start_element(("md", "ContactPerson"))
-            // TODO: be able to enumerate technical contacts in IdP metadta
+            // TODO: be able to enumerate technical contacts in IdP metadata
             .attr("contactType", "technical")
             .into(),
         &mut writer,
