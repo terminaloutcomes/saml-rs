@@ -21,13 +21,10 @@
 //! Thats it. SAML is completely awful. There are tons of little subtleties that make implementing SAML a nightmare(like calculating the canonical form of a subset of the XML(the assertion), also the XML version of XML documents is not included.
 //!
 
-// use openssl::hash::hash;
 use openssl::pkey::PKey;
+use openssl::pkey::Private;
 use openssl::rsa::Rsa;
 use openssl::sign::{Signer, Verifier};
-
-// use std::io;
-use openssl::pkey::Private;
 use openssl::x509::X509;
 use std::fmt;
 use std::fs::File;
@@ -38,8 +35,8 @@ use std::io::prelude::*;
 /// <https://www.w3.org/TR/xmldsig-core/#sec-PKCS1>
 #[derive(Copy, Clone, Debug)]
 pub enum SigningAlgorithm {
-    /// SHA1 Algorithm
-    Sha1,
+    // /// SHA1 Algorithm - nope
+    // Sha1,
     /// Really?
     Sha224,
     /// SHA256 Algorithm
@@ -55,7 +52,7 @@ pub enum SigningAlgorithm {
 impl From<SigningAlgorithm> for openssl::hash::MessageDigest {
     fn from(src: SigningAlgorithm) -> openssl::hash::MessageDigest {
         match src {
-            SigningAlgorithm::Sha1 => openssl::hash::MessageDigest::sha1(),
+            // SigningAlgorithm::Sha1 => openssl::hash::MessageDigest::sha1(),
             SigningAlgorithm::Sha224 => openssl::hash::MessageDigest::sha224(),
             SigningAlgorithm::Sha256 => openssl::hash::MessageDigest::sha256(),
             SigningAlgorithm::Sha384 => openssl::hash::MessageDigest::sha384(),
@@ -82,7 +79,7 @@ impl From<String> for SigningAlgorithm {
 
     fn from(s: String) -> Self {
         match s.to_lowercase().as_str() {
-            "http://www.w3.org/2000/09/xmldsig#rsa-sha1" => Self::Sha1,
+            // "http://www.w3.org/2000/09/xmldsig#rsa-sha1" => Self::Sha1,
             "http://www.w3.org/2001/04/xmldsig-more#rsa-sha224" => Self::Sha224,
             "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256" => Self::Sha256,
             "http://www.w3.org/2001/04/xmldsig-more#rsa-sha384" => Self::Sha384,
@@ -95,7 +92,7 @@ impl From<String> for SigningAlgorithm {
 impl From<SigningAlgorithm> for String {
     fn from(sa: SigningAlgorithm) -> String {
         match sa {
-            SigningAlgorithm::Sha1 => String::from("http://www.w3.org/2000/09/xmldsig#rsa-sha1"),
+            // SigningAlgorithm::Sha1 => String::from("http://www.w3.org/2000/09/xmldsig#rsa-sha1"),
             SigningAlgorithm::Sha224 => {
                 String::from("http://www.w3.org/2001/04/xmldsig-more#rsa-sha224")
             }

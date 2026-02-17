@@ -8,45 +8,29 @@ publish = false
 
 [workspace]
 
-members = [
-    "saml_test_server"
-]
+members = ["saml_test_server"]
 
 [dependencies]
-
-log = "0.4"
-base64 = "0.13"
-
-# for inflating AuthN requests
+log = "0.4.29"
+base64 = "0.22.1"
 inflate = "0.4.5"
-
-
-#writing xml
 xml-rs = "0.8"
-
-
-# parsing and shenanigans
-xmlparser = "0.13.3"
-serde = "1.0"
+xmlparser = "0.13.6"
+serde = "1.0.228"
 serde-xml-rs = "0.6.0"
 serde_derive = "1.0"
-
-# testing strings
-
 difference = "2.0.0"
-
 chrono = "0.4.19"
-
 openssl = "0.10.35"
 
 # web things
-tide = { version="0.16" }
+tide = { version = "0.16" }
 
 uuid = { version = "1.0", features = ["serde", "v4"] }
 
 
 [dev-dependencies]
-reqwest ={ version="0.11", features = ["blocking", "native-tls"]}
+reqwest = { version = "0.11", features = ["blocking", "native-tls"] }
 regex = "1"
 
 # for test_digest
