@@ -79,6 +79,7 @@ use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use inflate::inflate_bytes;
 use log::{debug, error};
 use serde::Serialize;
+use std::convert::TryFrom;
 use std::fmt;
 use std::str::from_utf8;
 use xmlparser::{StrSpan, Token};
@@ -136,33 +137,68 @@ pub struct AuthnRequest {
 }
 
 impl AuthnRequest {
-    /// Allows one to turn a [AuthnRequestParser] into a Request object
-    ///
-    /// TODO: change this to be TryFrom<AuthenRequestParser> and return a Result so we can handle errors better
-    #[allow(clippy::or_fun_call)]
-    pub fn from(parser: AuthnRequestParser) -> Self {
-        AuthnRequest {
-            relay_state: parser.relay_state.unwrap_or_else(|| {
-                error!("AuthnRequestParser missing relay_state, using placeholder");
-                String::from("unset")
-            }),
-            issue_instant: parser.issue_instant.unwrap_or(Utc::now()),
-            consumer_service_url: parser.consumer_service_url.unwrap_or(String::from("unset")),
-            issuer: parser.issuer.unwrap_or_else(|| {
-                error!("AuthnRequestParser missing issuer, using placeholder");
-                String::from("unset")
-            }),
-            version: parser.version,
-            destination: parser.destination.unwrap_or(String::from("unset")),
-            sigalg: parser.sigalg,
-            signature: parser.signature,
-        }
-    }
-
     /// Return the issue instant in the required form
     pub fn issue_instant_string(&self) -> String {
         self.issue_instant
             .to_rfc3339_opts(SecondsFormat::Secs, true)
+    }
+}
+
+impl TryFrom<AuthnRequestParser> for AuthnRequest {
+    type Error = AuthnDecodeError;
+
+    fn try_from(parser: AuthnRequestParser) -> Result<Self, Self::Error> {
+        let relay_state = match parser.relay_state {
+            Some(value) => value,
+            None => {
+                return Err(AuthnDecodeError::new(
+                    "AuthnRequestParser missing relay_state".to_string(),
+                ));
+            }
+        };
+        let issue_instant = match parser.issue_instant {
+            Some(value) => value,
+            None => {
+                return Err(AuthnDecodeError::new(
+                    "AuthnRequestParser missing issue_instant".to_string(),
+                ));
+            }
+        };
+        let consumer_service_url = match parser.consumer_service_url {
+            Some(value) => value,
+            None => {
+                return Err(AuthnDecodeError::new(
+                    "AuthnRequestParser missing consumer_service_url".to_string(),
+                ));
+            }
+        };
+        let issuer = match parser.issuer {
+            Some(value) => value,
+            None => {
+                return Err(AuthnDecodeError::new(
+                    "AuthnRequestParser missing issuer".to_string(),
+                ));
+            }
+        };
+        let destination = match parser.destination {
+            Some(value) => value,
+            None => {
+                return Err(AuthnDecodeError::new(
+                    "AuthnRequestParser missing destination".to_string(),
+                ));
+            }
+        };
+
+        Ok(AuthnRequest {
+            relay_state,
+            issue_instant,
+            consumer_service_url,
+            issuer,
+            version: parser.version,
+            destination,
+            sigalg: parser.sigalg,
+            signature: parser.signature,
+        })
     }
 }
 
@@ -382,7 +418,7 @@ fn parse_authn_tokenizer_element_start(
 
 /// Give it a string full of XML and it'll give you back a [AuthnRequest] object which has the details
 // TODO: turn this into a `TryFrom<&str>` for AuthnRequest and return a Result so we can handle errors better
-pub fn parse_authn_request(request_data: &str) -> Result<AuthnRequest, String> {
+pub fn parse_authn_request(request_data: &str) -> Result<AuthnRequest, AuthnDecodeError> {
     // more examples here
     // https://developers.onelogin.com/saml/examples/authnrequest
 
@@ -400,7 +436,10 @@ pub fn parse_authn_request(request_data: &str) -> Result<AuthnRequest, String> {
                     } => match parse_authn_tokenizer_attribute(local, value, saml_request) {
                         Ok(value) => value,
                         Err(error) => {
-                            return Err(format!("Failed to parse authn request: {:?}", error));
+                            return Err(AuthnDecodeError::new(format!(
+                                "Failed to parse authn request: {:?}",
+                                error
+                            )));
                         }
                     },
                     Token::ElementStart {
@@ -427,16 +466,16 @@ pub fn parse_authn_request(request_data: &str) -> Result<AuthnRequest, String> {
                 };
             }
             Err(ref error) => {
-                return Err(format!(
+                return Err(AuthnDecodeError::new(format!(
                     "Error parsing token: {:?}\n{:?}",
                     error, request_data
-                ));
+                )));
             }
         }
     }
 
     println!("found relay_state={:?}", &saml_request.relay_state);
-    Ok(AuthnRequest::from(saml_request))
+    AuthnRequest::try_from(saml_request)
 }
 
 // TODO: This has some interesting code for parsing and handling assertions etc

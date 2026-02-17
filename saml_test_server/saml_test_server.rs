@@ -222,7 +222,10 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
             Ok(val) => val,
             Err(err) => {
                 error!("{:?}", err);
-                return Err(tide::Error::from_str(tide::StatusCode::BadRequest, err));
+                return Err(tide::Error::from_str(
+                    tide::StatusCode::BadRequest,
+                    format!("{:?}", err),
+                ));
             }
         };
 

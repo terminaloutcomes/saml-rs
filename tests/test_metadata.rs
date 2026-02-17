@@ -88,7 +88,7 @@ mod tests {
         let result = match test_parse {
             Ok(value) => value,
             Err(error) => {
-                panic!("Failed to parse test sample, this seems bad: {}", error);
+                panic!("Failed to parse test sample, this seems bad: {:?}", error);
             }
         };
 
