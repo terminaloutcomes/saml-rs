@@ -251,7 +251,7 @@ impl ResponseElementsBuilder {
         let response_id = match self.response_id {
             Some(value) if !value.trim().is_empty() => value,
             Some(_) => return Err("response_id must not be empty"),
-            None => ResponseElements::new_response_id(&issuer),
+            None => ResponseElements::new_response_id(),
         };
 
         Ok(ResponseElements {
@@ -309,9 +309,9 @@ impl ResponseElements {
         Uuid::new_v4().to_string()
     }
 
-    /// Creates a random response ID tied to an issuer.
-    pub fn new_response_id(issuer: &str) -> String {
-        format!("{}-{}", issuer, Uuid::new_v4())
+    /// Creates a random SAML-safe response ID.
+    pub fn new_response_id() -> String {
+        format!("_{}", Uuid::new_v4())
     }
 
     /// returns the base64 encoded version of a [ResponseElements]
@@ -320,9 +320,9 @@ impl ResponseElements {
         BASE64_STANDARD.encode(buffer).into()
     }
 
-    /// generate a response ID, which will be the issuer and uuid concatentated
+    /// Generates a new random response ID.
     pub fn regenerate_response_id(self) -> Self {
-        let response_id = format!("{}-{}", self.issuer, Uuid::new_v4());
+        let response_id = Self::new_response_id();
         Self {
             response_id,
             ..self
