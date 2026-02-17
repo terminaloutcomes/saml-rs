@@ -16,7 +16,7 @@ path = "saml_test_server.rs"
 saml-rs = { path = "../" }
 
 log = "0.4"
-base64 = "0.13"
+base64 = "0.22"
 
 
 # for inflating AuthN requests

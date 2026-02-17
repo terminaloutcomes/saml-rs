@@ -15,7 +15,7 @@ members = [
 [dependencies]
 
 log = "0.4"
-base64 = "0.13"
+base64 = "0.22"
 
 # for inflating AuthN requests
 inflate = "0.4.5"
