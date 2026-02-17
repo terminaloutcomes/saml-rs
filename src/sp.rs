@@ -122,9 +122,8 @@ impl FromStr for SamlBindingType {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 /// Binding methods
-/// TODO: should this be renamed to binding method?
 #[derive(Default)]
-pub enum SamlBinding {
+pub enum BindingMethod {
     /// HTTP-POST method
     #[default]
     HttpPost,
@@ -137,24 +136,26 @@ pub enum SamlBinding {
 // Failed to parse AssertionConsumerService: "UNMATCHED BINDING: urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact: Must be a valid type"
 // Failed to parse AssertionConsumerService: "UNMATCHED BINDING: urn:oasis:names:tc:SAML:2.0:bindings:PAOS: Must be a valid type"
 
-impl fmt::Display for SamlBinding {
+impl fmt::Display for BindingMethod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SamlBinding::HttpPost => f.write_str("urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"),
-            SamlBinding::HttpRedirect => {
+            BindingMethod::HttpPost => {
+                f.write_str("urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST")
+            }
+            BindingMethod::HttpRedirect => {
                 f.write_str("urn:oasis:names:tc:SAML:2.0:bindings:HTTP-REDIRECT")
             }
         }
     }
 }
-impl FromStr for SamlBinding {
+impl FromStr for BindingMethod {
     type Err = &'static str;
 
     /// turn a string into a SamlBinding
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" => Ok(SamlBinding::HttpPost),
-            "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-REDIRECT" => Ok(SamlBinding::HttpRedirect),
+            "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" => Ok(BindingMethod::HttpPost),
+            "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-REDIRECT" => Ok(BindingMethod::HttpRedirect),
             _ => Err("Must be a valid type"),
         }
     }
@@ -168,7 +169,7 @@ pub struct ServiceBinding {
     pub servicetype: SamlBindingType,
     #[serde(rename = "Binding")]
     /// Binding method
-    pub binding: SamlBinding,
+    pub binding: BindingMethod,
     /// Where to send the response to
     #[serde(rename = "Location")]
     pub location: String,
@@ -180,7 +181,7 @@ pub struct ServiceBinding {
 impl ServiceBinding {
     /// TODO: actually use this in ServiceProvider from_xml or something
     pub fn set_binding(self, binding: &str) -> Result<Self, String> {
-        match SamlBinding::from_str(binding) {
+        match BindingMethod::from_str(binding) {
             Err(_) => Err("Failed to match binding name".to_string()),
             Ok(saml_binding) => Ok(ServiceBinding {
                 servicetype: self.servicetype,
@@ -197,7 +198,7 @@ impl Default for ServiceBinding {
     fn default() -> Self {
         ServiceBinding {
             servicetype: SamlBindingType::AssertionConsumerService,
-            binding: SamlBinding::default(),
+            binding: BindingMethod::default(),
             location: "http://0.0.0.0:0/SAML/acs".to_string(),
             index: 0,
         }
@@ -340,7 +341,7 @@ impl ServiceProvider {
     ) -> Result<ServiceBinding, String> {
         let mut tmp_sb = ServiceBinding {
             servicetype,
-            binding: SamlBinding::HttpPost,
+            binding: BindingMethod::HttpPost,
             location: "".to_string(),
             index: 0,
         };
@@ -348,7 +349,7 @@ impl ServiceProvider {
             match attribute.name.local_name.to_lowercase().as_str() {
                 "binding" => {
                     debug!("Found Binding");
-                    let binding = match SamlBinding::from_str(&attribute.value) {
+                    let binding = match BindingMethod::from_str(&attribute.value) {
                         Ok(value) => value,
                         Err(error) => {
                             return Err(format!(

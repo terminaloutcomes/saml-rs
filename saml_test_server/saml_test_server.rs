@@ -19,7 +19,7 @@ use saml_rs::SamlQuery;
 use saml_rs::assertion::AssertionAttribute;
 use saml_rs::metadata::{SamlMetadata, generate_metadata_xml};
 use saml_rs::response::{AuthNStatement, ResponseElements};
-use saml_rs::sp::SamlBinding;
+use saml_rs::sp::BindingMethod;
 
 use chrono::{DateTime, Duration, NaiveDate, Utc};
 
@@ -256,7 +256,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
             saml_rs::sp::SamlBindingType::AssertionConsumerService => {
                 debug!("acs: {:?}", service);
                 match &service.binding {
-                    SamlBinding::HttpRedirect | SamlBinding::HttpPost => {
+                    BindingMethod::HttpRedirect | BindingMethod::HttpPost => {
                         debug!(
                             "Found form target, type is {:?}, destination is: {}",
                             &service.binding, service.location
