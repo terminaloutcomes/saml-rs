@@ -8,9 +8,10 @@ edition = "2024"
 publish = false
 
 [workspace.dependencies]
+tokio = { version = "1.49.0", features = ["rt", "macros"] }
 base64 = "0.22.1"
 chrono = "0.4.43"
-config = "0.13"
+config = "0.15.19"
 difference = "2.0.0"
 driftwood = "0.0.7"
 hex = "0.4.3"
@@ -29,7 +30,6 @@ shellexpand = "3.1.1"
 tera = "1"
 tide = "0.16"
 tide-openssl = "0.1.1"
-tokio = "1.49.0"
 uuid = "1.21.0"
 xml-rs = "1.0.0"
 xmlparser = "0.13.6"
@@ -69,3 +69,4 @@ quick-xml = "0.39.1"
 reqwest = { workspace = true, features = ["blocking", "native-tls"] }
 regex = { workspace = true }
 hex = { workspace = true }
+tokio = { workspace = true, features = ["fs", "rt", "macros"] }

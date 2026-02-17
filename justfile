@@ -2,9 +2,14 @@
 default:
     just --list
 
-check:
+check: clippy test
+
+clippy:
     cargo clippy --workspace --all-targets --all-features
-    cargo test
+
+test:
+    cargo test --all-targets --workspace
+    cargo test --all-targets --workspace --features danger_i_want_to_risk_it_all
 
 live-e2e:
     uv run scripts/live_e2e.py run

@@ -41,13 +41,9 @@ fn fixture_path(filename: &str) -> PathBuf {
         .join(filename)
 }
 
-fn load_fixture(filename: &str) -> String {
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .expect("tokio runtime build should succeed");
-    let bytes = runtime
-        .block_on(tokio::fs::read(fixture_path(filename)))
+async fn load_fixture(filename: &str) -> String {
+    let bytes = tokio::fs::read(fixture_path(filename))
+        .await
         .expect("failed to read fixture");
     String::from_utf8(bytes).expect("fixture was not valid utf8")
 }
@@ -277,8 +273,8 @@ fn attack_cases() -> Vec<AttackCase> {
     ]
 }
 
-fn run_attack_case(case: AttackCase) -> Result<(), String> {
-    let payload = load_fixture(case.filename);
+async fn run_attack_case(case: AttackCase) -> Result<(), String> {
+    let payload = load_fixture(case.filename).await;
     match case.target {
         AttackTarget::AuthnRequest => saml_rs::parse_authn_request(&payload)
             .map(|_| ())
@@ -290,8 +286,8 @@ fn run_attack_case(case: AttackCase) -> Result<(), String> {
     }
 }
 
-fn assert_attack_is_rejected(case: AttackCase, mode_label: &str) {
-    let result = run_attack_case(case);
+async fn assert_attack_is_rejected(case: AttackCase, mode_label: &str) {
+    let result = run_attack_case(case).await;
     let err = match result {
         Ok(()) => {
             panic!(
@@ -327,11 +323,11 @@ fn assert_attack_is_rejected(case: AttackCase, mode_label: &str) {
     }
 }
 
+#[tokio::test]
 #[cfg(not(feature = "danger_i_want_to_risk_it_all"))]
-#[test]
-fn rejects_attack_matrix_in_safe_mode() {
+async fn rejects_attack_matrix_in_safe_mode() {
     for case in attack_cases() {
-        assert_attack_is_rejected(case, "safe");
+        assert_attack_is_rejected(case, "safe").await;
     }
 
     assert!(!saml_rs::security::weak_algorithms_allowed());
@@ -367,17 +363,17 @@ fn rejects_attack_matrix_in_safe_mode() {
     );
 }
 
-#[cfg(feature = "danger_i_want_to_risk_it_all")]
-#[test]
-fn rejects_attack_matrix_before_runtime_danger_unlock() {
+// #[cfg(feature = "danger_i_want_to_risk_it_all")]
+#[tokio::test]
+async fn rejects_attack_matrix_before_runtime_danger_unlock() {
     for case in attack_cases() {
-        assert_attack_is_rejected(case, "danger-locked");
+        assert_attack_is_rejected(case, "danger-locked").await;
     }
 }
 
 #[cfg(feature = "danger_i_want_to_risk_it_all")]
-#[test]
-fn danger_mode_requires_explicit_unlock_and_only_relaxes_selected_controls() {
+#[tokio::test]
+async fn danger_mode_requires_explicit_unlock_and_only_relaxes_selected_controls() {
     let token = saml_rs::security::danger::unlock();
     saml_rs::security::danger::enable_weak_algorithms(&token);
     saml_rs::security::danger::enable_unsigned_authn_requests(&token);
@@ -417,6 +413,6 @@ fn danger_mode_requires_explicit_unlock_and_only_relaxes_selected_controls() {
     );
 
     for case in attack_cases() {
-        assert_attack_is_rejected(case, "danger-unlocked");
+        assert_attack_is_rejected(case, "danger-unlocked").await;
     }
 }
