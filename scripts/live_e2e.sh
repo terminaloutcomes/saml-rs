@@ -9,6 +9,10 @@ CERT_PATH="${WORK_DIR}/idp-signing-cert.pem"
 KEY_PATH="${WORK_DIR}/idp-signing-key.pem"
 SAML_SERVER_PID_FILE="${WORK_DIR}/saml_test_server.pid"
 SAML_SERVER_LOG="${WORK_DIR}/saml_test_server.log"
+SAML_SIGN_ASSERTION_VALUE="${SAML_SIGN_ASSERTION_VALUE:-true}"
+SAML_SIGN_MESSAGE_VALUE="${SAML_SIGN_MESSAGE_VALUE:-false}"
+SAML_REQUIRE_SIGNED_AUTHN_REQUESTS_VALUE="${SAML_REQUIRE_SIGNED_AUTHN_REQUESTS_VALUE:-false}"
+SAML_C14N_METHOD_VALUE="${SAML_C14N_METHOD_VALUE:-exclusive}"
 
 compose() {
     docker compose -f "${COMPOSE_FILE}" -p "${PROJECT_NAME}" "$@"
@@ -77,6 +81,10 @@ start_saml_server() {
         SAML_ALLOW_UNKNOWN_SP=true \
         SAML_SAML_CERT_PATH="${CERT_PATH}" \
         SAML_SAML_KEY_PATH="${KEY_PATH}" \
+        SAML_SIGN_ASSERTION="${SAML_SIGN_ASSERTION_VALUE}" \
+        SAML_SIGN_MESSAGE="${SAML_SIGN_MESSAGE_VALUE}" \
+        SAML_REQUIRE_SIGNED_AUTHN_REQUESTS="${SAML_REQUIRE_SIGNED_AUTHN_REQUESTS_VALUE}" \
+        SAML_C14N_METHOD="${SAML_C14N_METHOD_VALUE}" \
         cargo run --quiet --manifest-path "${ROOT_DIR}/Cargo.toml" -p saml_test_server --bin saml_test_server \
         >"${SAML_SERVER_LOG}" 2>&1 < /dev/null &
 
@@ -127,13 +135,70 @@ verify() {
     python3 "${ROOT_DIR}/scripts/live_e2e_verify.py"
 }
 
+run_case() {
+    local case_name="$1"
+    local sign_assertion="$2"
+    local sign_message="$3"
+    local require_signed_authn="$4"
+    local c14n_method="$5"
+    local expect_success="$6"
+    local expect_assertion_signature="$7"
+    local expect_response_signature="$8"
+    local expect_c14n_method="$9"
+    local tamper_response="${10}"
+
+    echo "=== Running case: ${case_name} ==="
+    SAML_SIGN_ASSERTION_VALUE="${sign_assertion}"
+    SAML_SIGN_MESSAGE_VALUE="${sign_message}"
+    SAML_REQUIRE_SIGNED_AUTHN_REQUESTS_VALUE="${require_signed_authn}"
+    SAML_C14N_METHOD_VALUE="${c14n_method}"
+
+    stop_saml_server
+    start_saml_server
+    wait_for_url "http://localhost:18081/SAML/Metadata" "saml_test_server (${case_name})"
+
+    env \
+        LIVE_E2E_EXPECT_SUCCESS="${expect_success}" \
+        LIVE_E2E_EXPECT_ASSERTION_SIGNATURE="${expect_assertion_signature}" \
+        LIVE_E2E_EXPECT_RESPONSE_SIGNATURE="${expect_response_signature}" \
+        LIVE_E2E_EXPECT_C14N_METHOD="${expect_c14n_method}" \
+        LIVE_E2E_TAMPER_SAML_RESPONSE="${tamper_response}" \
+        python3 "${ROOT_DIR}/scripts/live_e2e_verify.py"
+}
+
+run_matrix() {
+    run_case "unsigned-response+unsigned-assertion" \
+        "false" "false" "false" "exclusive" \
+        "true" "false" "false" "ignore" "false"
+
+    run_case "signed-assertion-only" \
+        "true" "false" "false" "exclusive" \
+        "true" "true" "false" "exclusive" "false"
+
+    run_case "signed-message-only" \
+        "false" "true" "false" "exclusive" \
+        "true" "false" "true" "exclusive" "false"
+
+    run_case "signed-assertion+signed-message-inclusive-c14n" \
+        "true" "true" "false" "inclusive" \
+        "true" "true" "true" "inclusive" "false"
+
+    run_case "require-signed-authnrequest-negative" \
+        "true" "false" "true" "exclusive" \
+        "false" "ignore" "ignore" "ignore" "false"
+
+    run_case "tampered-saml-response-negative" \
+        "true" "false" "false" "exclusive" \
+        "false" "true" "false" "exclusive" "true"
+}
+
 run_all() {
     if [[ "${KEEP_UP:-0}" != "1" ]]; then
         trap down EXIT
     fi
 
     up
-    verify
+    run_matrix
 
     if [[ "${KEEP_UP:-0}" == "1" ]]; then
         echo "KEEP_UP=1 set, leaving Keycloak + saml_test_server running."

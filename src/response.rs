@@ -3,14 +3,13 @@
 // #![deny(unsafe_code)]
 
 use crate::assertion::{Assertion, AssertionAttribute, BaseIDAbstractType, SubjectData};
-use crate::sign::{DigestAlgorithm, SigningAlgorithm};
+use crate::sign::{CanonicalizationMethod, DigestAlgorithm, SigningAlgorithm};
 use crate::sp::*;
 use crate::xml::write_event;
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use chrono::{DateTime, SecondsFormat, TimeZone, Utc};
-use log::{debug, error};
+use log::error;
 use std::io::Write;
-use std::str::from_utf8;
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
 #[derive(Debug)]
@@ -73,6 +72,12 @@ pub struct ResponseElements {
     pub signing_key: openssl::pkey::PKey<openssl::pkey::Private>,
     /// The signing certificate
     pub signing_cert: Option<openssl::x509::X509>,
+    /// Signature algorithm for assertion/message signing.
+    pub signing_algorithm: SigningAlgorithm,
+    /// Digest algorithm for assertion/message signing.
+    pub digest_algorithm: DigestAlgorithm,
+    /// Canonicalization method for assertion/message signing.
+    pub canonicalization_method: CanonicalizationMethod,
 }
 
 /// A builder for [ResponseElements] that validates required fields before creation.
@@ -94,6 +99,9 @@ pub struct ResponseElementsBuilder {
     sign_message: bool,
     signing_key: Option<openssl::pkey::PKey<openssl::pkey::Private>>,
     signing_cert: Option<openssl::x509::X509>,
+    signing_algorithm: SigningAlgorithm,
+    digest_algorithm: DigestAlgorithm,
+    canonicalization_method: CanonicalizationMethod,
 }
 
 impl ResponseElementsBuilder {
@@ -116,6 +124,9 @@ impl ResponseElementsBuilder {
             sign_message: false,
             signing_key: None,
             signing_cert: None,
+            signing_algorithm: SigningAlgorithm::Sha256,
+            digest_algorithm: DigestAlgorithm::Sha256,
+            canonicalization_method: CanonicalizationMethod::ExclusiveCanonical10,
         }
     }
 
@@ -221,6 +232,27 @@ impl ResponseElementsBuilder {
         self
     }
 
+    /// Sets the signature algorithm.
+    pub fn signing_algorithm(mut self, signing_algorithm: SigningAlgorithm) -> Self {
+        self.signing_algorithm = signing_algorithm;
+        self
+    }
+
+    /// Sets the digest algorithm.
+    pub fn digest_algorithm(mut self, digest_algorithm: DigestAlgorithm) -> Self {
+        self.digest_algorithm = digest_algorithm;
+        self
+    }
+
+    /// Sets canonicalization method.
+    pub fn canonicalization_method(
+        mut self,
+        canonicalization_method: CanonicalizationMethod,
+    ) -> Self {
+        self.canonicalization_method = canonicalization_method;
+        self
+    }
+
     /// Builds [ResponseElements] after validating required values.
     pub fn build(self) -> Result<ResponseElements, &'static str> {
         let issuer = required_non_empty(self.issuer, "issuer")?;
@@ -273,6 +305,9 @@ impl ResponseElementsBuilder {
             sign_message: self.sign_message,
             signing_key,
             signing_cert: self.signing_cert,
+            signing_algorithm: self.signing_algorithm,
+            digest_algorithm: self.digest_algorithm,
+            canonicalization_method: self.canonicalization_method,
         })
     }
 }
@@ -318,8 +353,19 @@ impl ResponseElements {
 
     /// returns the base64 encoded version of a [ResponseElements]
     pub fn base64_encoded_response(self) -> Vec<u8> {
-        let buffer: Vec<u8> = self.into();
-        BASE64_STANDARD.encode(buffer).into()
+        match self.try_base64_encoded_response() {
+            Ok(value) => value,
+            Err(error) => {
+                error!("Failed to encode SAML response: {}", error);
+                Vec::new()
+            }
+        }
+    }
+
+    /// Returns the base64 encoded version of [ResponseElements] or an error.
+    pub fn try_base64_encoded_response(self) -> Result<Vec<u8>, String> {
+        let buffer = self.try_into_xml_bytes()?;
+        Ok(BASE64_STANDARD.encode(buffer).into())
     }
 
     /// Generates a new random response ID.
@@ -330,36 +376,19 @@ impl ResponseElements {
             ..self
         }
     }
-}
 
-// TODO: for signing, implement a "return this without signing flagged" fn so we can ... just get an unsigned version
-
-/// Creates a String full of XML based on the ResponsElements
-#[allow(clippy::from_over_into)]
-impl Into<Vec<u8>> for ResponseElements {
-    fn into(self) -> Vec<u8> {
-        // TODO set up all these values
+    fn build_assertion(&self) -> Assertion {
         let conditions_not_before = Utc::now();
         let session_time = chrono::Duration::minutes(5);
         let conditions_not_after: DateTime<Utc> = conditions_not_before + session_time;
-        let mut buffer = Vec::new();
-        let mut writer = EmitterConfig::new()
-            .perform_indent(true)
-            .pad_self_closing(false)
-            .write_document_declaration(false)
-            .normalize_empty_elements(false)
-            .create_writer(&mut buffer);
-
-        let acs = match self.assertion_consumer_service {
-            None => {
-                match self.service_provider.find_first_acs() {
-                    Ok(value) => value.location,
-                    Err(error) => {
-                        error!("{:?}, falling back to https://example.com", error);
-                        ServiceBinding::default().location
-                    } // TODO work out how to set an ACS if we fall through a) not setting it b) not finding one
+        let acs = match self.assertion_consumer_service.clone() {
+            None => match self.service_provider.find_first_acs() {
+                Ok(value) => value.location,
+                Err(error) => {
+                    error!("{:?}, falling back to https://example.com", error);
+                    ServiceBinding::default().location
                 }
-            }
+            },
             Some(value) => value,
         };
 
@@ -368,80 +397,154 @@ impl Into<Vec<u8>> for ResponseElements {
             qualifier: Some(BaseIDAbstractType::SPNameQualifier),
             qualifier_value: Some(self.service_provider.entity_id.to_string()),
             nameid_format: NameIdFormat::Transient,
-            // in the unsigned response example this was a transient value _ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7
-            // TODO: nameid_valud for SubjectData should... be actually set from somewhere
             nameid_value: "_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7",
-            // TODO acs should come from somewhere, figure out where
             acs,
-            // TODO: set the response not_on_or_after properly
             subject_not_on_or_after: Utc
                 .with_ymd_and_hms(2024, 1, 18, 6, 21, 48)
                 .single()
                 .unwrap_or_else(Utc::now),
         };
 
-        let assertion_data = Assertion {
+        Assertion {
             assertion_id: self.assertion_id.to_string(),
             issuer: self.issuer.to_string(),
-            signing_algorithm: SigningAlgorithm::Sha256,
-            digest_algorithm: DigestAlgorithm::Sha256,
+            signing_algorithm: self.signing_algorithm,
+            digest_algorithm: self.digest_algorithm,
+            canonicalization_method: self.canonicalization_method,
             issue_instant: self.issue_instant,
             subject_data,
-
-            attributes: self.attributes,
+            attributes: self.attributes.clone(),
             audience: self.service_provider.entity_id.to_string(),
             conditions_not_after,
             conditions_not_before,
             sign_assertion: self.sign_assertion,
-            signing_key: Some(self.signing_key),
-            signing_cert: self.signing_cert,
-        };
+            signing_key: Some(self.signing_key.clone()),
+            signing_cert: self.signing_cert.clone(),
+        }
+    }
 
-        // start of the response
+    fn build_response_xml(
+        &self,
+        assertion_data: &Assertion,
+        message_signature: Option<(&str, &str)>,
+    ) -> Result<Vec<u8>, String> {
+        let mut buffer = Vec::new();
+        let mut writer = EmitterConfig::new()
+            .perform_indent(false)
+            .pad_self_closing(false)
+            .write_document_declaration(false)
+            .normalize_empty_elements(false)
+            .create_writer(&mut buffer);
+
+        let response_issue_instant = self
+            .issue_instant
+            .to_rfc3339_opts(SecondsFormat::Secs, true);
         write_event(
             XmlEvent::start_element(("samlp", "Response"))
                 .attr("xmlns:samlp", "urn:oasis:names:tc:SAML:2.0:protocol")
+                .attr("xmlns:saml", "urn:oasis:names:tc:SAML:2.0:assertion")
                 .attr("Destination", &self.destination)
                 .attr("ID", &self.response_id)
                 .attr("InResponseTo", &self.relay_state)
-                .attr(
-                    "IssueInstant",
-                    &self
-                        .issue_instant
-                        .to_rfc3339_opts(SecondsFormat::Secs, true),
-                )
+                .attr("IssueInstant", &response_issue_instant)
                 .attr("Version", "2.0")
                 .into(),
             &mut writer,
         );
+        add_issuer(&self.issuer, &mut writer);
 
-        // do the issuer inside the assertion
-        // add_issuer(&self.issuer, &mut writer);
+        if let Some((digest_value, signature_value)) = message_signature {
+            let signature_config = crate::xml::SignatureConfig {
+                reference_id: self.response_id.clone(),
+                signing_algorithm: self.signing_algorithm,
+                digest_algorithm: self.digest_algorithm,
+                canonicalization_method: self.canonicalization_method,
+                signing_cert: self.signing_cert.clone(),
+            };
+            crate::xml::add_signature(
+                &signature_config,
+                digest_value,
+                signature_value,
+                &mut writer,
+            )?;
+        }
 
-        // If we're signing the MESSAGE, we'd add the signing block here.
-        //
-        // Signatures for assertions go \/ down there in the assertion statement.
-        //
-        // crate::xml::add_signature(assertion_data, &mut writer);
-
-        // status
-        let status = crate::constants::StatusCode::Success.to_string();
+        let status = self.status.to_string();
         add_status(&status, &mut writer);
-
-        // assertion goes here
-
-        assertion_data.add_assertion_to_xml(&mut writer);
-
-        // end the response
+        assertion_data.add_assertion_to_xml(&mut writer)?;
         write_event(XmlEvent::end_element().into(), &mut writer);
 
-        // finally we return the response
-        debug!("OUTPUT RESPONSE");
-        match from_utf8(&buffer) {
-            Ok(value) => debug!("{}", value),
-            Err(error) => error!("Failed to decode response as utf8: {:?}", error),
+        Ok(buffer)
+    }
+
+    /// Render response XML bytes.
+    pub fn try_into_xml_bytes(self) -> Result<Vec<u8>, String> {
+        let assertion_data = self.build_assertion();
+        let unsigned_response = self.build_response_xml(&assertion_data, None)?;
+        if !self.sign_message {
+            return Ok(unsigned_response);
         }
-        buffer
+
+        let signing_key = &self.signing_key;
+        if self.signing_cert.is_none() {
+            return Err("signing_cert must be set when signing is enabled".to_string());
+        }
+
+        let unsigned_xml = String::from_utf8(unsigned_response)
+            .map_err(|error| format!("Response XML was not utf8: {:?}", error))?;
+        let canonical_response = self.canonicalization_method.canonicalize(&unsigned_xml)?;
+        let digest_bytes = self
+            .digest_algorithm
+            .hash(canonical_response.as_bytes())
+            .map_err(|error| format!("Failed to hash canonical response: {:?}", error))?;
+        let base64_digest = BASE64_STANDARD.encode(digest_bytes);
+
+        let signature_config = crate::xml::SignatureConfig {
+            reference_id: self.response_id.clone(),
+            signing_algorithm: self.signing_algorithm,
+            digest_algorithm: self.digest_algorithm,
+            canonicalization_method: self.canonicalization_method,
+            signing_cert: self.signing_cert.clone(),
+        };
+
+        let mut signedinfo_buffer = Vec::new();
+        let mut signedinfo_writer = EmitterConfig::new()
+            .perform_indent(false)
+            .write_document_declaration(false)
+            .normalize_empty_elements(true)
+            .pad_self_closing(false)
+            .create_writer(&mut signedinfo_buffer);
+        crate::xml::generate_signedinfo(&signature_config, &base64_digest, &mut signedinfo_writer);
+        let signedinfo_xml = String::from_utf8(signedinfo_buffer)
+            .map_err(|error| format!("SignedInfo was not utf8: {:?}", error))?;
+        let canonical_signedinfo = self.canonicalization_method.canonicalize(&signedinfo_xml)?;
+        let signed = crate::sign::sign_data(
+            self.signing_algorithm,
+            signing_key,
+            canonical_signedinfo.as_bytes(),
+        );
+        if signed.is_empty() {
+            return Err("Failed to generate message signature bytes".to_string());
+        }
+        let base64_signature = BASE64_STANDARD.encode(&signed);
+
+        self.build_response_xml(&assertion_data, Some((&base64_digest, &base64_signature)))
+    }
+}
+
+// TODO: for signing, implement a "return this without signing flagged" fn so we can ... just get an unsigned version
+
+/// Creates a String full of XML based on the ResponsElements
+#[allow(clippy::from_over_into)]
+impl Into<Vec<u8>> for ResponseElements {
+    fn into(self) -> Vec<u8> {
+        match self.try_into_xml_bytes() {
+            Ok(value) => value,
+            Err(error) => {
+                error!("Failed to render response XML: {}", error);
+                Vec::new()
+            }
+        }
     }
 }
 

@@ -76,6 +76,9 @@ mod tests {
             sign_message: false,
             signing_key: PKey::generate_ed25519().expect("Failed to generate signing key"),
             signing_cert: None,
+            signing_algorithm: saml_rs::sign::SigningAlgorithm::Sha256,
+            digest_algorithm: saml_rs::sign::DigestAlgorithm::Sha256,
+            canonicalization_method: saml_rs::sign::CanonicalizationMethod::ExclusiveCanonical10,
         };
         let response_vec: Vec<u8> = inputdata.into();
 

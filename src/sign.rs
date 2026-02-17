@@ -26,10 +26,12 @@ use log::error;
 use log::info;
 use openssl::pkey::PKey;
 use openssl::pkey::Private;
+use openssl::pkey::Public;
 use openssl::rsa::Rsa;
 use openssl::sign::{Signer, Verifier};
 use openssl::x509::X509;
 use std::fmt;
+use xml_c14n::{CanonicalizationMode, CanonicalizationOptions, canonicalize_xml};
 
 /// Options of Signing Algorithms for things
 ///
@@ -62,6 +64,59 @@ impl From<SigningAlgorithm> for openssl::hash::MessageDigest {
                 error!("Invalid signing algorithm requested, falling back to SHA-256");
                 openssl::hash::MessageDigest::sha256()
             }
+        }
+    }
+}
+
+/// Canonicalization methods supported for XML signatures.
+#[derive(Copy, Clone, Debug, Default)]
+pub enum CanonicalizationMethod {
+    /// Exclusive Canonical XML 1.0 (`xml-exc-c14n`).
+    #[default]
+    ExclusiveCanonical10,
+    /// Canonical XML 1.0 (inclusive).
+    InclusiveCanonical10,
+}
+
+impl CanonicalizationMethod {
+    /// Canonicalize XML bytes according to this method.
+    pub fn canonicalize(self, input_xml: &str) -> Result<String, String> {
+        let mode = match self {
+            Self::ExclusiveCanonical10 => CanonicalizationMode::ExclusiveCanonical1_0,
+            Self::InclusiveCanonical10 => CanonicalizationMode::Canonical1_0,
+        };
+        canonicalize_xml(
+            input_xml,
+            CanonicalizationOptions {
+                mode,
+                keep_comments: false,
+                inclusive_ns_prefixes: vec![],
+            },
+        )
+        .map_err(|error| format!("Failed to canonicalize XML: {:?}", error))
+    }
+}
+
+impl From<CanonicalizationMethod> for String {
+    fn from(method: CanonicalizationMethod) -> String {
+        match method {
+            CanonicalizationMethod::ExclusiveCanonical10 => {
+                String::from("http://www.w3.org/2001/10/xml-exc-c14n#")
+            }
+            CanonicalizationMethod::InclusiveCanonical10 => {
+                String::from("http://www.w3.org/TR/2001/REC-xml-c14n-20010315")
+            }
+        }
+    }
+}
+
+impl From<String> for CanonicalizationMethod {
+    fn from(value: String) -> Self {
+        match value.to_lowercase().as_str() {
+            "inclusive" | "http://www.w3.org/tr/2001/rec-xml-c14n-20010315" => {
+                Self::InclusiveCanonical10
+            }
+            _ => Self::ExclusiveCanonical10,
         }
     }
 }
@@ -332,16 +387,12 @@ impl DigestAlgorithm {
         }
     }
 }
-// TODO add some testing, and validation of sign_data
-// TODO implement sign_data properly
-/// Sign some data, with a key
+/// Sign some data with a private key.
 pub fn sign_data(
     signing_algorithm: crate::sign::SigningAlgorithm,
     signing_key: &openssl::pkey::PKey<openssl::pkey::Private>,
     bytes_to_sign: &[u8],
 ) -> Vec<u8> {
-    // Sign the data
-
     let signing_algorithm: openssl::hash::MessageDigest = signing_algorithm.into();
     let mut signer = match Signer::new(signing_algorithm, signing_key) {
         Ok(value) => value,
@@ -355,30 +406,42 @@ pub fn sign_data(
         return Vec::new();
     }
 
-    let signature = match signer.sign_to_vec() {
+    match signer.sign_to_vec() {
         Ok(value) => value,
         Err(error) => {
             error!("Failed to sign data: {:?}", error);
-            return Vec::new();
+            Vec::new()
         }
-    };
-    debug!("Signature: {:?}", signature);
-
-    // Verify the data
-    match Verifier::new(signing_algorithm, signing_key) {
-        Ok(mut verifier) => {
-            if let Err(error) = verifier.update(bytes_to_sign) {
-                error!("Failed to update verifier: {:?}", error);
-            } else {
-                match verifier.verify(&signature) {
-                    Ok(true) => debug!("Signature verification succeeded"),
-                    Ok(false) => error!("Signature verification failed"),
-                    Err(error) => error!("Signature verification errored: {:?}", error),
-                }
-            }
-        }
-        Err(error) => error!("Failed to create verifier: {:?}", error),
     }
+}
 
-    signature
+/// Verify a signature over bytes with a public key.
+pub fn verify_data(
+    signing_algorithm: crate::sign::SigningAlgorithm,
+    verification_key: &openssl::pkey::PKey<Public>,
+    bytes_to_verify: &[u8],
+    signature: &[u8],
+) -> Result<bool, String> {
+    let signing_algorithm: openssl::hash::MessageDigest = signing_algorithm.into();
+    let mut verifier = Verifier::new(signing_algorithm, verification_key)
+        .map_err(|error| format!("Failed to create verifier: {:?}", error))?;
+    verifier
+        .update(bytes_to_verify)
+        .map_err(|error| format!("Failed to update verifier: {:?}", error))?;
+    verifier
+        .verify(signature)
+        .map_err(|error| format!("Failed to verify signature: {:?}", error))
+}
+
+/// Verify a signature over bytes with an X509 certificate.
+pub fn verify_data_with_cert(
+    signing_algorithm: crate::sign::SigningAlgorithm,
+    certificate: &X509,
+    bytes_to_verify: &[u8],
+    signature: &[u8],
+) -> Result<bool, String> {
+    let public_key = certificate
+        .public_key()
+        .map_err(|error| format!("Failed to extract public key from cert: {:?}", error))?;
+    verify_data(signing_algorithm, &public_key, bytes_to_verify, signature)
 }

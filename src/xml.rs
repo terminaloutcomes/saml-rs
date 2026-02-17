@@ -53,18 +53,39 @@ pub fn write_event<W: Write>(event: XmlEvent, writer: &mut EventWriter<W>) -> St
     }
 }
 
-/// add a signature to the statement
+/// Signature metadata used for generating XML-DSig blocks.
+#[derive(Clone, Debug)]
+pub struct SignatureConfig {
+    /// The ID value of the element being signed, without leading `#`.
+    pub reference_id: String,
+    /// Signature algorithm URI.
+    pub signing_algorithm: crate::sign::SigningAlgorithm,
+    /// Digest algorithm URI.
+    pub digest_algorithm: crate::sign::DigestAlgorithm,
+    /// Canonicalization method URI.
+    pub canonicalization_method: crate::sign::CanonicalizationMethod,
+    /// Signing certificate to include in `ds:KeyInfo`.
+    pub signing_cert: Option<openssl::x509::X509>,
+}
+
+/// Add a `ds:SignedInfo` block.
 pub fn generate_signedinfo<W: Write>(
-    attr: &crate::assertion::Assertion,
+    config: &SignatureConfig,
     digest: &str,
     writer: &mut EventWriter<W>,
 ) {
     // start ds:SignedInfo
-    write_event(XmlEvent::start_element(("ds", "SignedInfo")).into(), writer);
+    write_event(
+        XmlEvent::start_element(("ds", "SignedInfo"))
+            .attr("xmlns:ds", "http://www.w3.org/2000/09/xmldsig#")
+            .into(),
+        writer,
+    );
     // start CanonicalizationMethod Tag
+    let c14n_method: String = config.canonicalization_method.into();
     write_event(
         XmlEvent::start_element(("ds", "CanonicalizationMethod"))
-            .attr("Algorithm", "http://www.w3.org/2001/10/xml-exc-c14n#")
+            .attr("Algorithm", &c14n_method)
             .into(),
         writer,
     );
@@ -73,11 +94,11 @@ pub fn generate_signedinfo<W: Write>(
 
     // https://www.w3.org/TR/xmldsig-core/#sec-SignatureMethod
 
-    let test: String = attr.signing_algorithm.into();
+    let signing_algorithm: String = config.signing_algorithm.into();
 
     write_event(
         XmlEvent::start_element(("ds", "SignatureMethod"))
-            .attr("Algorithm", &test)
+            .attr("Algorithm", &signing_algorithm)
             .into(),
         writer,
     );
@@ -93,7 +114,7 @@ pub fn generate_signedinfo<W: Write>(
     */
     write_event(
         XmlEvent::start_element(("ds", "Reference"))
-            .attr("URI", &format!("#{}", attr.assertion_id))
+            .attr("URI", &format!("#{}", config.reference_id))
             .into(),
         writer,
     );
@@ -114,7 +135,7 @@ pub fn generate_signedinfo<W: Write>(
 
     write_event(
         XmlEvent::start_element(("ds", "Transform"))
-            .attr("Algorithm", "http://www.w3.org/2001/10/xml-exc-c14n#")
+            .attr("Algorithm", &c14n_method)
             .into(),
         writer,
     );
@@ -124,7 +145,7 @@ pub fn generate_signedinfo<W: Write>(
     //end ds:Transforms
     write_event(XmlEvent::end_element().into(), writer);
 
-    let digestmethod: String = attr.digest_algorithm.into();
+    let digestmethod: String = config.digest_algorithm.into();
 
     // start ds:DigestMethod
     // <https://www.w3.org/TR/xmldsig-core/#sec-DigestMethod>
@@ -155,13 +176,13 @@ pub fn generate_signedinfo<W: Write>(
     write_event(XmlEvent::end_element().into(), writer);
 }
 
-/// add a signature to the statement
-pub fn add_assertion_signature<W: Write>(
-    attr: &crate::assertion::Assertion,
+/// Add a `ds:Signature` block.
+pub fn add_signature<W: Write>(
+    config: &SignatureConfig,
     digest: &str,
     base64_encoded_signature: &str,
     writer: &mut EventWriter<W>,
-) {
+) -> Result<(), String> {
     write_event(
         XmlEvent::start_element(("ds", "Signature"))
             .attr("xmlns:ds", "http://www.w3.org/2000/09/xmldsig#")
@@ -169,7 +190,7 @@ pub fn add_assertion_signature<W: Write>(
         writer,
     );
 
-    generate_signedinfo(attr, digest, writer);
+    generate_signedinfo(config, digest, writer);
 
     // start ds:SignatureValue
     write_event(
@@ -192,11 +213,10 @@ pub fn add_assertion_signature<W: Write>(
         writer,
     );
 
-    let mut stripped_cert = match attr.signing_cert.as_ref() {
+    let mut stripped_cert = match config.signing_cert.as_ref() {
         Some(cert) => cert.get_as_pem_string(false),
         None => {
-            error!("Missing signing certificate while generating assertion signature");
-            String::new()
+            return Err("Missing signing certificate while generating signature".to_string());
         }
     };
     // TODO: is this terrible, or is this terrible? It's terrible, find a better way of cleaning this up.
@@ -214,4 +234,5 @@ pub fn add_assertion_signature<W: Write>(
 
     //end ds:Signature
     write_event(XmlEvent::end_element().into(), writer);
+    Ok(())
 }

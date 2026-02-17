@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::time::Duration;
 
+use saml_rs::sign::CanonicalizationMethod;
 use saml_rs::sp::ServiceProvider;
 use std::path::Path;
 use tokio::fs::read_to_string;
@@ -40,6 +41,10 @@ pub struct ServerConfig {
 
     pub saml_cert_path: String,
     pub saml_key_path: String,
+    pub sign_assertion: bool,
+    pub sign_message: bool,
+    pub require_signed_authn_requests: bool,
+    pub canonicalization_method: CanonicalizationMethod,
 
     pub saml_signing_key: Option<openssl::pkey::PKey<openssl::pkey::Private>>,
     pub saml_signing_cert: Option<X509>,
@@ -184,6 +189,11 @@ impl ServerConfig {
         let entity_id = settings
             .get("entity_id")
             .unwrap_or_else(|_| format!("{}/Metadata", public_base_url));
+        let canonicalization_method = CanonicalizationMethod::from(
+            settings
+                .get::<String>("c14n_method")
+                .unwrap_or_else(|_| "exclusive".to_string()),
+        );
 
         ServerConfig {
             bind_address,
@@ -202,6 +212,12 @@ impl ServerConfig {
                 .unwrap_or(ServerConfig::default().session_lifetime),
             saml_cert_path,
             saml_key_path,
+            sign_assertion: settings.get("sign_assertion").unwrap_or(true),
+            sign_message: settings.get("sign_message").unwrap_or(false),
+            require_signed_authn_requests: settings
+                .get("require_signed_authn_requests")
+                .unwrap_or(false),
+            canonicalization_method,
 
             saml_signing_key: Some(saml_signing_key),
             saml_signing_cert: Some(saml_signing_cert),
@@ -230,6 +246,10 @@ impl Default for ServerConfig {
             saml_cert_path: "Need to set this".to_string(),
             // TODO: possibly remove saml_key_path from [ServerConfig.default]
             saml_key_path: "Need to set this".to_string(),
+            sign_assertion: true,
+            sign_message: false,
+            require_signed_authn_requests: false,
+            canonicalization_method: CanonicalizationMethod::ExclusiveCanonical10,
 
             saml_signing_key: None,
             saml_signing_cert: None,
@@ -251,6 +271,10 @@ pub struct AppState {
 
     pub saml_cert_path: String,
     pub saml_key_path: String,
+    pub sign_assertion: bool,
+    pub sign_message: bool,
+    pub require_signed_authn_requests: bool,
+    pub canonicalization_method: CanonicalizationMethod,
 
     pub saml_signing_key: pkey::PKey<pkey::Private>,
     pub saml_signing_cert: X509,
@@ -271,6 +295,10 @@ impl From<ServerConfig> for AppState {
 
             saml_cert_path: server_config.saml_cert_path,
             saml_key_path: server_config.saml_key_path,
+            sign_assertion: server_config.sign_assertion,
+            sign_message: server_config.sign_message,
+            require_signed_authn_requests: server_config.require_signed_authn_requests,
+            canonicalization_method: server_config.canonicalization_method,
             saml_signing_key: server_config.saml_signing_key.unwrap(),
             saml_signing_cert: server_config.saml_signing_cert.unwrap(),
         }

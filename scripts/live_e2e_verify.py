@@ -3,10 +3,12 @@
 
 from __future__ import annotations
 
+import base64
 import http.cookiejar
 import os
 import ssl
 import sys
+import xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 from typing import Dict, Optional, Tuple
 from urllib.error import HTTPError
@@ -21,6 +23,15 @@ from urllib.request import (
 
 REDIRECT_CODES = {301, 302, 303, 307, 308}
 DEBUG_HTML_PATH = os.getenv("LIVE_E2E_DEBUG_HTML", ".tmp/live-e2e/last-keycloak-page.html")
+EXPECT_SUCCESS = os.getenv("LIVE_E2E_EXPECT_SUCCESS", "1").lower() in {"1", "true", "yes"}
+EXPECT_ASSERTION_SIGNATURE = os.getenv("LIVE_E2E_EXPECT_ASSERTION_SIGNATURE", "ignore").lower()
+EXPECT_RESPONSE_SIGNATURE = os.getenv("LIVE_E2E_EXPECT_RESPONSE_SIGNATURE", "ignore").lower()
+EXPECT_C14N_METHOD = os.getenv("LIVE_E2E_EXPECT_C14N_METHOD", "ignore").lower()
+TAMPER_SAML_RESPONSE = os.getenv("LIVE_E2E_TAMPER_SAML_RESPONSE", "0").lower() in {"1", "true", "yes"}
+
+
+class FlowError(RuntimeError):
+    """Raised for controlled protocol-flow failures."""
 
 
 class LocalInsecureCookiePolicy(http.cookiejar.DefaultCookiePolicy):
@@ -64,8 +75,43 @@ class SamlFormParser(HTMLParser):
 
 
 def fail(message: str) -> "None":
-    print(f"ERROR: {message}", file=sys.stderr)
-    raise SystemExit(1)
+    raise FlowError(message)
+
+
+def _expect_bool(expected: str, observed: bool, label: str) -> None:
+    if expected == "ignore":
+        return
+    wanted = expected in {"1", "true", "yes"}
+    if wanted != observed:
+        fail(f"{label} expectation mismatch: expected={wanted}, observed={observed}")
+
+
+def inspect_saml_response(saml_response: str) -> None:
+    decoded_xml = base64.b64decode(saml_response).decode("utf-8", errors="replace")
+    ns = {
+        "samlp": "urn:oasis:names:tc:SAML:2.0:protocol",
+        "saml": "urn:oasis:names:tc:SAML:2.0:assertion",
+        "ds": "http://www.w3.org/2000/09/xmldsig#",
+    }
+    root = ET.fromstring(decoded_xml)
+    response_sig = root.find("./ds:Signature", ns) is not None
+    assertion_sig = root.find("./saml:Assertion/ds:Signature", ns) is not None
+    _expect_bool(EXPECT_RESPONSE_SIGNATURE, response_sig, "response signature")
+    _expect_bool(EXPECT_ASSERTION_SIGNATURE, assertion_sig, "assertion signature")
+
+    if EXPECT_C14N_METHOD != "ignore":
+        expected_uri = {
+            "exclusive": "http://www.w3.org/2001/10/xml-exc-c14n#",
+            "inclusive": "http://www.w3.org/TR/2001/REC-xml-c14n-20010315",
+        }.get(EXPECT_C14N_METHOD)
+        if not expected_uri:
+            fail(f"Unknown LIVE_E2E_EXPECT_C14N_METHOD={EXPECT_C14N_METHOD}")
+        c14n_nodes = root.findall(".//ds:CanonicalizationMethod", ns)
+        if not c14n_nodes:
+            fail("Expected SignedInfo CanonicalizationMethod nodes but found none")
+        bad_nodes = [node.attrib.get("Algorithm") for node in c14n_nodes if node.attrib.get("Algorithm") != expected_uri]
+        if bad_nodes:
+            fail(f"Unexpected c14n algorithms found: {bad_nodes}, expected only {expected_uri}")
 
 
 def request_no_redirect(opener, url: str, method: str = "GET", body: Optional[bytes] = None, headers: Optional[Dict[str, str]] = None) -> Tuple[int, Dict[str, str], bytes]:
@@ -152,6 +198,9 @@ def main() -> None:
     relay_state = parser.inputs.get("RelayState", "")
     if not saml_response:
         fail("IdP response page did not include a SAMLResponse input")
+    inspect_saml_response(saml_response)
+    if TAMPER_SAML_RESPONSE:
+        saml_response = f"X{saml_response[1:]}"
 
     form_action = urljoin(idp_url, parser.form_action)
     post_body = urlencode(
@@ -236,4 +285,20 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except FlowError as error:
+        if EXPECT_SUCCESS:
+            print(f"ERROR: {error}", file=sys.stderr)
+            raise SystemExit(1) from error
+        print(f"Expected failure observed: {error}")
+        raise SystemExit(0) from error
+    except Exception as error:  # noqa: BLE001 - keep broad failure envelope for e2e harness
+        if EXPECT_SUCCESS:
+            print(f"ERROR: {error}", file=sys.stderr)
+            raise SystemExit(1) from error
+        print(f"Expected failure observed: {error}")
+        raise SystemExit(0) from error
+    if not EXPECT_SUCCESS:
+        print("ERROR: flow unexpectedly succeeded but failure was expected", file=sys.stderr)
+        raise SystemExit(1)

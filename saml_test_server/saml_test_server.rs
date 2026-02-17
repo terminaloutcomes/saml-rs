@@ -19,8 +19,10 @@ use saml_rs::SamlQuery;
 use saml_rs::assertion::AssertionAttribute;
 use saml_rs::metadata::{SamlMetadata, generate_metadata_xml};
 use saml_rs::response::{AuthNStatement, ResponseElements};
+use saml_rs::sign::SigningAlgorithm;
 use saml_rs::sp::{BindingMethod, ServiceProvider};
 
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use chrono::{DateTime, Duration, NaiveDate, Utc};
 
 use tide::log;
@@ -180,6 +182,35 @@ pub async fn saml_post_binding(req: tide::Request<AppState>) -> tide::Result {
         .build())
 }
 
+fn raw_query_value<'a>(query: &'a str, key: &str) -> Option<&'a str> {
+    for part in query.split('&') {
+        let mut kv = part.splitn(2, '=');
+        let Some(current_key) = kv.next() else {
+            continue;
+        };
+        if current_key == key {
+            return Some(kv.next().unwrap_or(""));
+        }
+    }
+    None
+}
+
+fn build_redirect_signed_payload(raw_query: &str) -> Result<String, String> {
+    let saml_request = raw_query_value(raw_query, "SAMLRequest")
+        .ok_or_else(|| "Missing SAMLRequest in redirect query".to_string())?;
+    let sig_alg = raw_query_value(raw_query, "SigAlg")
+        .ok_or_else(|| "Missing SigAlg in redirect query".to_string())?;
+    let relay_state = raw_query_value(raw_query, "RelayState");
+
+    Ok(match relay_state {
+        Some(relay_state_value) => format!(
+            "SAMLRequest={}&RelayState={}&SigAlg={}",
+            saml_request, relay_state_value, sig_alg
+        ),
+        None => format!("SAMLRequest={}&SigAlg={}", saml_request, sig_alg),
+    })
+}
+
 /// SAML requests or responses transmitted via HTTP Redirect have a SAMLRequest or SAMLResponse query string parameter, respectively. Before it's sent, the message is deflated (without header and checksum), base64-encoded, and URL-encoded, in that order. Upon receipt, the process is reversed to recover the original message.
 pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     let query: SamlQuery = match req.query() {
@@ -197,31 +228,6 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         r#"<!DOCTYPE html>
         <html lang="en"><head><title>saml_redirect_get</title></head><body>"#,
     );
-    // I'm not sure why this is here but I better not lose it
-    // https://www.w3.org/TR/2002/REC-xmldsig-core-20020212/xmldsig-core-schema.xsd#rsa-sha1
-
-    match query.Signature {
-        Some(ref value) => {
-            debug!("Found a signature! {:?}", value);
-            let sigalg = match query.SigAlg {
-                Some(ref value) => String::from(value),
-                None => {
-                    // we should probably bail on this request if we got a signature without an algorithm...
-                    // or maybe there's a way to specify it in the SP metadata???
-
-                    return Err(tide::Error::from_str(
-                        tide::StatusCode::BadRequest,
-                        "Found signature without a sigalg in a redirect authn request.",
-                    ));
-                }
-            };
-            debug!("SigAlg found: {:?}", &sigalg);
-        }
-        _ => {
-            debug!("Didn't find a signature in this request.");
-        }
-    }
-
     let samlrequest = query.SAMLRequest.unwrap();
 
     let base64_decoded_samlrequest =
@@ -272,6 +278,86 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
             }
         }
     };
+
+    let signed_request_required =
+        req.state().require_signed_authn_requests || service_provider.authn_requests_signed;
+    match query.Signature {
+        Some(ref signature_value) => {
+            let sigalg = match query.SigAlg.clone() {
+                Some(value) => value,
+                None => {
+                    return Err(tide::Error::from_str(
+                        tide::StatusCode::BadRequest,
+                        "Found signature without SigAlg in redirect authn request.",
+                    ));
+                }
+            };
+            let signing_algorithm = SigningAlgorithm::from(sigalg.clone());
+            if matches!(signing_algorithm, SigningAlgorithm::InvalidAlgorithm) {
+                return Err(tide::Error::from_str(
+                    tide::StatusCode::BadRequest,
+                    format!("Unsupported redirect signature algorithm: {}", sigalg),
+                ));
+            }
+            let cert = match service_provider.x509_certificate.as_ref() {
+                Some(cert) => cert,
+                None => {
+                    return Err(tide::Error::from_str(
+                        tide::StatusCode::BadRequest,
+                        "Signed request cannot be verified because SP metadata has no certificate",
+                    ));
+                }
+            };
+
+            let raw_query = req.url().query().unwrap_or("");
+            let signed_payload = match build_redirect_signed_payload(raw_query) {
+                Ok(value) => value,
+                Err(error) => {
+                    return Err(tide::Error::from_str(tide::StatusCode::BadRequest, error));
+                }
+            };
+            let normalized_signature = signature_value.replace(' ', "+");
+            let signature_bytes = match BASE64_STANDARD.decode(normalized_signature) {
+                Ok(value) => value,
+                Err(error) => {
+                    return Err(tide::Error::from_str(
+                        tide::StatusCode::BadRequest,
+                        format!("Failed to base64 decode Signature query value: {:?}", error),
+                    ));
+                }
+            };
+            let signature_valid = match saml_rs::sign::verify_data_with_cert(
+                signing_algorithm,
+                cert,
+                signed_payload.as_bytes(),
+                &signature_bytes,
+            ) {
+                Ok(value) => value,
+                Err(error) => {
+                    return Err(tide::Error::from_str(
+                        tide::StatusCode::BadRequest,
+                        format!("Failed to verify redirect signature: {}", error),
+                    ));
+                }
+            };
+
+            if !signature_valid {
+                return Err(tide::Error::from_str(
+                    tide::StatusCode::BadRequest,
+                    "Redirect signature verification failed",
+                ));
+            }
+        }
+        None => {
+            if signed_request_required {
+                return Err(tide::Error::from_str(
+                    tide::StatusCode::BadRequest,
+                    "Signed AuthnRequest is required for this SP",
+                ));
+            }
+            debug!("No redirect signature present; proceeding for unsigned request policy.");
+        }
+    }
 
     let mut _form_target = String::new();
 
@@ -399,11 +485,13 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
 
         session_length_seconds: 30,
         status: saml_rs::constants::StatusCode::Success,
-        sign_assertion: true,
-        sign_message: false,
+        sign_assertion: req.state().sign_assertion,
+        sign_message: req.state().sign_message,
         signing_key,
         signing_cert: Some(req.state().saml_signing_cert.to_owned()),
-        // TODO: write a test case that actually signs the response
+        signing_algorithm: saml_rs::sign::SigningAlgorithm::Sha256,
+        digest_algorithm: saml_rs::sign::DigestAlgorithm::Sha256,
+        canonicalization_method: req.state().canonicalization_method,
     };
 
     response_body.push_str(&generate_login_form(response, relay_state));
@@ -424,7 +512,15 @@ pub fn generate_login_form(response: ResponseElements, relay_state: String) -> S
     let mut context = tera::Context::new();
 
     context.insert("form_action", &response.destination);
-    let response_data = response.base64_encoded_response();
+    let response_data = match response.try_base64_encoded_response() {
+        Ok(value) => value,
+        Err(error) => {
+            return format!(
+                "<p>Failed to generate SAML response signature/canonicalization output: {}</p>",
+                error
+            );
+        }
+    };
     let saml_response = from_utf8(&response_data).unwrap().to_string();
     context.insert("SAMLResponse", &saml_response);
     context.insert("RelayState", &relay_state);

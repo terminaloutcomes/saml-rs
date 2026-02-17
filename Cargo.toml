@@ -33,6 +33,7 @@ tokio = "1.49.0"
 uuid = "1.21.0"
 xml-rs = "1.0.0"
 xmlparser = "0.13.6"
+xml_c14n = "0.3.0"
 
 [package]
 name = "saml-rs"
@@ -57,6 +58,7 @@ base64 = { workspace = true }
 tide = { workspace = true }
 uuid = { workspace = true, features = ["serde", "v4"] }
 tokio = { workspace = true, features = ["fs", "rt"] }
+xml_c14n = { workspace = true }
 
 [dev-dependencies]
 reqwest = { workspace = true, features = ["blocking", "native-tls"] }
