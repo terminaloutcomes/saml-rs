@@ -24,7 +24,7 @@ inflate = "0.4.5"
 
 
 #writing xml
-xml-rs = "0.8"
+xml-rs = "1.0"
 
 
 # parsing and shenanigans
