@@ -76,9 +76,244 @@ pub struct ResponseElements {
     pub signing_cert: Option<openssl::x509::X509>,
 }
 
+/// A builder for [ResponseElements] that validates required fields before creation.
+#[derive(Debug)]
+pub struct ResponseElementsBuilder {
+    response_id: Option<String>,
+    issue_instant: Option<DateTime<Utc>>,
+    destination: Option<String>,
+    relay_state: Option<String>,
+    issuer: Option<String>,
+    attributes: Vec<AssertionAttribute>,
+    authnstatement: Option<AuthNStatement>,
+    assertion_id: Option<String>,
+    service_provider: Option<ServiceProvider>,
+    assertion_consumer_service: Option<String>,
+    session_length_seconds: u32,
+    status: crate::constants::StatusCode,
+    sign_assertion: bool,
+    sign_message: bool,
+    signing_key: Option<openssl::pkey::PKey<openssl::pkey::Private>>,
+    signing_cert: Option<openssl::x509::X509>,
+}
+
+impl ResponseElementsBuilder {
+    /// Creates an empty builder.
+    pub fn new() -> Self {
+        Self {
+            response_id: None,
+            issue_instant: None,
+            destination: None,
+            relay_state: None,
+            issuer: None,
+            attributes: vec![],
+            authnstatement: None,
+            assertion_id: None,
+            service_provider: None,
+            assertion_consumer_service: None,
+            session_length_seconds: 60,
+            status: crate::constants::StatusCode::AuthnFailed,
+            sign_assertion: true,
+            sign_message: false,
+            signing_key: None,
+            signing_cert: None,
+        }
+    }
+
+    /// Sets the response ID.
+    pub fn response_id(mut self, response_id: impl Into<String>) -> Self {
+        self.response_id = Some(response_id.into());
+        self
+    }
+
+    /// Sets the issue instant.
+    pub fn issue_instant(mut self, issue_instant: DateTime<Utc>) -> Self {
+        self.issue_instant = Some(issue_instant);
+        self
+    }
+
+    /// Sets the destination URL.
+    pub fn destination(mut self, destination: impl Into<String>) -> Self {
+        self.destination = Some(destination.into());
+        self
+    }
+
+    /// Sets the relay state.
+    pub fn relay_state(mut self, relay_state: impl Into<String>) -> Self {
+        self.relay_state = Some(relay_state.into());
+        self
+    }
+
+    /// Sets the response issuer.
+    pub fn issuer(mut self, issuer: impl Into<String>) -> Self {
+        self.issuer = Some(issuer.into());
+        self
+    }
+
+    /// Sets assertion attributes.
+    pub fn attributes(mut self, attributes: Vec<AssertionAttribute>) -> Self {
+        self.attributes = attributes;
+        self
+    }
+
+    /// Sets the authn statement.
+    pub fn authnstatement(mut self, authnstatement: AuthNStatement) -> Self {
+        self.authnstatement = Some(authnstatement);
+        self
+    }
+
+    /// Sets the assertion ID.
+    pub fn assertion_id(mut self, assertion_id: impl Into<String>) -> Self {
+        self.assertion_id = Some(assertion_id.into());
+        self
+    }
+
+    /// Sets the service provider.
+    pub fn service_provider(mut self, service_provider: ServiceProvider) -> Self {
+        self.service_provider = Some(service_provider);
+        self
+    }
+
+    /// Sets the assertion consumer service URL.
+    pub fn assertion_consumer_service(
+        mut self,
+        assertion_consumer_service: Option<String>,
+    ) -> Self {
+        self.assertion_consumer_service = assertion_consumer_service;
+        self
+    }
+
+    /// Sets the session length in seconds.
+    pub fn session_length_seconds(mut self, session_length_seconds: u32) -> Self {
+        self.session_length_seconds = session_length_seconds;
+        self
+    }
+
+    /// Sets the SAML status code.
+    pub fn status(mut self, status: crate::constants::StatusCode) -> Self {
+        self.status = status;
+        self
+    }
+
+    /// Enables or disables assertion signing.
+    pub fn sign_assertion(mut self, sign_assertion: bool) -> Self {
+        self.sign_assertion = sign_assertion;
+        self
+    }
+
+    /// Enables or disables message signing.
+    pub fn sign_message(mut self, sign_message: bool) -> Self {
+        self.sign_message = sign_message;
+        self
+    }
+
+    /// Sets the private key used for signing.
+    pub fn signing_key(
+        mut self,
+        signing_key: Option<openssl::pkey::PKey<openssl::pkey::Private>>,
+    ) -> Self {
+        self.signing_key = signing_key;
+        self
+    }
+
+    /// Sets the X509 certificate used for signing.
+    pub fn signing_cert(mut self, signing_cert: Option<openssl::x509::X509>) -> Self {
+        self.signing_cert = signing_cert;
+        self
+    }
+
+    /// Builds [ResponseElements] after validating required values.
+    pub fn build(self) -> Result<ResponseElements, &'static str> {
+        let issuer = required_non_empty(self.issuer, "issuer")?;
+        let destination = required_non_empty(self.destination, "destination")?;
+        let relay_state = required_non_empty(self.relay_state, "relay_state")?;
+        let authnstatement = required(self.authnstatement, "authnstatement")?;
+        let service_provider = required(self.service_provider, "service_provider")?;
+
+        if self.session_length_seconds == 0 {
+            return Err("session_length_seconds must be greater than 0");
+        }
+
+        if self.sign_assertion || self.sign_message {
+            if self.signing_key.is_none() {
+                return Err("signing_key must be set when signing is enabled");
+            }
+            if self.signing_cert.is_none() {
+                return Err("signing_cert must be set when signing is enabled");
+            }
+        }
+
+        let assertion_id = match self.assertion_id {
+            Some(value) if !value.trim().is_empty() => value,
+            Some(_) => return Err("assertion_id must not be empty"),
+            None => ResponseElements::new_assertion_id(),
+        };
+        let response_id = match self.response_id {
+            Some(value) if !value.trim().is_empty() => value,
+            Some(_) => return Err("response_id must not be empty"),
+            None => ResponseElements::new_response_id(&issuer),
+        };
+
+        Ok(ResponseElements {
+            response_id,
+            issue_instant: self.issue_instant.unwrap_or_else(Utc::now),
+            destination,
+            relay_state,
+            issuer,
+            attributes: self.attributes,
+            authnstatement,
+            assertion_id,
+            service_provider,
+            assertion_consumer_service: self.assertion_consumer_service,
+            session_length_seconds: self.session_length_seconds,
+            status: self.status,
+            sign_assertion: self.sign_assertion,
+            sign_message: self.sign_message,
+            signing_key: self.signing_key,
+            signing_cert: self.signing_cert,
+        })
+    }
+}
+
+impl Default for ResponseElementsBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+fn required<T>(value: Option<T>, field: &'static str) -> Result<T, &'static str> {
+    match value {
+        Some(value) => Ok(value),
+        None => Err(field),
+    }
+}
+
+fn required_non_empty(value: Option<String>, field: &'static str) -> Result<String, &'static str> {
+    let value = required(value, field)?;
+    if value.trim().is_empty() {
+        return Err(field);
+    }
+    Ok(value)
+}
+
 use uuid::Uuid;
 
 impl ResponseElements {
+    /// Creates a new [ResponseElementsBuilder].
+    pub fn builder() -> ResponseElementsBuilder {
+        ResponseElementsBuilder::new()
+    }
+
+    /// Creates a random assertion ID.
+    pub fn new_assertion_id() -> String {
+        Uuid::new_v4().to_string()
+    }
+
+    /// Creates a random response ID tied to an issuer.
+    pub fn new_response_id(issuer: &str) -> String {
+        format!("{}-{}", issuer, Uuid::new_v4())
+    }
+
     /// returns the base64 encoded version of a [ResponseElements]
     pub fn base64_encoded_response(self) -> Vec<u8> {
         let buffer: Vec<u8> = self.into();
@@ -89,22 +324,8 @@ impl ResponseElements {
     pub fn regenerate_response_id(self) -> Self {
         let response_id = format!("{}-{}", self.issuer, Uuid::new_v4());
         Self {
-            assertion_id: self.assertion_id,
-            attributes: self.attributes,
-            authnstatement: self.authnstatement,
-            destination: self.destination,
-            issuer: self.issuer.to_string(),
-            relay_state: self.relay_state,
-            issue_instant: self.issue_instant,
-            service_provider: self.service_provider,
             response_id,
-            assertion_consumer_service: self.assertion_consumer_service,
-            session_length_seconds: self.session_length_seconds,
-            status: self.status,
-            sign_assertion: self.sign_assertion,
-            sign_message: self.sign_message,
-            signing_key: self.signing_key,
-            signing_cert: self.signing_cert,
+            ..self
         }
     }
 }
@@ -116,12 +337,9 @@ impl ResponseElements {
 impl Into<Vec<u8>> for ResponseElements {
     fn into(self) -> Vec<u8> {
         // TODO set up all these values
-
         let conditions_not_before = Utc::now();
-
         let session_time = chrono::Duration::minutes(5);
         let conditions_not_after: DateTime<Utc> = conditions_not_before + session_time;
-
         let mut buffer = Vec::new();
         let mut writer = EmitterConfig::new()
             .perform_indent(true)
@@ -288,39 +506,6 @@ impl AuthNStatement {
 
         // end authn statement
         write_event(XmlEvent::end_element().into(), writer);
-    }
-}
-
-impl Default for ResponseElements {
-    /// Default values, mostly so I can pull out a default assertion ID somewhere else, for now
-    fn default() -> Self {
-        let placeholder_authn_statement = AuthNStatement {
-            instant: Utc::now(),
-            session_index: String::from(
-                "This is totally a placeholder session_index, why is this here?",
-            ),
-            classref: String::from("This is totally a placeholder classref, why is this here?"),
-            expiry: None,
-        };
-        // TODO: don't have a default, implement a builder pattern instead and refuse to build without good values
-        Self {
-            assertion_id: Uuid::new_v4().to_string(),
-            attributes: vec![],
-            authnstatement: placeholder_authn_statement,
-            destination: String::from("This should have been set"),
-            issuer: String::from("This should have been set"),
-            relay_state: String::from("This should have been set"),
-            issue_instant: Utc::now(),
-            service_provider: ServiceProvider::test_generic("foo"),
-            response_id: Uuid::new_v4().to_string(),
-            assertion_consumer_service: None,
-            session_length_seconds: 60, // a minute is plenty to be able to consume the assertion
-            status: crate::constants::StatusCode::AuthnFailed,
-            sign_assertion: true,
-            sign_message: false,
-            signing_key: None,
-            signing_cert: None,
-        }
     }
 }
 

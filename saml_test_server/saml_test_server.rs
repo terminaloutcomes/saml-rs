@@ -358,7 +358,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     let signing_key = Some(req.state().saml_signing_key.to_owned());
     let response = ResponseElements {
         issuer: req.state().hostname.to_string(),
-        response_id: ResponseElements::default().assertion_id,
+        response_id: ResponseElements::new_response_id(req.state().hostname.as_str()),
         // issue_instant: DateTime::<Utc>::from_utc(
         //     NaiveDate::from_ymd(2014, 7, 17).and_hms(1, 1, 48),
         //     Utc,
@@ -370,7 +370,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         // destination: form_target,
         destination: parsed_saml_request.consumer_service_url.to_string(),
         authnstatement,
-        assertion_id: ResponseElements::default().assertion_id,
+        assertion_id: ResponseElements::new_assertion_id(),
         service_provider: service_provider.unwrap().to_owned(),
         assertion_consumer_service: Some(parsed_saml_request.consumer_service_url),
 
