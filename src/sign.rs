@@ -131,6 +131,12 @@ fn read_file_bytes(path: &str) -> Result<Vec<u8>, String> {
         .map_err(|error| format!("Failed to read {}: {:?}", path, error))
 }
 
+async fn read_file_bytes_async(path: &str) -> Result<Vec<u8>, String> {
+    tokio::fs::read(path)
+        .await
+        .map_err(|error| format!("Failed to read {}: {:?}", path, error))
+}
+
 /// Loads a PEM-encoded public key into a PKey object
 pub fn load_key_from_filename(key_filename: &str) -> Result<PKey<Private>, String> {
     let pkey_buffer = match read_file_bytes(key_filename) {
@@ -147,6 +153,28 @@ pub fn load_key_from_filename(key_filename: &str) -> Result<PKey<Private>, Strin
         }
     };
     // let keypair = Rsa::generate(2048).unwrap();
+    match PKey::from_rsa(keypair) {
+        Ok(value) => Ok(value),
+        Err(error) => Err(format!("Failed to convert into PKey object: {:?}", error)),
+    }
+}
+
+/// Async version of [load_key_from_filename] for callers that already run inside a tokio runtime.
+pub async fn load_key_from_filename_async(key_filename: &str) -> Result<PKey<Private>, String> {
+    let pkey_buffer = match read_file_bytes_async(key_filename).await {
+        Ok(value) => value,
+        Err(error) => return Err(format!("Error loading file {}: {}", key_filename, error)),
+    };
+    info!("Read private key OK");
+
+    debug!("key:  {}", key_filename);
+    let keypair = match Rsa::private_key_from_pem(&pkey_buffer) {
+        Ok(value) => value,
+        Err(error) => {
+            return Err(format!("Failed to load pkey from pem bytes: {:?}", error));
+        }
+    };
+
     match PKey::from_rsa(keypair) {
         Ok(value) => Ok(value),
         Err(error) => Err(format!("Failed to convert into PKey object: {:?}", error)),
@@ -241,6 +269,30 @@ pub fn load_public_cert_from_filename(cert_filename: &str) -> Result<X509, Strin
     debug!("loading cert:  {}", cert_filename);
 
     let cert_buffer = match read_file_bytes(cert_filename) {
+        Ok(value) => value,
+        Err(error) => {
+            return Err(format!(
+                "Error loading certificate file {}: {}",
+                cert_filename, error
+            ));
+        }
+    };
+    eprintln!("Read certificate OK");
+
+    match X509::from_pem(&cert_buffer) {
+        Ok(value) => Ok(value),
+        Err(error) => Err(format!(
+            "Failed to load certificate from pem bytes: {:?}",
+            error
+        )),
+    }
+}
+
+/// Async version of [load_public_cert_from_filename] for callers that already run inside a tokio runtime.
+pub async fn load_public_cert_from_filename_async(cert_filename: &str) -> Result<X509, String> {
+    debug!("loading cert:  {}", cert_filename);
+
+    let cert_buffer = match read_file_bytes_async(cert_filename).await {
         Ok(value) => value,
         Err(error) => {
             return Err(format!(

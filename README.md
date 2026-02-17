@@ -12,6 +12,79 @@ This library's in a lot of flux right now, if you're using it from Github then..
 
 The automatically-generated documentation based on the `main` branch is here: <https://terminaloutcomes.github.io/saml-rs/saml_rs/>
 
+## Current implementation state
+
+- `saml_test_server` currently handles the browser SSO path of:
+  - SP Redirect AuthnRequest -> IdP `/SAML/Redirect`
+  - IdP generates a POST form containing `SAMLResponse` back to the SP ACS
+- Assertions are signed in the default test-server response path.
+- Response-level message signing is currently disabled in the test-server flow.
+- Assertion encryption (`EncryptedAssertion`) is not currently implemented.
+- The local `live-e2e` harness uses HTTP endpoints for local-only automation.
+
+## Live local interoperability test (no browser automation)
+
+You can run a fully local SAML round-trip with:
+
+- `saml_test_server` as the IdP (from this repo)
+- Keycloak as a real SAML peer (as SP via identity brokering)
+- a headless verifier script that drives the protocol and asserts success
+
+### Prerequisites
+
+- Docker + Docker Compose
+- `openssl`
+
+### Run
+
+```shell
+just live-e2e
+```
+
+This command will:
+
+1. Generate temporary signing material in `.tmp/live-e2e/`
+2. Start Keycloak (Docker) on `http://localhost:18080`
+3. Start `saml_test_server` directly on your host via `cargo run` at `http://localhost:18081`
+4. Run a headless end-to-end verifier (`scripts/live_e2e_verify.py`)
+5. Tear everything down automatically (unless `KEEP_UP=1` is set)
+
+### Helper commands
+
+```shell
+just live-e2e-up
+just live-e2e-down
+```
+
+If you want to keep the stack running after a test:
+
+```shell
+KEEP_UP=1 ./scripts/live_e2e.sh run
+```
+
+The verifier drives the complete flow without a browser, including Keycloak's first-broker-login profile form.
+
+## `saml_test_server` runtime config (current)
+
+`saml_test_server` reads config from:
+
+- `SAML_CONFIG_PATH` file (optional, default `~/.config/saml_test_server`)
+- environment variables with `SAML_` prefix (override file values)
+
+Key fields used by current code:
+
+- `bind_address` / `SAML_BIND_ADDRESS`
+- `bind_port` / `SAML_BIND_PORT`
+- `listen_scheme` / `SAML_LISTEN_SCHEME` (`http` or `https`)
+- `public_hostname` / `SAML_PUBLIC_HOSTNAME`
+- `public_base_url` / `SAML_PUBLIC_BASE_URL` (used for metadata URLs)
+- `entity_id` / `SAML_ENTITY_ID`
+- `allow_unknown_sp` / `SAML_ALLOW_UNKNOWN_SP`
+- `sp_metadata_files` / `SAML_SP_METADATA_FILES`
+- `saml_cert_path` / `SAML_SAML_CERT_PATH` (IdP signing cert)
+- `saml_key_path` / `SAML_SAML_KEY_PATH` (IdP signing key)
+- `tls_cert_path` / `SAML_TLS_CERT_PATH` and `tls_key_path` / `SAML_TLS_KEY_PATH` when `listen_scheme=https`
+
 ## Generating the SAML keys for the test server
 
 You'll need cloudflare's SSL toolkit [cloudflare/ssl](https://github.com/cloudflare/cfssl).

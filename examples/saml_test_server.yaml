@@ -1,8 +1,13 @@
 ---
 bind_address: 0.0.0.0
+bind_port: 443
+listen_scheme: https
 public_hostname: saml.example.com
+public_base_url: https://saml.example.com/SAML
+entity_id: https://saml.example.com/SAML/Metadata
 tls_cert_path: /etc/letsencrypt/live/saml.example.com/fullchain.pem
 tls_key_path: /etc/letsencrypt/live/saml.example.com/privkey.pem
 sp_metadata_files:
 - /etc/saml_test_server/SPMetadata-1.xml
+allow_unknown_sp: false
 default_session_lifetime: 43200 # 12 hours

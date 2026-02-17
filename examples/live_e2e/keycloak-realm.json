@@ -1,0 +1,58 @@
+{
+  "id": "saml-e2e",
+  "realm": "saml-e2e",
+  "displayName": "saml-rs live e2e",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "clients": [
+    {
+      "clientId": "e2e-client",
+      "name": "saml-rs e2e oidc client",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:18082/callback"
+      ],
+      "webOrigins": [
+        "*"
+      ]
+    }
+  ],
+  "identityProviders": [
+    {
+      "alias": "saml-rs",
+      "providerId": "saml",
+      "enabled": true,
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "authenticateByDefault": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "entityId": "http://localhost:18081/SAML/Metadata",
+        "serviceProviderEntityId": "http://localhost:18080/realms/saml-e2e",
+        "singleSignOnServiceUrl": "http://localhost:18081/SAML/Redirect",
+        "singleLogoutServiceUrl": "http://localhost:18081/SAML/Logout",
+        "nameIDPolicyFormat": "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+        "validateSignature": "false",
+        "wantAssertionsSigned": "false",
+        "wantAuthnRequestsSigned": "false",
+        "postBindingAuthnRequest": "false",
+        "postBindingResponse": "true",
+        "backchannelSupported": "false",
+        "syncMode": "IMPORT",
+        "allowCreate": "true"
+      }
+    }
+  ]
+}

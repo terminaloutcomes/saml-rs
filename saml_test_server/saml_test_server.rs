@@ -19,7 +19,7 @@ use saml_rs::SamlQuery;
 use saml_rs::assertion::AssertionAttribute;
 use saml_rs::metadata::{SamlMetadata, generate_metadata_xml};
 use saml_rs::response::{AuthNStatement, ResponseElements};
-use saml_rs::sp::BindingMethod;
+use saml_rs::sp::{BindingMethod, ServiceProvider};
 
 use chrono::{DateTime, Duration, NaiveDate, Utc};
 
@@ -44,7 +44,10 @@ use util::*;
 ///
 /// This uses HTTPS if you specify `TIDE_CERT_PATH` and `TIDE_KEY_PATH` environment variables.
 async fn main() -> tide::Result<()> {
-    let config_path: String = shellexpand::tilde("~/.config/saml_test_server").into_owned();
+    let config_path = match std::env::var("SAML_CONFIG_PATH") {
+        Ok(path) => path,
+        Err(_) => shellexpand::tilde("~/.config/saml_test_server").into_owned(),
+    };
 
     let server_config = util::ServerConfig::from_filename_and_env(config_path).await;
 
@@ -86,39 +89,59 @@ async fn main() -> tide::Result<()> {
 
     saml_process.at("/Redirect").get(saml_redirect_get);
 
-    {
-        let tls_cert: String =
-            shellexpand::tilde(&server_config.tls_cert_path.as_str()).into_owned();
-        let tls_key: String = shellexpand::tilde(&server_config.tls_key_path.as_str()).into_owned();
-        match File::open(&tls_cert).await {
-            Ok(_) => info!("Successfully loaded cert from {:?}", tls_cert),
-            Err(error) => {
-                error!(
-                    "Failed to load cert from {:?}, bailing: {:?}",
-                    tls_cert, error
-                );
-                std::process::exit(1);
+    let bind_target = format!(
+        "{}:{}",
+        &server_config.bind_address, server_config.bind_port
+    );
+
+    match server_config.listen_scheme.as_str() {
+        "https" => {
+            let tls_cert: String =
+                shellexpand::tilde(&server_config.tls_cert_path.as_str()).into_owned();
+            let tls_key: String =
+                shellexpand::tilde(&server_config.tls_key_path.as_str()).into_owned();
+            match File::open(&tls_cert).await {
+                Ok(_) => info!("Successfully loaded cert from {:?}", tls_cert),
+                Err(error) => {
+                    error!(
+                        "Failed to load cert from {:?}, bailing: {:?}",
+                        tls_cert, error
+                    );
+                    std::process::exit(1);
+                }
             }
-        }
-        match File::open(&tls_key).await {
-            Ok(_) => info!("Successfully loaded key from {:?}", tls_key),
-            Err(error) => {
-                error!(
-                    "Failed to load key from {:?}, bailing: {:?}",
-                    tls_key, error
-                );
-                std::process::exit(1);
+            match File::open(&tls_key).await {
+                Ok(_) => info!("Successfully loaded key from {:?}", tls_key),
+                Err(error) => {
+                    error!(
+                        "Failed to load key from {:?}, bailing: {:?}",
+                        tls_key, error
+                    );
+                    std::process::exit(1);
+                }
             }
+            info!("Starting up HTTPS server on {:?}", bind_target);
+            debug!("Server config: {:?}", server_config);
+            app.listen(
+                TlsListener::build()
+                    .addrs(bind_target)
+                    .cert(tls_cert)
+                    .key(tls_key),
+            )
+            .await?;
         }
-        info!("Starting up server");
-        debug!("Server config: {:?}", server_config);
-        app.listen(
-            TlsListener::build()
-                .addrs(format!("{}:443", &server_config.bind_address))
-                .cert(tls_cert)
-                .key(tls_key),
-        )
-        .await?
+        "http" => {
+            info!("Starting up HTTP server on {:?}", bind_target);
+            debug!("Server config: {:?}", server_config);
+            app.listen(bind_target).await?;
+        }
+        unknown_scheme => {
+            error!(
+                "Unknown listen scheme {:?}, expected http or https",
+                unknown_scheme
+            );
+            std::process::exit(1);
+        }
     };
     Ok(())
 }
@@ -126,14 +149,13 @@ async fn main() -> tide::Result<()> {
 // use saml_rs::cert::strip_cert_headers;
 /// Provides a GET response for the metadata URL
 async fn saml_metadata_get(req: Request<AppState>) -> tide::Result {
-    let cert_path = &req.state().saml_cert_path;
-    let certificate = saml_rs::sign::load_public_cert_from_filename(cert_path).unwrap();
+    let certificate = req.state().saml_signing_cert.to_owned();
 
-    let entity_id = String::from(&req.state().hostname);
+    let entity_id = req.state().issuer.to_string();
 
     let metadata = SamlMetadata::new(
         &req.state().hostname,
-        None,
+        Some(req.state().public_base_url.to_string()),
         Some(entity_id),
         None,
         None,
@@ -232,26 +254,31 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     let service_provider = match req
         .state()
         .service_providers
-        .contains_key(&parsed_saml_request.issuer)
+        .get(&parsed_saml_request.issuer)
     {
-        true => req
-            .state()
-            .service_providers
-            .get(&parsed_saml_request.issuer),
-        false => {
-            return Err(tide::Error::from_str(
-                tide::StatusCode::BadRequest,
-                "Unable to find SP for request.".to_string(),
-            ));
+        Some(value) => value.to_owned(),
+        None => {
+            if req.state().allow_unknown_sp {
+                info!(
+                    "SP {:?} was not in configured metadata; using generated fallback profile.",
+                    &parsed_saml_request.issuer
+                );
+                ServiceProvider::test_generic(&parsed_saml_request.issuer)
+            } else {
+                return Err(tide::Error::from_str(
+                    tide::StatusCode::BadRequest,
+                    "Unable to find SP for request.".to_string(),
+                ));
+            }
         }
     };
 
     let mut _form_target = String::new();
 
     response_body.push_str("<p style='color: darkgreen'>found SP in state!</p>");
-    response_body.push_str(&format!("<p>{:?}</p>", service_provider));
+    response_body.push_str(&format!("<p>{:?}</p>", &service_provider));
     // find the consumer
-    for service in &service_provider.unwrap().services {
+    for service in &service_provider.services {
         match service.servicetype {
             saml_rs::sp::SamlBindingType::AssertionConsumerService => {
                 debug!("acs: {:?}", service);
@@ -367,7 +394,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         destination: parsed_saml_request.consumer_service_url.to_string(),
         authnstatement,
         assertion_id: ResponseElements::new_assertion_id(),
-        service_provider: service_provider.unwrap().to_owned(),
+        service_provider: service_provider.to_owned(),
         assertion_consumer_service: Some(parsed_saml_request.consumer_service_url),
 
         session_length_seconds: 30,

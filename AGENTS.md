@@ -5,6 +5,9 @@
 - `tests/` holds Rust integration tests (`test_metadata.rs`, `test_response.rs`).
 - `saml_test_server/` is a workspace member binary for local IdP/SP flow testing.
 - `examples/` stores sample SAML XML payloads and config fixtures used by tests and manual validation.
+- `examples/live_e2e/` contains Keycloak realm import data for local interoperability tests.
+- `scripts/live_e2e.sh` and `scripts/live_e2e_verify.py` run a full headless local SAML round-trip.
+- `docker-compose.live-e2e.yml` brings up the Keycloak side of the local live test.
 - Top-level Python files (`test_examples.py`, `test_c14n.py`) support XML/signature validation workflows.
 - Utility scripts live at repo root: `pre-commit.sh`, `builddocs.sh`, `docker_build.sh`, `run_docker_example.sh`.
 
@@ -15,10 +18,12 @@
 - `cargo doc --no-deps --workspace --document-private-items`: generate local API docs.
 - `uv sync --all-groups`: install Python tooling used by CI.
 - `uv run pytest`, `uv run mypy test*.py`, `uv run pylint test*.py`: run Python checks.
+- `just live-e2e`: run the local live IdP/SP headless interoperability flow.
+- `just live-e2e-up`, `just live-e2e-down`: manage only the live test stack lifecycle.
 - A task is not complete until `just check` runs with zero errors and zero warnings.
 
 ## Coding Style & Naming Conventions
-- Rust edition is 2018; crate-level policy forbids unsafe code (`#![forbid(unsafe_code)]`).
+- Rust edition is 2024; crate-level policy forbids unsafe code (`#![forbid(unsafe_code)]`).
 - Always run `cargo fmt` and `cargo clippy --workspace` before opening a PR.
 - Rust naming: modules/files `snake_case`, structs/enums `UpperCamelCase`, functions/tests `snake_case`.
 - Python code follows Black/Pylint/Mypy expectations (see `pyproject.toml`; Pylint max line length is 200).
@@ -39,3 +44,10 @@
 - Do not commit certificates, private keys, or environment-specific secrets.
 - Use environment variables for runtime key/cert paths in container/server workflows.
 - Follow `SECURITY.MD` for vulnerability reporting.
+- Local live-e2e generates temporary keys in `.tmp/live-e2e/`; keep `.tmp/` uncommitted.
+
+## Current Protocol State
+- `saml_test_server` currently supports Redirect-in (`/SAML/Redirect`) and metadata (`/SAML/Metadata`) paths used by the live test flow.
+- Assertions are signed in the test flow, response-level signing is currently disabled.
+- Assertion encryption (`EncryptedAssertion`) is not currently implemented.
+- The local live-e2e harness intentionally runs over HTTP for local-only automation (not production security posture).
