@@ -15,11 +15,11 @@
 #![deny(missing_debug_implementations)]
 
 use log::{debug, error, info};
+use saml_rs::SamlQuery;
 use saml_rs::assertion::AssertionAttribute;
-use saml_rs::metadata::{generate_metadata_xml, SamlMetadata};
+use saml_rs::metadata::{SamlMetadata, generate_metadata_xml};
 use saml_rs::response::{AuthNStatement, ResponseElements};
 use saml_rs::sp::SamlBinding;
-use saml_rs::SamlQuery;
 
 use chrono::{DateTime, Duration, NaiveDate, Utc};
 
@@ -30,7 +30,7 @@ use tide_openssl::TlsListener;
 
 use std::fs::File;
 use std::io::ErrorKind;
-use std::str::{from_utf8, FromStr};
+use std::str::{FromStr, from_utf8};
 
 use http_types::Mime;
 
@@ -39,7 +39,7 @@ pub mod util;
 use util::*;
 // use util::do_nothing;
 
-#[async_std::main]
+#[tokio::main]
 /// Spins up a test server
 ///
 /// This uses HTTPS if you specify `TIDE_CERT_PATH` and `TIDE_KEY_PATH` environment variables.
@@ -58,7 +58,7 @@ async fn main() -> tide::Result<()> {
     app.with(driftwood::ApacheCombinedLogger);
 
     app.with(After(|mut res: Response| async {
-        if let Some(err) = res.downcast_error::<async_std::io::Error>() {
+        if let Some(err) = res.downcast_error::<std::io::Error>() {
             debug!("asdfadsfadsf {:?}", err);
             let msg = match err.kind() {
                 ErrorKind::NotFound => {
@@ -242,7 +242,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
             return Err(tide::Error::from_str(
                 tide::StatusCode::BadRequest,
                 "Unable to find SP for request.".to_string(),
-            ))
+            ));
         }
     };
 

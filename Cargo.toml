@@ -1,38 +1,64 @@
-[package]
-name = "saml-rs"
+[workspace]
+members = ["saml_test_server"]
+
+[workspace.package]
 version = "0.1.0"
 authors = ["James Hodgkinson <james@terminaloutcomes.com>"]
 edition = "2024"
-
 publish = false
 
-[workspace]
-
-members = ["saml_test_server"]
-
-[dependencies]
-log = "0.4.29"
+[workspace.dependencies]
 base64 = "0.22.1"
+chrono = "0.4.43"
+config = "0.13"
+difference = "2.0.0"
+driftwood = "0.0.7"
+hex = "0.4.3"
+http-types = "2.11.1"
 inflate = "0.4.5"
-xml-rs = "1.0.0"
-xmlparser = "0.13.6"
+log = "0.4.29"
+openssl = "0.10.75"
+regex = "1.12.3"
+reqwest = "0.11"
 serde = "1.0.228"
 serde-xml-rs = "0.8.2"
 serde_derive = "1.0"
-difference = "2.0.0"
-chrono = "0.4.43"
-openssl = "0.10.75"
+serde_json = "1.0"
+sha-1 = "0.10.0"
+shellexpand = "3.1.1"
+tera = "1"
+tide = "0.16"
+tide-openssl = "0.1.1"
+tokio = "1.49.0"
+uuid = "1.21.0"
+xml-rs = "1.0.0"
+xmlparser = "0.13.6"
 
-# web things
-tide = { version = "0.16" }
+[package]
+name = "saml-rs"
 
-uuid = { version = "1.21.0", features = ["serde", "v4"] }
-tokio = { version = "1.49.0", features = ["fs", "rt"] }
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+publish = { workspace = true }
 
+[dependencies]
+xmlparser = { workspace = true }
+serde = { workspace = true }
+serde-xml-rs = { workspace = true }
+serde_derive = { workspace = true }
+difference = { workspace = true }
+chrono = { workspace = true }
+openssl = { workspace = true }
+log = { workspace = true }
+inflate = { workspace = true }
+xml-rs = { workspace = true }
+base64 = { workspace = true }
+tide = { workspace = true }
+uuid = { workspace = true, features = ["serde", "v4"] }
+tokio = { workspace = true, features = ["fs", "rt"] }
 
 [dev-dependencies]
-reqwest = { version = "0.11", features = ["blocking", "native-tls"] }
-regex = "1.12.3"
-
-# for test_digest
-hex = "0.4.3"
+reqwest = { workspace = true, features = ["blocking", "native-tls"] }
+regex = { workspace = true }
+hex = { workspace = true }
