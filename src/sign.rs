@@ -21,14 +21,15 @@
 //! Thats it. SAML is completely awful. There are tons of little subtleties that make implementing SAML a nightmare(like calculating the canonical form of a subset of the XML(the assertion), also the XML version of XML documents is not included.
 //!
 
+use log::debug;
+use log::error;
+use log::info;
 use openssl::pkey::PKey;
 use openssl::pkey::Private;
 use openssl::rsa::Rsa;
 use openssl::sign::{Signer, Verifier};
 use openssl::x509::X509;
 use std::fmt;
-use std::fs::File;
-use std::io::prelude::*;
 
 /// Options of Signing Algorithms for things
 ///
@@ -57,7 +58,10 @@ impl From<SigningAlgorithm> for openssl::hash::MessageDigest {
             SigningAlgorithm::Sha256 => openssl::hash::MessageDigest::sha256(),
             SigningAlgorithm::Sha384 => openssl::hash::MessageDigest::sha384(),
             SigningAlgorithm::Sha512 => openssl::hash::MessageDigest::sha512(),
-            SigningAlgorithm::InvalidAlgorithm => panic!("How did you even get here?"),
+            SigningAlgorithm::InvalidAlgorithm => {
+                error!("Invalid signing algorithm requested, falling back to SHA-256");
+                openssl::hash::MessageDigest::sha256()
+            }
         }
     }
 }
@@ -107,27 +111,33 @@ impl From<SigningAlgorithm> for String {
             }
             _ => {
                 let result = format!("Invalid Algorithm specified: {:?}", sa);
-                log::error!("{}", result);
+                error!("{}", result);
                 result
             }
         }
     }
 }
 
+fn read_file_bytes(path: &str) -> Result<Vec<u8>, String> {
+    let runtime = match tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+    {
+        Ok(value) => value,
+        Err(error) => return Err(format!("Failed to create tokio runtime: {:?}", error)),
+    };
+    runtime
+        .block_on(tokio::fs::read(path))
+        .map_err(|error| format!("Failed to read {}: {:?}", path, error))
+}
+
 /// Loads a PEM-encoded public key into a PKey object
 pub fn load_key_from_filename(key_filename: &str) -> Result<PKey<Private>, String> {
-    let mut f = match File::open(key_filename) {
+    let pkey_buffer = match read_file_bytes(key_filename) {
         Ok(value) => value,
-        Err(error) => return Err(format!("Error loading file {}: {:?}", &key_filename, error)),
+        Err(error) => return Err(format!("Error loading file {}: {}", key_filename, error)),
     };
-    let mut pkey_buffer = Vec::new();
-    // read the whole file
-    match f.read_to_end(&mut pkey_buffer) {
-        Ok(_) => eprintln!("Read private key OK"),
-        Err(error) => {
-            return Err(format!("Failed to read private key? {:?}", error));
-        }
-    }
+    info!("Read private key OK");
 
     debug!("key:  {}", key_filename);
     let keypair = match Rsa::private_key_from_pem(&pkey_buffer) {
@@ -176,7 +186,10 @@ impl From<DigestAlgorithm> for openssl::hash::MessageDigest {
             DigestAlgorithm::Sha256 => openssl::hash::MessageDigest::sha256(),
             DigestAlgorithm::Sha384 => openssl::hash::MessageDigest::sha384(),
             DigestAlgorithm::Sha512 => openssl::hash::MessageDigest::sha512(),
-            DigestAlgorithm::InvalidAlgorithm => panic!("How did you even get here?"),
+            DigestAlgorithm::InvalidAlgorithm => {
+                error!("Invalid digest algorithm requested, falling back to SHA-256");
+                openssl::hash::MessageDigest::sha256()
+            }
         }
     }
 }
@@ -216,7 +229,7 @@ impl From<DigestAlgorithm> for String {
             DigestAlgorithm::Sha512 => String::from("http://www.w3.org/2001/04/xmlenc#sha512"),
             _ => {
                 let result = format!("Invalid Algorithm specified: {:?}", sa);
-                log::error!("{}", result);
+                error!("{}", result);
                 result
             }
         }
@@ -225,27 +238,18 @@ impl From<DigestAlgorithm> for String {
 
 /// Loads a public cert from a PEM file into an X509 object
 pub fn load_public_cert_from_filename(cert_filename: &str) -> Result<X509, String> {
-    log::debug!("loading cert:  {}", cert_filename);
+    debug!("loading cert:  {}", cert_filename);
 
-    let mut f = match File::open(cert_filename) {
+    let cert_buffer = match read_file_bytes(cert_filename) {
         Ok(value) => value,
         Err(error) => {
             return Err(format!(
-                "Error loading certificate file {}: {:?}",
-                &cert_filename, error
-            ))
+                "Error loading certificate file {}: {}",
+                cert_filename, error
+            ));
         }
     };
-
-    let mut cert_buffer = Vec::new();
-    // read the whole file
-    // TODO: handle file read errors, but if we've gotten here without bailing then well, how'd the server start up?
-    match f.read_to_end(&mut cert_buffer) {
-        Ok(_) => eprintln!("Read certificate OK"),
-        Err(error) => {
-            return Err(format!("Failed to read cert? {:?}", error));
-        }
-    }
+    eprintln!("Read certificate OK");
 
     match X509::from_pem(&cert_buffer) {
         Ok(value) => Ok(value),
@@ -270,7 +274,7 @@ impl DigestAlgorithm {
                 Ok(value)
             }
             Err(error) => {
-                eprintln!("Failed to hash bytes: {:?}", error);
+                error!("Failed to hash bytes: {:?}", error);
                 Err(error)
             }
         }
@@ -287,18 +291,42 @@ pub fn sign_data(
     // Sign the data
 
     let signing_algorithm: openssl::hash::MessageDigest = signing_algorithm.into();
-    let mut signer = Signer::new(signing_algorithm, signing_key).unwrap();
-    signer.update(bytes_to_sign).unwrap();
+    let mut signer = match Signer::new(signing_algorithm, signing_key) {
+        Ok(value) => value,
+        Err(error) => {
+            error!("Failed to create signer: {:?}", error);
+            return Vec::new();
+        }
+    };
+    if let Err(error) = signer.update(bytes_to_sign) {
+        error!("Failed to update signer: {:?}", error);
+        return Vec::new();
+    }
 
-    let signature = signer.sign_to_vec().unwrap();
-    log::debug!("Signature: {:?}", signature);
+    let signature = match signer.sign_to_vec() {
+        Ok(value) => value,
+        Err(error) => {
+            error!("Failed to sign data: {:?}", error);
+            return Vec::new();
+        }
+    };
+    debug!("Signature: {:?}", signature);
 
     // Verify the data
-    let mut verifier = Verifier::new(signing_algorithm, signing_key).unwrap();
-    verifier.update(bytes_to_sign).unwrap();
-    // verifier.update(data2).unwrap();
-    assert!(verifier.verify(&signature).unwrap());
-    log::error!("Signed things, maybe?");
+    match Verifier::new(signing_algorithm, signing_key) {
+        Ok(mut verifier) => {
+            if let Err(error) = verifier.update(bytes_to_sign) {
+                error!("Failed to update verifier: {:?}", error);
+            } else {
+                match verifier.verify(&signature) {
+                    Ok(true) => debug!("Signature verification succeeded"),
+                    Ok(false) => error!("Signature verification failed"),
+                    Err(error) => error!("Signature verification errored: {:?}", error),
+                }
+            }
+        }
+        Err(error) => error!("Failed to create verifier: {:?}", error),
+    }
 
     signature
 }

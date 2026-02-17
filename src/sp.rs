@@ -3,6 +3,7 @@
 
 // #![deny(unsafe_code)]
 
+use log::{debug, error, warn};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
@@ -178,8 +179,8 @@ pub struct ServiceBinding {
 
 impl ServiceBinding {
     /// TODO: actually use this in ServiceProvider from_xml or something
-    pub fn set_binding(self, binding: String) -> Result<Self, String> {
-        match SamlBinding::from_str(&binding) {
+    pub fn set_binding(self, binding: &str) -> Result<Self, String> {
+        match SamlBinding::from_str(binding) {
             Err(_) => Err("Failed to match binding name".to_string()),
             Ok(saml_binding) => Ok(ServiceBinding {
                 servicetype: self.servicetype,
@@ -270,7 +271,7 @@ impl FromStr for ServiceProvider {
                         "NameIDFormat" => {
                             debug!("Found NameIDFormat!");
                             match NameIdFormat::from_str(&s) {
-                                Err(error) => eprintln!("Failed to parse NameIDFormat: {} {:?}", s, error),
+                                Err(error) => error!("Failed to parse NameIDFormat: {} {:?}", s, error),
                                 Ok(value) => meta.nameid_format = value
                             }
 
@@ -281,11 +282,11 @@ impl FromStr for ServiceProvider {
                             let certificate = crate::cert::init_cert_from_base64(&s);
                             match certificate {
                                 Ok(value) => {
-                                    log::debug!("Parsed cert successfully.");
+                                    debug!("Parsed cert successfully.");
                                     certificate_data = Some(value);
                                 }
                                 Err(error) => {
-                                    eprintln!("error! {:?}", error)
+                                    error!("error! {:?}", error)
                                 }
                             };
                             tag_name = "###INVALID###".to_string();
@@ -296,7 +297,7 @@ impl FromStr for ServiceProvider {
                     }
                 }
                 Err(e) => {
-                    eprintln!("Failed to parse token: {:?}", e);
+                    error!("Failed to parse token: {:?}", e);
                 }
                 _ => {}
             }
@@ -307,7 +308,7 @@ impl FromStr for ServiceProvider {
                 meta.x509_certificate = Some(value);
             }
             None => {
-                eprintln!("Didn't find a certificate");
+                error!("Didn't find a certificate");
             }
         }
         Ok(meta)
@@ -346,35 +347,43 @@ impl ServiceProvider {
         for attribute in attributes {
             match attribute.name.local_name.to_lowercase().as_str() {
                 "binding" => {
-                    log::debug!("Found Binding");
+                    debug!("Found Binding");
                     let binding = match SamlBinding::from_str(&attribute.value) {
                         Ok(value) => value,
                         Err(error) => {
                             return Err(format!(
                                 "UNMATCHED BINDING: {}: {}",
                                 &attribute.value, error
-                            ))
+                            ));
                         }
                     };
                     tmp_sb.binding = binding;
                 }
                 "location" => {
-                    log::debug!("Found Location");
+                    debug!("Found Location");
                     tmp_sb.location = attribute.value;
                 }
                 "index" => {
-                    log::debug!("Found index");
-                    tmp_sb.index = attribute.value.parse::<u8>().unwrap();
+                    debug!("Found index");
+                    tmp_sb.index = match attribute.value.parse::<u8>() {
+                        Ok(value) => value,
+                        Err(error) => {
+                            return Err(format!(
+                                "UNMATCHED INDEX: {}: {:?}",
+                                &attribute.value, error
+                            ));
+                        }
+                    };
                 }
                 _ => {
-                    eprintln!(
+                    error!(
                         "Found unhandled attribute in AssertionConsumerService: {:?}",
                         attribute
                     );
                 }
             }
         }
-        log::debug!("Returning {:?}", tmp_sb);
+        debug!("Returning {:?}", tmp_sb);
         Ok(tmp_sb)
     }
 
@@ -392,12 +401,12 @@ impl ServiceProvider {
 
     /// Let's parse some attributes!
     fn attrib_parser(&mut self, tag: &str, attributes: Vec<OwnedAttribute>, upstream_tag: &str) {
-        eprintln!("attrib_parser - tag={}, attr:{:?}", tag, attributes);
-        eprintln!("Current upstream tag: {}", upstream_tag);
+        debug!("attrib_parser - tag={}, attr:{:?}", tag, attributes);
+        debug!("Current upstream tag: {}", upstream_tag);
 
         match tag {
             "AssertionConsumerService" => {
-                log::debug!("AssertionConsumerService: {:?}", attributes);
+                debug!("AssertionConsumerService: {:?}", attributes);
                 match self
                     .service_attrib_parser(SamlBindingType::AssertionConsumerService, attributes)
                 {
@@ -406,25 +415,25 @@ impl ServiceProvider {
                         self.services.append(&mut a);
                     }
                     Err(error) => {
-                        eprintln!("Failed to parse AssertionConsumerService: {:?}", error)
+                        error!("Failed to parse AssertionConsumerService: {:?}", error);
                     }
                 }
             }
             "EntityDescriptor" => {
                 for attribute in attributes {
-                    log::debug!("attribute: {}", attribute);
+                    debug!("attribute: {}", attribute);
                     match attribute.name.local_name.as_str() {
                         "entityID" => {
-                            log::debug!("Setting entityID: {}", attribute.value);
+                            debug!("Setting entityID: {}", attribute.value);
                             self.entity_id = attribute.value;
                         }
                         "ID" => {
-                            log::debug!("Setting entityID: {}", attribute.value);
+                            debug!("Setting entityID: {}", attribute.value);
                             self.entity_id = attribute.value;
                         }
                         // TODO validUntil example value "2100-01-01T00:00:42Z"
                         _ => {
-                            eprintln!(
+                            error!(
                                 "found an EntityDescriptor attribute that's not entityID: {:?}",
                                 attribute
                             );
@@ -433,18 +442,18 @@ impl ServiceProvider {
                 }
             }
             "SingleLogoutService" => {
-                log::debug!("SingleLogoutService: {:?}", attributes);
+                debug!("SingleLogoutService: {:?}", attributes);
                 match self.service_attrib_parser(SamlBindingType::SingleLogoutService, attributes) {
                     Ok(value) => {
                         let mut a = vec![value];
                         self.services.append(&mut a);
                     }
-                    Err(error) => eprintln!("Failed to parse SingleLogoutService: {:?}", error),
+                    Err(error) => error!("Failed to parse SingleLogoutService: {:?}", error),
                 }
             }
 
             "SPSSODescriptor" => {
-                log::debug!("Dumping SPSSODescriptor: {:?}", attributes);
+                debug!("Dumping SPSSODescriptor: {:?}", attributes);
                 for attribute in attributes {
                     match attribute.name.local_name.to_lowercase().as_str() {
                         "authnrequestssigned" => {
@@ -452,7 +461,7 @@ impl ServiceProvider {
                             match attribute.value.to_lowercase().as_str() {
                                 "true" => self.authn_requests_signed = true,
                                 "false" => self.authn_requests_signed = false,
-                                _ => eprintln!(
+                                _ => error!(
                                     "Couldn't parse value of AuthnRequestsSigned: {}",
                                     attribute.value.to_lowercase()
                                 ),
@@ -463,7 +472,7 @@ impl ServiceProvider {
                             match attribute.value.to_lowercase().as_str() {
                                 "true" => self.want_assertions_signed = true,
                                 "false" => self.want_assertions_signed = false,
-                                _ => eprintln!(
+                                _ => error!(
                                     "Couldn't parse value of WantAssertionsSigned: {}",
                                     attribute.value.to_lowercase()
                                 ),
@@ -472,28 +481,28 @@ impl ServiceProvider {
                         "protocolsupportenumeration" => {
                             self.protocol_support_enumeration = Some(attribute.value.to_string())
                         }
-                        _ => eprintln!("SPSSODescriptor attribute not handled {:?}", attribute), // protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"
-                                                                                                 // WantAssertionsSigned="true"
+                        _ => error!("SPSSODescriptor attribute not handled {:?}", attribute), // protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"
+                                                                                              // WantAssertionsSigned="true"
                     }
                 }
             }
             // TODO: RequestInitiator
-            "RequestInitiator" => log::warn!("RequestInitiator is yet to be implemented, skipping"),
+            "RequestInitiator" => warn!("RequestInitiator is yet to be implemented, skipping"),
             // TODO: SPSSODescriptor?
-            // "SPSSODescriptor" => log::warn!("SPSSODescriptor is yet to be implemented, skipping"),
+            // "SPSSODescriptor" => warn!("SPSSODescriptor is yet to be implemented, skipping"),
             // TODO: SigningMethod - should be relevant to how we respond
-            "SigningMethod" => log::warn!("SigningMethod is yet to be implemented, skipping"),
+            "SigningMethod" => warn!("SigningMethod is yet to be implemented, skipping"),
             // TODO: DigestMethod - should be relevant to how we respond
-            "DigestMethod" => log::warn!("DigestMethod is yet to be implemented, skipping"),
+            "DigestMethod" => warn!("DigestMethod is yet to be implemented, skipping"),
 
-            "NameIDFormat" => log::debug!("Don't need to parse attributes for NameIDFormat"),
-            "KeyDescriptor" => log::debug!("Don't need to parse attributes for KeyDescriptor"),
-            "KeyInfo" => log::debug!("Don't need to parse attributes for KeyInfo"),
-            "X509Certificate" => log::debug!("Don't need to parse attributes for X509Certificate"),
-            "X509Data" => log::debug!("Don't need to parse attributes for X509Data"),
-            "Logo" => log::debug!("Don't need to parse attributes for Logo"),
-            "Description" => log::debug!("Don't need to parse attributes for Description"),
-            _ => eprintln!(
+            "NameIDFormat" => debug!("Don't need to parse attributes for NameIDFormat"),
+            "KeyDescriptor" => debug!("Don't need to parse attributes for KeyDescriptor"),
+            "KeyInfo" => debug!("Don't need to parse attributes for KeyInfo"),
+            "X509Certificate" => debug!("Don't need to parse attributes for X509Certificate"),
+            "X509Data" => debug!("Don't need to parse attributes for X509Data"),
+            "Logo" => debug!("Don't need to parse attributes for Logo"),
+            "Description" => debug!("Don't need to parse attributes for Description"),
+            _ => error!(
                 "!!! Asked to parse attributes for tag={}, not caught by anything {:?}",
                 tag, attributes
             ),

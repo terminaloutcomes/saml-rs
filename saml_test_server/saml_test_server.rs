@@ -14,6 +14,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_debug_implementations)]
 
+use log::{debug, error, info};
 use saml_rs::assertion::AssertionAttribute;
 use saml_rs::metadata::{generate_metadata_xml, SamlMetadata};
 use saml_rs::response::{AuthNStatement, ResponseElements};
@@ -58,7 +59,7 @@ async fn main() -> tide::Result<()> {
 
     app.with(After(|mut res: Response| async {
         if let Some(err) = res.downcast_error::<async_std::io::Error>() {
-            log::debug!("asdfadsfadsf {:?}", err);
+            debug!("asdfadsfadsf {:?}", err);
             let msg = match err.kind() {
                 ErrorKind::NotFound => {
                     format!("Error, Not Found: {:?}", err)
@@ -90,29 +91,27 @@ async fn main() -> tide::Result<()> {
             shellexpand::tilde(&server_config.tls_cert_path.as_str()).into_owned();
         let tls_key: String = shellexpand::tilde(&server_config.tls_key_path.as_str()).into_owned();
         match File::open(&tls_cert) {
-            Ok(_) => log::info!("Successfully loaded cert from {:?}", tls_cert),
+            Ok(_) => info!("Successfully loaded cert from {:?}", tls_cert),
             Err(error) => {
-                log::error!(
+                error!(
                     "Failed to load cert from {:?}, bailing: {:?}",
-                    tls_cert,
-                    error
+                    tls_cert, error
                 );
                 std::process::exit(1);
             }
         }
         match File::open(&tls_key) {
-            Ok(_) => log::info!("Successfully loaded key from {:?}", tls_key),
+            Ok(_) => info!("Successfully loaded key from {:?}", tls_key),
             Err(error) => {
-                log::error!(
+                error!(
                     "Failed to load key from {:?}, bailing: {:?}",
-                    tls_key,
-                    error
+                    tls_key, error
                 );
                 std::process::exit(1);
             }
         }
-        log::info!("Starting up server");
-        log::debug!("Server config: {:?}", server_config);
+        info!("Starting up server");
+        debug!("Server config: {:?}", server_config);
         app.listen(
             TlsListener::build()
                 .addrs(format!("{}:443", &server_config.bind_address))
@@ -132,7 +131,7 @@ async fn saml_metadata_get(req: Request<AppState>) -> tide::Result {
 
     let entity_id = String::from(&req.state().hostname);
 
-    Ok(generate_metadata_xml(SamlMetadata::new(
+    let metadata = SamlMetadata::new(
         &req.state().hostname,
         None,
         Some(entity_id),
@@ -140,8 +139,8 @@ async fn saml_metadata_get(req: Request<AppState>) -> tide::Result {
         None,
         None,
         Some(certificate),
-    ))
-    .into())
+    );
+    Ok(generate_metadata_xml(&metadata).into())
 }
 
 /// Handles a POST binding
@@ -164,7 +163,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     let query: SamlQuery = match req.query() {
         Ok(val) => val,
         Err(e) => {
-            log::error!("Missing SAMLRequest request in saml_redirect_get {:?}", e);
+            error!("Missing SAMLRequest request in saml_redirect_get {:?}", e);
             return Err(tide::Error::from_str(
                 tide::StatusCode::BadRequest,
                 "Missing SAMLRequest",
@@ -181,7 +180,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
 
     match query.Signature {
         Some(ref value) => {
-            log::debug!("Found a signature! {:?}", value);
+            debug!("Found a signature! {:?}", value);
             let sigalg = match query.SigAlg {
                 Some(ref value) => String::from(value),
                 None => {
@@ -194,10 +193,10 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
                     ));
                 }
             };
-            log::debug!("SigAlg found: {:?}", &sigalg);
+            debug!("SigAlg found: {:?}", &sigalg);
         }
         _ => {
-            log::debug!("Didn't find a signature in this request.");
+            debug!("Didn't find a signature in this request.");
         }
     }
 
@@ -213,7 +212,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
                 ));
             }
         };
-    log::debug!(
+    debug!(
         "about to parse authn request: {:?}",
         base64_decoded_samlrequest
     );
@@ -222,7 +221,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         match saml_rs::parse_authn_request(&base64_decoded_samlrequest) {
             Ok(val) => val,
             Err(err) => {
-                eprintln!("{:?}", err);
+                error!("{:?}", err);
                 return Err(tide::Error::from_str(tide::StatusCode::BadRequest, err));
             }
         };
@@ -255,22 +254,21 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     for service in &service_provider.unwrap().services {
         match service.servicetype {
             saml_rs::sp::SamlBindingType::AssertionConsumerService => {
-                log::debug!("acs: {:?}", service);
+                debug!("acs: {:?}", service);
                 match &service.binding {
                     SamlBinding::HttpRedirect | SamlBinding::HttpPost => {
-                        log::debug!(
+                        debug!(
                             "Found form target, type is {:?}, destination is: {}",
-                            &service.binding,
-                            service.location
+                            &service.binding, service.location
                         );
                         _form_target = service.location.to_string();
                     } // _ => {
-                      //     log::debug!("not it!");
+                      //     debug!("not it!");
                       // }
                 }
             }
             saml_rs::sp::SamlBindingType::SingleLogoutService => {
-                log::debug!("sso");
+                debug!("sso");
             }
         }
     }
@@ -317,17 +315,27 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
 
     // start building the actual response
 
-    let authn_instant =
-        DateTime::<Utc>::from_utc(NaiveDate::from_ymd(2014, 7, 17).and_hms(1, 1, 48), Utc);
+    let authn_instant = DateTime::<Utc>::from_naive_utc_and_offset(
+        NaiveDate::from_ymd_opt(2014, 7, 17)
+            .unwrap()
+            .and_hms_opt(1, 1, 48)
+            .unwrap(),
+        Utc,
+    );
     // 2024-07-17T09:01:48Z
     // adding three years including skip years
-    let session_expiry =
-        match DateTime::<Utc>::from_utc(NaiveDate::from_ymd(2014, 7, 17).and_hms(9, 1, 48), Utc)
-            .checked_add_signed(Duration::days(3653))
-        {
-            Some(value) => value,
-            _ => Utc::now(),
-        };
+    let session_expiry = match DateTime::<Utc>::from_naive_utc_and_offset(
+        NaiveDate::from_ymd_opt(2014, 7, 17)
+            .unwrap()
+            .and_hms_opt(9, 1, 48)
+            .unwrap(),
+        Utc,
+    )
+    .checked_add_signed(Duration::days(3653))
+    {
+        Some(value) => value,
+        _ => Utc::now(),
+    };
 
     // TODO: work out where the AuthNStatement goes
     let authnstatement = AuthNStatement {

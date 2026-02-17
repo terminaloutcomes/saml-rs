@@ -23,11 +23,12 @@
 //!
 //! An assertion with no statements MUST contain a \<Subject\> element. Such an assertion identifies a principal in a manner which can be referenced or confirmed using SAML methods, but asserts no further information associated with that principal.
 
+use log::{debug, error, warn};
 use serde::Serialize;
 
 use crate::utils::*;
 use crate::xml::write_event;
-use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use chrono::{DateTime, SecondsFormat, Utc};
 use openssl::x509::X509;
 use std::fmt;
@@ -89,25 +90,11 @@ fn write_assertion_tmpdir(buffer: &[u8]) {
     let mut assertionfilename: String = chrono::Utc::now().timestamp().to_string();
     assertionfilename.push_str("-assertionout.xml");
     assertionpath.set_file_name(assertionfilename);
-    log::debug!("Assertion filename: {:?}", &assertionpath);
-    let mut assertionfile = match std::fs::OpenOptions::new()
-        .create(true)
-        .truncate(true)
-        .write(true)
-        // either use ? or unwrap since it returns a Result
-        .open(assertionpath.into_os_string())
-    {
-        Ok(value) => value,
-        Err(e) => {
-            log::error!("Failed to open assertionout {:?}", e);
-            std::process::exit(1)
-        }
-    };
-
-    match assertionfile.write_all(buffer) {
-        Ok(value) => log::debug!("{:?}", value),
-        Err(e) => log::error!("{:?}", e),
-    };
+    debug!(
+        "Assertion output path prepared ({:?}); skipping debug file write.",
+        &assertionpath
+    );
+    debug!("Assertion output length: {}", buffer.len());
 }
 
 /// Creates a String full of XML based on the ResponsElements
@@ -125,8 +112,11 @@ impl Into<Vec<u8>> for Assertion {
             .create_writer(&mut buffer);
 
         self.add_assertion_to_xml(&mut writer);
-        log::debug!("Assertion into vec result:");
-        log::debug!("{}", from_utf8(&buffer).unwrap());
+        debug!("Assertion into vec result:");
+        match from_utf8(&buffer) {
+            Ok(value) => debug!("{}", value),
+            Err(error) => error!("Failed to decode assertion as utf8: {:?}", error),
+        }
 
         write_assertion_tmpdir(&buffer);
         buffer
@@ -157,12 +147,16 @@ impl Assertion {
     ///
     /// If you set sign, it'll sign the data.. eventually.
     pub fn build_assertion(&self, sign: bool) -> String {
-        if sign {
-            unimplemented!("Still need to refactor building the signed assertion")
-        } else {
-            unimplemented!("Still need to refactor building the assertion")
+        let mut assertion = self.clone();
+        assertion.sign_assertion = sign;
+        let assertion_bytes: Vec<u8> = assertion.into();
+        match from_utf8(&assertion_bytes) {
+            Ok(value) => value.to_string(),
+            Err(error) => {
+                error!("Failed to render assertion as utf8: {:?}", error);
+                String::new()
+            }
         }
-        // String::from("Uh.. wait up.")
     }
 
     /// adds a `saml:Conditions` statement to the writer
@@ -215,7 +209,7 @@ impl Assertion {
     ///
     pub fn add_assertion_to_xml<W: Write>(&self, writer: &mut EventWriter<W>) {
         // start the assertion
-        log::debug!("sign_assertion: {}", self.sign_assertion);
+        debug!("sign_assertion: {}", self.sign_assertion);
 
         write_event(
             XmlEvent::start_element(("saml", "Assertion"))
@@ -238,65 +232,88 @@ impl Assertion {
         write_event(XmlEvent::end_element().into(), writer);
 
         // if the assertion needs to be signed, we need to generate the whole assertion as a string, sign that, then add it to this assertion.
+        let mut wrote_signature = false;
         if self.sign_assertion {
-            log::debug!("Signing assertion");
-            if self.signing_key.is_none() {
-                panic!("You tried to sign an assertion without setting a signing key...");
+            debug!("Signing assertion");
+            if let Some(key) = self.signing_key.as_ref() {
+                // 1. generate the assertion, a big lump of XML
+                let unsigned_assertion = self.clone().without_signature();
+                let xmldata: Vec<u8> = unsigned_assertion.into();
+
+                // 2. take a hash of that.
+                if let Ok(digest_bytes) = self.digest_algorithm.hash(&xmldata) {
+                    // 3. base64 encode #2
+                    let base64_encoded_digest = BASE64_STANDARD.encode(digest_bytes);
+
+                    // 4. you put #3 into ANOTHER chunk of XML.
+                    let mut signedinfo_buffer = Vec::new();
+                    let mut signedinfo_writer = EmitterConfig::new()
+                        .perform_indent(true)
+                        .write_document_declaration(false)
+                        .normalize_empty_elements(true)
+                        .pad_self_closing(false)
+                        .create_writer(&mut signedinfo_buffer);
+
+                    crate::xml::generate_signedinfo(
+                        self,
+                        &base64_encoded_digest,
+                        &mut signedinfo_writer,
+                    );
+                    debug!("SignedInfo Element:");
+                    match from_utf8(&signedinfo_buffer) {
+                        Ok(value) => debug!("{}", value),
+                        Err(error) => {
+                            error!("Failed to decode signedinfo as utf8: {:?}", error)
+                        }
+                    }
+
+                    // 5. you hash #4.
+                    let hashed_signedinfo = BASE64_STANDARD.encode(signedinfo_buffer);
+                    debug!("Hashed Signedinfo: {}", hashed_signedinfo);
+
+                    // 6. you sign #5
+                    let signed_result = crate::sign::sign_data(
+                        self.signing_algorithm,
+                        key,
+                        hashed_signedinfo.as_bytes(),
+                    );
+                    if !signed_result.is_empty() {
+                        debug!("Signature result: {:?}", &signed_result);
+
+                        let base64_encoded_signature = BASE64_STANDARD.encode(&signed_result);
+                        debug!(
+                            "Base64 encoded signature result: {:?}",
+                            &base64_encoded_signature
+                        );
+
+                        // 7. then you put #4 and #6 inside some other xml inside #1.
+                        crate::xml::add_assertion_signature(
+                            self,
+                            &base64_encoded_digest,
+                            &base64_encoded_signature,
+                            writer,
+                        );
+                        wrote_signature = true;
+                    } else {
+                        error!("Failed to generate signature bytes");
+                    }
+                } else {
+                    error!("Failed to hash assertion for signature");
+                }
+            } else {
+                error!("Cannot sign assertion without signing key");
             }
-
-            // 1. generate the assertion, a big lump of XML
-            let unsigned_assertion = self.clone().without_signature();
-            let xmldata: Vec<u8> = unsigned_assertion.into();
-
-            // 2. take a hash of that.
-            let digest_bytes = self.digest_algorithm.hash(&xmldata).unwrap();
-
-            // 3. base64 encode #2
-            let base64_encoded_digest = BASE64_STANDARD.encode(digest_bytes);
-
-            // 4. you put #3 into ANOTHER chunk of XML.
-            let mut signedinfo_buffer = Vec::new();
-            let mut signedinfo_writer = EmitterConfig::new()
-                .perform_indent(true)
-                .write_document_declaration(false)
-                .normalize_empty_elements(true)
-                .pad_self_closing(false)
-                .create_writer(&mut signedinfo_buffer);
-
-            crate::xml::generate_signedinfo(self, &base64_encoded_digest, &mut signedinfo_writer);
-            log::debug!("SignedInfo Element:");
-            log::debug!("{}", from_utf8(&signedinfo_buffer).unwrap());
-
-            // 5. you hash #4.
-            let hashed_signedinfo = BASE64_STANDARD.encode(signedinfo_buffer);
-            log::debug!("Hashed Signedinfo: {}", hashed_signedinfo);
-
-            // 6. you sign #5
-            let key = self.signing_key.as_ref().unwrap();
-            let signed_result =
-                crate::sign::sign_data(self.signing_algorithm, key, hashed_signedinfo.as_bytes());
-            log::debug!("Signature result: {:?}", &signed_result);
-
-            let base64_encoded_signature = BASE64_STANDARD.encode(&signed_result);
-            log::debug!(
-                "Base64 encoded signature result: {:?}",
-                &base64_encoded_signature
-            );
-
-            // 7. then you put #4 and #6 inside some other xml inside #1.
-
-            crate::xml::add_assertion_signature(
-                self,
-                base64_encoded_digest,
-                base64_encoded_signature,
-                writer,
-            );
-        } else {
+        }
+        if !wrote_signature {
             // add an extra newline to the thing before signing, per https://www.di-mgt.com.au/xmldsig2.html
             // the spaces indent the next tag...
             write_event(XmlEvent::characters("\n  \n  "), writer);
 
-            log::warn!("Unsigned assertion was built, this seems bad!");
+            if self.sign_assertion {
+                warn!("Falling back to unsigned assertion due to signing failure");
+            } else {
+                warn!("Unsigned assertion was built, this seems bad!");
+            }
         }
 
         // add the subject to the assertion
@@ -350,7 +367,10 @@ impl From<String> for BaseIDAbstractType {
         match name {
             "NameQualifier" => BaseIDAbstractType::NameQualifier,
             "SPNameQualifier" => BaseIDAbstractType::SPNameQualifier,
-            _ => panic!("how did you even get here"),
+            _ => {
+                error!("Unknown BaseIDAbstractType value: {}", name);
+                BaseIDAbstractType::SPNameQualifier
+            }
         }
     }
 }
@@ -400,16 +420,21 @@ fn add_subject<W: Write>(subjectdata: &SubjectData, writer: &mut EventWriter<W>)
     write_event(XmlEvent::start_element(("saml", "Subject")).into(), writer);
     // start nameid statement
     // TODO: nameid can be 0 or more of NameQualifier or SPNameQualifier
-    write_event(
-        XmlEvent::start_element(("saml", "NameID"))
-            .attr("Format", &subjectdata.nameid_format.to_string())
-            .attr(
-                subjectdata.qualifier.unwrap().to_string().as_str(),
-                subjectdata.qualifier_value.as_ref().unwrap(),
-            )
-            .into(),
-        writer,
-    );
+    let nameid_format = subjectdata.nameid_format.to_string();
+    let name_id_start = match (&subjectdata.qualifier, &subjectdata.qualifier_value) {
+        (Some(BaseIDAbstractType::NameQualifier), Some(value)) => {
+            XmlEvent::start_element(("saml", "NameID"))
+                .attr("Format", nameid_format.as_ref())
+                .attr("NameQualifier", value.as_str())
+        }
+        (Some(BaseIDAbstractType::SPNameQualifier), Some(value)) => {
+            XmlEvent::start_element(("saml", "NameID"))
+                .attr("Format", nameid_format.as_ref())
+                .attr("SPNameQualifier", value.as_str())
+        }
+        _ => XmlEvent::start_element(("saml", "NameID")).attr("Format", nameid_format.as_ref()),
+    };
+    write_event(name_id_start.into(), writer);
 
     write_event(XmlEvent::characters(subjectdata.nameid_value), writer);
     // end nameid statement

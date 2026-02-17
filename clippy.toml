@@ -1,0 +1,33 @@
+
+disallowed-methods = [
+    { path = "std::fs::canonicalize", reason = "Use async file APIs (tokio::fs) instead of std::fs." },
+    { path = "std::fs::copy", reason = "Use async file APIs (tokio::fs) instead of std::fs." },
+    { path = "std::fs::create_dir", reason = "Use async file APIs (tokio::fs) instead of std::fs." },
+    { path = "std::fs::create_dir_all", reason = "Use async file APIs (tokio::fs) instead of std::fs." },
+    { path = "std::fs::hard_link", reason = "Use async file APIs (tokio::fs) instead of std::fs." },
+    { path = "std::fs::metadata", reason = "Use async file APIs (tokio::fs) instead of std::fs." },
+    { path = "std::fs::read", reason = "Use async file APIs (tokio::fs) instead of std::fs." },
+    { path = "std::fs::read_dir", reason = "Use async file APIs (tokio::fs) instead of std::fs." },
+    { path = "std::fs::read_link", reason = "Use async file APIs (tokio::fs) instead of std::fs." },
+    { path = "std::fs::read_to_string", reason = "Use async file APIs (tokio::fs) instead of std::fs." },
+    { path = "std::fs::remove_dir", reason = "Use async file APIs (tokio::fs) instead of std::fs." },
+    { path = "std::fs::remove_dir_all", reason = "Use async file APIs (tokio::fs) instead of std::fs." },
+    { path = "std::fs::remove_file", reason = "Use async file APIs (tokio::fs) instead of std::fs." },
+    { path = "std::fs::rename", reason = "Use async file APIs (tokio::fs) instead of std::fs." },
+    { path = "std::fs::set_permissions", reason = "Use async file APIs (tokio::fs) instead of std::fs." },
+    { path = "std::fs::symlink_metadata", reason = "Use async file APIs (tokio::fs) instead of std::fs." },
+    { path = "std::fs::write", reason = "Use async file APIs (tokio::fs) instead of std::fs." },
+    { path = "std::thread::sleep", reason = "Sleeping should not be used in tests as time is a controlled parameter. Additionally, sleeping can block async threads from proceeding." },
+]
+
+disallowed-types = [
+    { path = "std::fs::File", reason = "Use async file APIs (tokio::fs) instead of std::fs." },
+    { path = "std::fs::OpenOptions", reason = "Use async file APIs (tokio::fs) instead of std::fs." },
+    { path = "std::fs::ReadDir", reason = "Use async file APIs (tokio::fs) instead of std::fs." },
+]
+
+allow-expect-in-tests = true
+allow-unwrap-in-tests = false
+allow-panic-in-tests = false
+allow-dbg-in-tests = true
+allow-indexing-slicing-in-tests = true

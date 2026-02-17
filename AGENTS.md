@@ -15,6 +15,7 @@
 - `cargo doc --no-deps --workspace --document-private-items`: generate local API docs.
 - `uv sync --all-groups`: install Python tooling used by CI.
 - `uv run pytest`, `uv run mypy test*.py`, `uv run pylint test*.py`: run Python checks.
+- A task is not complete until `just check` runs with zero errors and zero warnings.
 
 ## Coding Style & Naming Conventions
 - Rust edition is 2018; crate-level policy forbids unsafe code (`#![forbid(unsafe_code)]`).

@@ -1,11 +1,8 @@
 //! Internal utilities for doing things with XML
 
-// #![deny(unsafe_code)]
-
+use log::{debug, error};
 use std::io::Write;
-
 use std::str::from_utf8;
-
 use xml::writer::{EventWriter, XmlEvent};
 
 /// Extensions for [openssl::x509::X509] for nicer functionality
@@ -19,19 +16,31 @@ impl X509Utils for openssl::x509::X509 {
     /// return an X509 object as a string,
     /// either including the ```--- BEGIN LOLS ---```  or not
     fn get_as_pem_string(&self, includeheaders: bool) -> String {
-        let cert_pem = &self.to_pem().unwrap();
-        let cert_pem: String = from_utf8(cert_pem).unwrap().to_string();
+        let cert_pem_bytes = match self.to_pem() {
+            Ok(value) => value,
+            Err(error) => {
+                error!("Failed to convert cert to PEM: {:?}", error);
+                return String::new();
+            }
+        };
+        let cert_pem = match from_utf8(&cert_pem_bytes) {
+            Ok(value) => value.to_string(),
+            Err(error) => {
+                error!("Failed to decode PEM as utf8: {:?}", error);
+                return String::new();
+            }
+        };
 
         let result = match includeheaders {
             true => cert_pem,
-            false => crate::cert::strip_cert_headers(cert_pem),
+            false => crate::cert::strip_cert_headers(&cert_pem),
         };
-        log::debug!(
+        debug!(
             "############### start get_as_pem_string includeheaders: {} ###############",
             includeheaders
         );
-        log::debug!("{}", result);
-        log::debug!("############### end get_as_pem_string ###############");
+        debug!("{}", result);
+        debug!("############### end get_as_pem_string ###############");
         result
     }
 }
@@ -149,8 +158,8 @@ pub fn generate_signedinfo<W: Write>(
 /// add a signature to the statement
 pub fn add_assertion_signature<W: Write>(
     attr: &crate::assertion::Assertion,
-    digest: String,
-    base64_encoded_signature: String,
+    digest: &str,
+    base64_encoded_signature: &str,
     writer: &mut EventWriter<W>,
 ) {
     write_event(
@@ -160,7 +169,7 @@ pub fn add_assertion_signature<W: Write>(
         writer,
     );
 
-    generate_signedinfo(attr, &digest, writer);
+    generate_signedinfo(attr, digest, writer);
 
     // start ds:SignatureValue
     write_event(
@@ -168,7 +177,7 @@ pub fn add_assertion_signature<W: Write>(
         writer,
     );
 
-    write_event(XmlEvent::characters(&base64_encoded_signature), writer);
+    write_event(XmlEvent::characters(base64_encoded_signature), writer);
     // characters
     // end ds:SignatureValue
     write_event(XmlEvent::end_element().into(), writer);
@@ -183,7 +192,13 @@ pub fn add_assertion_signature<W: Write>(
         writer,
     );
 
-    let mut stripped_cert = attr.signing_cert.clone().unwrap().get_as_pem_string(false);
+    let mut stripped_cert = match attr.signing_cert.as_ref() {
+        Some(cert) => cert.get_as_pem_string(false),
+        None => {
+            error!("Missing signing certificate while generating assertion signature");
+            String::new()
+        }
+    };
     // TODO: is this terrible, or is this terrible? It's terrible, find a better way of cleaning this up.
     stripped_cert = stripped_cert
         .replace("\r\n", "")

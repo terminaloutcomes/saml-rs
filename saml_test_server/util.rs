@@ -1,4 +1,4 @@
-// use tide::log;
+use log::{debug, error};
 use tide::Request;
 
 use http_types::Mime;
@@ -45,14 +45,14 @@ fn load_sp_metadata(filenames: Vec<String>) -> HashMap<String, ServiceProvider> 
     // load the SP metadata files
 
     let mut sp_metadata = HashMap::new();
-    eprintln!("Configuration has SP metadata filenames: {:?}", filenames);
+    debug!("Configuration has SP metadata filenames: {:?}", filenames);
     for filename in filenames {
         let expanded_filename: String = shellexpand::tilde(&filename).into_owned();
         if Path::new(&expanded_filename).exists() {
-            log::debug!("Found SP metadata file: {:?}", expanded_filename);
+            debug!("Found SP metadata file: {:?}", expanded_filename);
             let filecontents = match read_to_string(&expanded_filename) {
                 Err(error) => {
-                    eprintln!(
+                    error!(
                         "Couldn't load SP Metadata file {} for some reason: {:?}",
                         &expanded_filename, error
                     );
@@ -62,10 +62,10 @@ fn load_sp_metadata(filenames: Vec<String>) -> HashMap<String, ServiceProvider> 
             };
             // parse the XML
             let parsed_sp = saml_rs::sp::ServiceProvider::from_str(&filecontents).unwrap();
-            eprintln!("SP Metadata loaded: {:?}", parsed_sp);
+            debug!("SP Metadata loaded: {:?}", parsed_sp);
             sp_metadata.insert(parsed_sp.entity_id.to_string(), parsed_sp);
         } else {
-            eprintln!(
+            error!(
                 "Couldn't find file {:?}, not loading metadata.",
                 expanded_filename
             );
@@ -86,20 +86,20 @@ impl ServerConfig {
 
         let filenames: Vec<String> = settings.get("sp_metadata_files").unwrap_or_default();
 
-        log::debug!("Loading SP Metadata from config.");
+        debug!("Loading SP Metadata from config.");
 
         let sp_metadata = load_sp_metadata(filenames);
-        eprintln!("Done loading SP Metadata from config.");
+        debug!("Done loading SP Metadata from config.");
 
         let tilde_cert_path: String = settings.get("tls_cert_path").unwrap_or_else(|error| {
-            eprintln!(
+            error!(
                 "You need to specify 'tls_cert_path' in configuration, quitting. ({:?})",
                 error
             );
             std::process::exit(1)
         });
         let tilde_key_path: String = settings.get("tls_key_path").unwrap_or_else(|error| {
-            eprintln!(
+            error!(
                 "You need to specify 'tls_key_path' in configuration, quitting. ({:?})",
                 error
             );
@@ -107,21 +107,21 @@ impl ServerConfig {
         });
 
         let tilde_saml_cert_path: String = settings.get("saml_cert_path").unwrap_or_else(|error| {
-            eprintln!(
+            error!(
                 "You need to specify 'saml_cert_path' in configuration, quitting. ({:?})",
                 error
             );
             std::process::exit(1)
         });
         let tilde_saml_key_path: String = settings.get("saml_key_path").unwrap_or_else(|error| {
-            eprintln!(
+            error!(
                 "You need to specify 'saml_key_path' in configuration, quitting. ({:?})",
                 error
             );
             std::process::exit(1)
         });
         let bind_address: String = settings.get("bind_address").unwrap_or_else(|error| {
-            eprintln!(
+            error!(
                 "You need to specify 'bind_address' in configuration, quitting. ({:?})",
                 error
             );
@@ -136,7 +136,7 @@ impl ServerConfig {
         let saml_signing_key = match load_key_from_filename(&saml_key_path) {
             Ok(value) => value,
             Err(error) => {
-                eprintln!(
+                error!(
                     "Failed to load SAML signing key from {}: {:?}",
                     &saml_key_path, error
                 );
@@ -147,7 +147,7 @@ impl ServerConfig {
         {
             Ok(value) => value,
             Err(error) => {
-                eprintln!(
+                error!(
                     "Failed to load SAML signing cert from {}: {:?}",
                     &saml_key_path, error
                 );
@@ -155,7 +155,7 @@ impl ServerConfig {
             }
         };
 
-        eprintln!("SETTINGS\n{:?}", settings);
+        debug!("SETTINGS\n{:?}", settings);
         ServerConfig {
             public_hostname: settings
                 .get("public_hostname")

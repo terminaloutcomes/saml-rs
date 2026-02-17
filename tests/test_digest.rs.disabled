@@ -7,7 +7,7 @@ pub mod test {
     use saml_rs::sign::DigestAlgorithm;
     use saml_rs::utils::to_hex_string;
     use hex::FromHex;
-    
+
     /// compare two vectors by iterating through them one by one
     fn compare_vecs(veca: Vec<u8>, vecb: Vec<u8>) {
         let maxlen = match veca.len() >= vecb.len() {
@@ -52,35 +52,35 @@ pub mod test {
 
         let digest_from_example_bytes = base64::decode(&digest_from_example_base64).unwrap();
 
-        eprintln!();
-        eprintln!("digest_from_example_base64: {}", digest_from_example_base64);
-        eprintln!(
+        error!();
+        error!("digest_from_example_base64: {}", digest_from_example_base64);
+        error!(
             "digest_from_example_bytes: {:?}",
             &digest_from_example_bytes
         );
-        eprintln!(
+        error!(
             "digest_from_example_bytes: {:?}",
             to_hex_string(digest_from_example_bytes, Some("")).to_lowercase()
         );
-        // eprintln!("digest_from_example_bytes: {:#X}", u128::from_be_bytes(&digest_from_example_bytes[..]));
-        // eprintln!("digest_from_example_bytes: {}", digest_from_example_bytes);
+        // error!("digest_from_example_bytes: {:#X}", u128::from_be_bytes(&digest_from_example_bytes[..]));
+        // error!("digest_from_example_bytes: {}", digest_from_example_bytes);
 
-    
-        eprintln!("\ndigest bytes: {:?}", &result[..]);
-        eprintln!("should match: {:?}", &fromhex);
-        eprintln!("matches: {:?}", result[..] == fromhex);
+
+        error!("\ndigest bytes: {:?}", &result[..]);
+        error!("should match: {:?}", &fromhex);
+        error!("matches: {:?}", result[..] == fromhex);
         assert_eq!(result[..], fromhex);
 
-        eprintln!("\nbase64 bytes: {}", base64_bytes);
-        eprintln!("should match: {}", digest_from_example_base64);
-        eprintln!(
+        error!("\nbase64 bytes: {}", base64_bytes);
+        error!("should match: {}", digest_from_example_base64);
+        error!(
             "matches: {:?}",
             base64_bytes == digest_from_example_base64
         );
         assert_eq!(base64_bytes, digest_from_example_base64);
-        eprintln!("Test passed!");
+        error!("Test passed!");
     }
-    
+
     #[test]
     fn test_second_hash_digest() {
         println!("Starting up test_second_hash_digest");
@@ -114,7 +114,7 @@ pub mod test {
         println!("test_envelope as hexes: {:?}", result_hexes);
 
         let expected_result_hexes = "3c4d73674865616420786d6c6e733d22687474703a2f2f7777772e6578616d706c652e636f6d2f6d7367686561642220786d6c6e733a7873643d22687474703a2f2f7777772e77332e6f72672f323030312f584d4c536368656d612e7873642220786d6c6e733a7873693d22687474703a2f2f7777772e77332e6f72672f323030312f584d4c536368656d612d696e7374616e636522207873693a736368656d614c6f636174696f6e3d22687474703a2f2f7777772e6578616d706c652e636f6d2f6d736768656164204d7367486561642e787364223e0a20203c4d7367496e666f3e0a202020203c5479706520444e3d225265736570742220563d2245524d31223e3c2f547970653e0a202020203c50617469656e743e0a2020202020203c46616d696c794e616d653e4e6f72646d616e6e3c2f46616d696c794e616d653e0a2020202020203c476976656e4e616d653e4f6c613c2f476976656e4e616d653e0a2020202020203c4964656e743e0a20202020202020203c49643e31323334353637383930313c2f49643e0a20202020202020203c54797065496420444e3d2246c3b86473656c736e756d6d65722220533d22322e31362e3132332e312e31302e342e312e312e393939392220563d22464e52223e3c2f5479706549643e0a2020202020203c2f4964656e743e0a202020203c2f50617469656e743e0a20203c2f4d7367496e666f3e0a20203c446f63756d656e743e0a202020203c526566446f633e666f6f206261723c2f526566446f633e0a20203c2f446f63756d656e743e0a0a3c2f4d7367486561643e";
-        
+
         // compare_vecs(expected_result.to_vec(), test_envelope);
         println!("expected_rslt as hexes: {:?}", expected_result_hexes);
         println!("Matches? {:?}", result_hexes == expected_result_hexes);
@@ -124,30 +124,30 @@ pub mod test {
             .unwrap();
         let base64_bytes = base64::encode(result);
 
-        
+
         let digest_from_example_bytes = base64::decode(&digest_from_example_base64).unwrap();
 
-        eprintln!();
-        eprintln!("digest_from_example_base64: {}", digest_from_example_base64);
-        eprintln!(
+        error!();
+        error!("digest_from_example_base64: {}", digest_from_example_base64);
+        error!(
             "digest_from_example_bytes: {:?}",
             &digest_from_example_bytes
         );
-        eprintln!(
+        error!(
             "digest_from_example_bytes: {:?}",
             to_hex_string(digest_from_example_bytes, Some("")).to_lowercase()
         );
-        // eprintln!("digest_from_example_bytes: {:#X}", u128::from_be_bytes(&digest_from_example_bytes[..]));
-        // eprintln!("digest_from_example_bytes: {}", digest_from_example_bytes);
+        // error!("digest_from_example_bytes: {:#X}", u128::from_be_bytes(&digest_from_example_bytes[..]));
+        // error!("digest_from_example_bytes: {}", digest_from_example_bytes);
 
-        eprintln!("\ndigest bytes: {:?}", &result[..]);
-        eprintln!("should match: {:?}", &fromhex);
-        eprintln!("matches: {:?}", result[..] == fromhex);
+        error!("\ndigest bytes: {:?}", &result[..]);
+        error!("should match: {:?}", &fromhex);
+        error!("matches: {:?}", result[..] == fromhex);
         // assert_eq!(result[..], fromhex);
 
-        eprintln!("\nbase64 bytes: {}", base64_bytes);
-        eprintln!("should match: {}", digest_from_example_base64);
-        eprintln!(
+        error!("\nbase64 bytes: {}", base64_bytes);
+        error!("should match: {}", digest_from_example_base64);
+        error!(
             "matches: {:?}",
             base64_bytes == digest_from_example_base64
         );

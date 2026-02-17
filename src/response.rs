@@ -2,16 +2,16 @@
 
 // #![deny(unsafe_code)]
 
-use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
-use chrono::{DateTime, NaiveDate, SecondsFormat, Utc};
-use std::io::Write;
-use std::str::from_utf8;
-use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
-
 use crate::assertion::{Assertion, AssertionAttribute, BaseIDAbstractType, SubjectData};
 use crate::sign::{DigestAlgorithm, SigningAlgorithm};
 use crate::sp::*;
 use crate::xml::write_event;
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
+use chrono::{DateTime, SecondsFormat, TimeZone, Utc};
+use log::{debug, error};
+use std::io::Write;
+use std::str::from_utf8;
+use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
 #[derive(Debug)]
 /// Stores all the required elements of a SAML response... maybe?
@@ -135,7 +135,7 @@ impl Into<Vec<u8>> for ResponseElements {
                 match self.service_provider.find_first_acs() {
                     Ok(value) => value.location,
                     Err(error) => {
-                        eprintln!("{:?}, falling back to https://example.com", error);
+                        error!("{:?}, falling back to https://example.com", error);
                         ServiceBinding::default().location
                     } // TODO work out how to set an ACS if we fall through a) not setting it b) not finding one
                 }
@@ -154,10 +154,10 @@ impl Into<Vec<u8>> for ResponseElements {
             // TODO acs should come from somewhere, figure out where
             acs,
             // TODO: set the response not_on_or_after properly
-            subject_not_on_or_after: DateTime::<Utc>::from_utc(
-                NaiveDate::from_ymd(2024, 1, 18).and_hms(6, 21, 48),
-                Utc,
-            ),
+            subject_not_on_or_after: Utc
+                .with_ymd_and_hms(2024, 1, 18, 6, 21, 48)
+                .single()
+                .unwrap_or_else(Utc::now),
         };
 
         let assertion_data = Assertion {
@@ -216,8 +216,11 @@ impl Into<Vec<u8>> for ResponseElements {
         write_event(XmlEvent::end_element().into(), &mut writer);
 
         // finally we return the response
-        log::debug!("OUTPUT RESPONSE");
-        log::debug!("{}", from_utf8(&buffer).unwrap());
+        debug!("OUTPUT RESPONSE");
+        match from_utf8(&buffer) {
+            Ok(value) => debug!("{}", value),
+            Err(error) => error!("Failed to decode response as utf8: {:?}", error),
+        }
         buffer
     }
 }

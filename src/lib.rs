@@ -1,3 +1,18 @@
+#![deny(warnings)]
+#![warn(unused_extern_crates)]
+#![deny(clippy::todo)]
+#![deny(clippy::unimplemented)]
+#![deny(clippy::unwrap_used)]
+#![deny(clippy::expect_used)]
+#![deny(clippy::panic)]
+#![deny(clippy::unreachable)]
+#![deny(clippy::await_holding_lock)]
+#![deny(clippy::needless_pass_by_value)]
+#![deny(clippy::trivially_copy_pass_by_ref)]
+#![deny(unsafe_code)]
+#![warn(missing_docs)]
+#![deny(missing_debug_implementations)]
+
 //! A library for doing SAML things, terribly, in rust.
 //!
 //! My main aim at the moment is to provide IdP capabilities for the [Kanidm](https://github.com/kanidm/kanidm) project.
@@ -60,22 +75,13 @@
 //! * Parser for requests and responses: <https://samltool.io>
 //! * OneLogin SAMLTool - <https://www.samltool.com/validate_xml.php> great for validating things against schema.
 
-#![forbid(unsafe_code)]
-#![warn(missing_docs)]
-#![deny(missing_debug_implementations)]
-
-#[macro_use]
-extern crate log;
-
-// use xmlparser;
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
+use inflate::inflate_bytes;
+use log::{debug, error};
 use serde::Serialize;
 use std::fmt;
-use xmlparser::{StrSpan, Token};
-
-use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
-use inflate::inflate_bytes;
 use std::str::from_utf8;
-
+use xmlparser::{StrSpan, Token};
 pub mod assertion;
 pub mod cert;
 pub mod constants;
@@ -132,14 +138,20 @@ pub struct AuthnRequest {
 impl AuthnRequest {
     /// Allows one to turn a [AuthnRequestParser] into a Request object
     ///
-    /// TODO: doctest for AuthnRequest::From<AuthnRequestParser>
+    /// TODO: change this to be TryFrom<AuthenRequestParser> and return a Result so we can handle errors better
     #[allow(clippy::or_fun_call)]
     pub fn from(parser: AuthnRequestParser) -> Self {
         AuthnRequest {
-            relay_state: parser.relay_state.unwrap(),
+            relay_state: parser.relay_state.unwrap_or_else(|| {
+                error!("AuthnRequestParser missing relay_state, using placeholder");
+                String::from("unset")
+            }),
             issue_instant: parser.issue_instant.unwrap_or(Utc::now()),
             consumer_service_url: parser.consumer_service_url.unwrap_or(String::from("unset")),
-            issuer: parser.issuer.unwrap(),
+            issuer: parser.issuer.unwrap_or_else(|| {
+                error!("AuthnRequestParser missing issuer, using placeholder");
+                String::from("unset")
+            }),
             version: parser.version,
             destination: parser.destination.unwrap_or(String::from("unset")),
             sigalg: parser.sigalg,
@@ -241,7 +253,7 @@ pub struct SamlQuery {
 }
 
 /// Does the decoding to hand the signature to the verifier
-// TODO: is string the best retval for decode_authn_request_signature
+// TODO: is string the best retval for decode_authn_request_signature?
 pub fn decode_authn_request_signature(signature: String) -> String {
     debug!("signature: {:?}", signature);
     signature
@@ -311,7 +323,7 @@ fn parse_authn_tokenizer_attribute(
                     req.issue_instant = Some(result);
                 }
                 Err(error) => {
-                    eprintln!(
+                    error!(
                         "Failed to cast datetime source={:?}, error=\"{}\"",
                         value.to_string(),
                         error
@@ -338,7 +350,7 @@ fn parse_authn_tokenizer_attribute(
         ),
     }
 
-    //eprintln!("after block {:?}", req.issue_instant);
+    //error!("after block {:?}", req.issue_instant);
     Ok(req)
 }
 
@@ -369,6 +381,7 @@ fn parse_authn_tokenizer_element_start(
 }
 
 /// Give it a string full of XML and it'll give you back a [AuthnRequest] object which has the details
+// TODO: turn this into a `TryFrom<&str>` for AuthnRequest and return a Result so we can handle errors better
 pub fn parse_authn_request(request_data: &str) -> Result<AuthnRequest, String> {
     // more examples here
     // https://developers.onelogin.com/saml/examples/authnrequest
@@ -387,7 +400,7 @@ pub fn parse_authn_request(request_data: &str) -> Result<AuthnRequest, String> {
                     } => match parse_authn_tokenizer_attribute(local, value, saml_request) {
                         Ok(value) => value,
                         Err(error) => {
-                            return Err(format!("Failed to parse authn request: {:?}", error))
+                            return Err(format!("Failed to parse authn request: {:?}", error));
                         }
                     },
                     Token::ElementStart {

@@ -12,12 +12,20 @@ mod tests {
     /// tests test_full_response_something_something
     fn test_full_response_something_something() {
         // Session up the AuthNStatement
-        let authn_instant =
-            DateTime::<Utc>::from_utc(NaiveDate::from_ymd(2014, 7, 17).and_hms(1, 1, 48), Utc);
+        let authn_instant = DateTime::<Utc>::from_naive_utc_and_offset(
+            NaiveDate::from_ymd_opt(2014, 7, 17)
+                .unwrap()
+                .and_hms_opt(1, 1, 48)
+                .unwrap(),
+            Utc,
+        );
         // 2024-07-17T09:01:48Z
         // adding three years including skip years
-        let session_expiry = match DateTime::<Utc>::from_utc(
-            NaiveDate::from_ymd(2014, 7, 17).and_hms(9, 1, 48),
+        let session_expiry = match DateTime::<Utc>::from_naive_utc_and_offset(
+            NaiveDate::from_ymd_opt(2014, 7, 17)
+                .unwrap()
+                .and_hms_opt(9, 1, 48)
+                .unwrap(),
             Utc,
         )
         .checked_add_signed(Duration::days(3653))
@@ -44,8 +52,11 @@ mod tests {
             issuer: String::from("http://idp.example.com/metadata.php"),
             response_id: String::from("_8e8dc5f69a98cc4c1ff3427e5ce34606fd672f91e6"),
             // issue_instant: String::from("2014-07-17T01:01:48Z"),
-            issue_instant: DateTime::<Utc>::from_utc(
-                NaiveDate::from_ymd(2014, 7, 17).and_hms(1, 1, 48),
+            issue_instant: DateTime::<Utc>::from_naive_utc_and_offset(
+                NaiveDate::from_ymd_opt(2014, 7, 17)
+                    .unwrap()
+                    .and_hms_opt(1, 1, 48)
+                    .unwrap(),
                 Utc,
             ),
             relay_state: String::from("ONELOGIN_4fee3b046395c4e751011e97f8900b5273d56685"),
