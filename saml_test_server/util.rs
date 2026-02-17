@@ -4,6 +4,7 @@ use tide::Request;
 use http_types::Mime;
 use std::collections::HashMap;
 use std::str::FromStr;
+use std::time::Duration;
 
 use saml_rs::sp::ServiceProvider;
 use std::fs::read_to_string;
@@ -31,7 +32,7 @@ pub struct ServerConfig {
     pub sp_metadata_files: Option<Vec<&'static str>>,
     pub sp_metadata: HashMap<String, ServiceProvider>,
     // Default session lifetime across SPs
-    pub session_lifetime: u128,
+    pub session_lifetime: Duration,
 
     pub saml_cert_path: String,
     pub saml_key_path: String,
@@ -74,28 +75,6 @@ fn load_sp_metadata(filenames: Vec<String>) -> HashMap<String, ServiceProvider> 
 }
 
 impl ServerConfig {
-    pub fn default() -> Self {
-        ServerConfig {
-            bind_address: "127.0.0.1".to_string(),
-            public_hostname: "example.com".to_string(),
-            tls_cert_path: "Need to set this".to_string(),
-            tls_key_path: "Need to set this".to_string(),
-
-            entity_id: "https://example.com/idp/".to_string(),
-            sp_metadata_files: None,
-            sp_metadata: HashMap::new(),
-            session_lifetime: 43200, // 12 hours
-
-            // TODO: possibly remove saml_cert_path from [ServerConfig.default]
-            saml_cert_path: "Need to set this".to_string(),
-            // TODO: possibly remove saml_key_path from [ServerConfig.default]
-            saml_key_path: "Need to set this".to_string(),
-
-            saml_signing_key: None,
-            saml_signing_cert: None,
-        }
-    }
-
     /// Pass this a filename (with or without extension) and it'll choose from JSON/YAML/TOML etc and also check
     /// environment variables starting with SAML_
     pub fn from_filename_and_env(path: String) -> Self {
@@ -105,10 +84,7 @@ impl ServerConfig {
             .build()
             .unwrap();
 
-        let filenames: Vec<String> = match settings.get("sp_metadata_files") {
-            Ok(filenames) => filenames,
-            _ => Vec::<String>::new(),
-        };
+        let filenames: Vec<String> = settings.get("sp_metadata_files").unwrap_or_default();
 
         log::debug!("Loading SP Metadata from config.");
 
@@ -202,6 +178,30 @@ impl ServerConfig {
 
             saml_signing_key: Some(saml_signing_key),
             saml_signing_cert: Some(saml_signing_cert),
+        }
+    }
+}
+
+impl Default for ServerConfig {
+    fn default() -> Self {
+        ServerConfig {
+            bind_address: "127.0.0.1".to_string(),
+            public_hostname: "example.com".to_string(),
+            tls_cert_path: "Need to set this".to_string(),
+            tls_key_path: "Need to set this".to_string(),
+
+            entity_id: "https://example.com/idp/".to_string(),
+            sp_metadata_files: None,
+            sp_metadata: HashMap::new(),
+            session_lifetime: Duration::from_hours(12), // 12 hours
+
+            // TODO: possibly remove saml_cert_path from [ServerConfig.default]
+            saml_cert_path: "Need to set this".to_string(),
+            // TODO: possibly remove saml_key_path from [ServerConfig.default]
+            saml_key_path: "Need to set this".to_string(),
+
+            saml_signing_key: None,
+            saml_signing_cert: None,
         }
     }
 }

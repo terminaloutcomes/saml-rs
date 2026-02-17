@@ -2,6 +2,7 @@
 
 // #![deny(unsafe_code)]
 
+use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use chrono::{DateTime, NaiveDate, SecondsFormat, Utc};
 use std::io::Write;
 use std::str::from_utf8;
@@ -81,44 +82,12 @@ impl ResponseElements {
     /// returns the base64 encoded version of a [ResponseElements]
     pub fn base64_encoded_response(self) -> Vec<u8> {
         let buffer: Vec<u8> = self.into();
-        base64::encode(buffer).into()
-    }
-
-    /// Default values, mostly so I can pull out a default assertion ID somewhere else, for now
-    /// TODO: ResponseElements::default, yes.
-    pub fn default() -> Self {
-        let placeholder_authn_statement = AuthNStatement {
-            instant: Utc::now(),
-            session_index: String::from(
-                "This is totally a placeholder session_index, why is this here?",
-            ),
-            classref: String::from("This is totally a placeholder classref, why is this here?"),
-            expiry: None,
-        };
-
-        Self {
-            assertion_id: Uuid::new_v4().to_string(),
-            attributes: vec![],
-            authnstatement: placeholder_authn_statement,
-            destination: String::from("This should have been set"),
-            issuer: String::from("This should have been set"),
-            relay_state: String::from("This should have been set"),
-            issue_instant: Utc::now(),
-            service_provider: ServiceProvider::test_generic("foo"),
-            response_id: Uuid::new_v4().to_string(),
-            assertion_consumer_service: None,
-            session_length_seconds: 60, // a minute is plenty to be able to consume the assertion
-            status: crate::constants::StatusCode::AuthnFailed,
-            sign_assertion: true,
-            sign_message: false,
-            signing_key: None,
-            signing_cert: None,
-        }
+        BASE64_STANDARD.encode(buffer).into()
     }
 
     /// generate a response ID, which will be the issuer and uuid concatentated
     pub fn regenerate_response_id(self) -> Self {
-        let response_id = format!("{}-{}", self.issuer, Uuid::new_v4().to_string());
+        let response_id = format!("{}-{}", self.issuer, Uuid::new_v4());
         Self {
             assertion_id: self.assertion_id,
             attributes: self.attributes,
@@ -272,7 +241,6 @@ pub struct AuthNStatement {
 
 impl AuthNStatement {
     #[allow(clippy::inherent_to_string)]
-
     /// Used elsewhere in the API to add an AuthNStatement to the Response XML
     pub fn add_to_xmlevent<W: Write>(&self, writer: &mut EventWriter<W>) {
         // start authn statement
@@ -320,10 +288,43 @@ impl AuthNStatement {
     }
 }
 
+impl Default for ResponseElements {
+    /// Default values, mostly so I can pull out a default assertion ID somewhere else, for now
+    fn default() -> Self {
+        let placeholder_authn_statement = AuthNStatement {
+            instant: Utc::now(),
+            session_index: String::from(
+                "This is totally a placeholder session_index, why is this here?",
+            ),
+            classref: String::from("This is totally a placeholder classref, why is this here?"),
+            expiry: None,
+        };
+        // TODO: don't have a default, implement a builder pattern instead and refuse to build without good values
+        Self {
+            assertion_id: Uuid::new_v4().to_string(),
+            attributes: vec![],
+            authnstatement: placeholder_authn_statement,
+            destination: String::from("This should have been set"),
+            issuer: String::from("This should have been set"),
+            relay_state: String::from("This should have been set"),
+            issue_instant: Utc::now(),
+            service_provider: ServiceProvider::test_generic("foo"),
+            response_id: Uuid::new_v4().to_string(),
+            assertion_consumer_service: None,
+            session_length_seconds: 60, // a minute is plenty to be able to consume the assertion
+            status: crate::constants::StatusCode::AuthnFailed,
+            sign_assertion: true,
+            sign_message: false,
+            signing_key: None,
+            signing_cert: None,
+        }
+    }
+}
+
 /// Adds the issuer statement to a response
 pub fn add_issuer<W: Write>(issuer: &str, writer: &mut EventWriter<W>) {
     write_event(XmlEvent::start_element(("saml", "Issuer")).into(), writer);
-    write_event(XmlEvent::characters(&issuer), writer);
+    write_event(XmlEvent::characters(issuer), writer);
     write_event(XmlEvent::end_element().into(), writer);
 }
 

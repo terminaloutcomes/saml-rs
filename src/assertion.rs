@@ -27,8 +27,10 @@ use serde::Serialize;
 
 use crate::utils::*;
 use crate::xml::write_event;
+use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use chrono::{DateTime, SecondsFormat, Utc};
 use openssl::x509::X509;
+use std::fmt;
 use std::io::Write;
 use std::str::from_utf8;
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
@@ -90,6 +92,7 @@ fn write_assertion_tmpdir(buffer: &[u8]) {
     log::debug!("Assertion filename: {:?}", &assertionpath);
     let mut assertionfile = match std::fs::OpenOptions::new()
         .create(true)
+        .truncate(true)
         .write(true)
         // either use ? or unwrap since it returns a Result
         .open(assertionpath.into_os_string())
@@ -101,7 +104,7 @@ fn write_assertion_tmpdir(buffer: &[u8]) {
         }
     };
 
-    match assertionfile.write_all(&buffer) {
+    match assertionfile.write_all(buffer) {
         Ok(value) => log::debug!("{:?}", value),
         Err(e) => log::error!("{:?}", e),
     };
@@ -249,7 +252,7 @@ impl Assertion {
             let digest_bytes = self.digest_algorithm.hash(&xmldata).unwrap();
 
             // 3. base64 encode #2
-            let base64_encoded_digest = base64::encode(&digest_bytes);
+            let base64_encoded_digest = BASE64_STANDARD.encode(digest_bytes);
 
             // 4. you put #3 into ANOTHER chunk of XML.
             let mut signedinfo_buffer = Vec::new();
@@ -265,16 +268,16 @@ impl Assertion {
             log::debug!("{}", from_utf8(&signedinfo_buffer).unwrap());
 
             // 5. you hash #4.
-            let hashed_signedinfo = base64::encode(signedinfo_buffer);
+            let hashed_signedinfo = BASE64_STANDARD.encode(signedinfo_buffer);
             log::debug!("Hashed Signedinfo: {}", hashed_signedinfo);
 
             // 6. you sign #5
             let key = self.signing_key.as_ref().unwrap();
             let signed_result =
-                crate::sign::sign_data(self.signing_algorithm, key, &hashed_signedinfo.as_bytes());
+                crate::sign::sign_data(self.signing_algorithm, key, hashed_signedinfo.as_bytes());
             log::debug!("Signature result: {:?}", &signed_result);
 
-            let base64_encoded_signature = base64::encode(&signed_result);
+            let base64_encoded_signature = BASE64_STANDARD.encode(&signed_result);
             log::debug!(
                 "Base64 encoded signature result: {:?}",
                 &base64_encoded_signature
@@ -335,7 +338,7 @@ impl Assertion {
 /// <saml:NameID SPNameQualifier="http://sp.example.com/demo1/metadata.php" Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient">_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7</saml:NameID>
 /// ```
 pub enum BaseIDAbstractType {
-    ///
+    /// Use the `NameQualifier` attribute in `<saml:NameID>`.
     NameQualifier,
     /// This'll be the one you normally use - TODO I think this comes from the metadata itself
     SPNameQualifier,
@@ -352,11 +355,11 @@ impl From<String> for BaseIDAbstractType {
     }
 }
 
-impl ToString for BaseIDAbstractType {
-    fn to_string(&self) -> String {
+impl fmt::Display for BaseIDAbstractType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            BaseIDAbstractType::NameQualifier => String::from("NameQualifier"),
-            BaseIDAbstractType::SPNameQualifier => String::from("SPNameQualifier"),
+            BaseIDAbstractType::NameQualifier => f.write_str("NameQualifier"),
+            BaseIDAbstractType::SPNameQualifier => f.write_str("SPNameQualifier"),
         }
     }
 }
@@ -408,7 +411,7 @@ fn add_subject<W: Write>(subjectdata: &SubjectData, writer: &mut EventWriter<W>)
         writer,
     );
 
-    write_event(XmlEvent::characters(&subjectdata.nameid_value), writer);
+    write_event(XmlEvent::characters(subjectdata.nameid_value), writer);
     // end nameid statement
     write_event(XmlEvent::end_element().into(), writer);
 

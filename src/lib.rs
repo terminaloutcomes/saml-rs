@@ -72,6 +72,7 @@ use serde::Serialize;
 use std::fmt;
 use xmlparser::{StrSpan, Token};
 
+use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use inflate::inflate_bytes;
 use std::str::from_utf8;
 
@@ -248,7 +249,7 @@ pub fn decode_authn_request_signature(signature: String) -> String {
 
 /// Removes base64 encoding and also deflates the input String.
 pub fn decode_authn_request_base64_encoded(req: String) -> Result<String, AuthnDecodeError> {
-    let base64_decoded_samlrequest: Vec<u8> = match base64::decode(req) {
+    let base64_decoded_samlrequest: Vec<u8> = match BASE64_STANDARD.decode(req) {
         Ok(value) => {
             debug!("Successfully Base64 Decoded the SAMLRequest");
             value
@@ -298,7 +299,7 @@ fn parse_authn_tokenizer_attribute(
             req.relay_state = Some(value.to_string());
         }
         "issueinstant" => {
-            debug!("Found issueinstant: {}", value.to_string());
+            debug!("Found issueinstant: {}", value);
 
             // Date parsing... 2021-07-19T12:06:25Z
             let parsed_datetime = DateTime::parse_from_rfc3339(&value);
@@ -322,10 +323,10 @@ fn parse_authn_tokenizer_attribute(
             req.consumer_service_url = Some(value.to_string());
         }
         "version" => {
-            if value.to_string() != "2.0" {
+            if value != "2.0" {
                 return Err(AuthnDecodeError::new(format!(
                     "SAML Request where version!=2.0 ({}), this is probably bad.",
-                    value.to_string()
+                    value
                 )));
             }
             req.version = value.to_string();
@@ -333,7 +334,7 @@ fn parse_authn_tokenizer_attribute(
         _ => debug!(
             "Found tokenizer attribute={}, value={}",
             local.to_lowercase().as_str(),
-            value.to_string()
+            value
         ),
     }
 

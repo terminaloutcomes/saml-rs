@@ -227,7 +227,7 @@ impl From<DigestAlgorithm> for String {
 pub fn load_public_cert_from_filename(cert_filename: &str) -> Result<X509, String> {
     log::debug!("loading cert:  {}", cert_filename);
 
-    let mut f = match File::open(&cert_filename) {
+    let mut f = match File::open(cert_filename) {
         Ok(value) => value,
         Err(error) => {
             return Err(format!(
@@ -287,14 +287,14 @@ pub fn sign_data(
     // Sign the data
 
     let signing_algorithm: openssl::hash::MessageDigest = signing_algorithm.into();
-    let mut signer = Signer::new(signing_algorithm, &signing_key).unwrap();
+    let mut signer = Signer::new(signing_algorithm, signing_key).unwrap();
     signer.update(bytes_to_sign).unwrap();
 
     let signature = signer.sign_to_vec().unwrap();
     log::debug!("Signature: {:?}", signature);
 
     // Verify the data
-    let mut verifier = Verifier::new(signing_algorithm, &signing_key).unwrap();
+    let mut verifier = Verifier::new(signing_algorithm, signing_key).unwrap();
     verifier.update(bytes_to_sign).unwrap();
     // verifier.update(data2).unwrap();
     assert!(verifier.verify(&signature).unwrap());

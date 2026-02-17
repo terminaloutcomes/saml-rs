@@ -5,6 +5,7 @@
 use openssl;
 use openssl::x509::{X509NameBuilder, X509};
 
+use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use std::fmt;
 
 #[derive(Debug)]
@@ -27,7 +28,7 @@ pub fn init_cert_from_base64(buf: &str) -> Result<X509, CertParseError> {
     // File::open("my_cert.der")?
     //     .read_to_end(&mut buf)?;
 
-    let decoded = base64::decode(buf);
+    let decoded = BASE64_STANDARD.decode(buf);
 
     match decoded {
         Err(error) => {
@@ -68,7 +69,7 @@ pub fn gen_self_signed_certificate(hostname: &str) -> X509 {
     x509_name
         .append_entry_by_text("O", "Example organization")
         .unwrap();
-    x509_name.append_entry_by_text("CN", &hostname).unwrap();
+    x509_name.append_entry_by_text("CN", hostname).unwrap();
     let x509_name = x509_name.build();
 
     let mut x509 = X509::builder().unwrap();

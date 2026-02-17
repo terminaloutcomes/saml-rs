@@ -173,7 +173,7 @@ pub fn generate_metadata_xml(metadata: SamlMetadata) -> String {
     );
     write_event(
         // TODO: nameid-format should definitely be configurable
-        XmlEvent::characters(&"urn:oasis:names:tc:SAML:2.0:nameid-format:transient"),
+        XmlEvent::characters("urn:oasis:names:tc:SAML:2.0:nameid-format:transient"),
         &mut writer,
     );
     write_event(XmlEvent::end_element().into(), &mut writer);
@@ -208,7 +208,7 @@ pub fn generate_metadata_xml(metadata: SamlMetadata) -> String {
     );
     write_event(
         // TODO: md:contactperson name should be configurable
-        XmlEvent::characters(&"Admin"),
+        XmlEvent::characters("Admin"),
         &mut writer,
     );
     write_event(XmlEvent::end_element().into(), &mut writer);
@@ -219,7 +219,7 @@ pub fn generate_metadata_xml(metadata: SamlMetadata) -> String {
     );
     write_event(
         // TODO: md:contactperson EmailAddress should be configurable
-        XmlEvent::characters(&"mailto:admin@example.com"),
+        XmlEvent::characters("mailto:admin@example.com"),
         &mut writer,
     );
     write_event(XmlEvent::end_element().into(), &mut writer);

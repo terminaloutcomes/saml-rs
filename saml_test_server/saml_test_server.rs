@@ -85,7 +85,7 @@ async fn main() -> tide::Result<()> {
 
     saml_process.at("/Redirect").get(saml_redirect_get);
 
-    let _app = {
+    {
         let tls_cert: String =
             shellexpand::tilde(&server_config.tls_cert_path.as_str()).into_owned();
         let tls_key: String = shellexpand::tilde(&server_config.tls_key_path.as_str()).into_owned();
@@ -128,8 +128,7 @@ async fn main() -> tide::Result<()> {
 /// Provides a GET response for the metadata URL
 async fn saml_metadata_get(req: Request<AppState>) -> tide::Result {
     let cert_path = &req.state().saml_cert_path;
-    let certificate = saml_rs::sign::load_public_cert_from_filename(cert_path)
-    .unwrap();
+    let certificate = saml_rs::sign::load_public_cert_from_filename(cert_path).unwrap();
 
     let entity_id = String::from(&req.state().hostname);
 

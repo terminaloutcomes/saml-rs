@@ -4,6 +4,7 @@
 // #![deny(unsafe_code)]
 
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::str::FromStr;
 
 use openssl;
@@ -14,6 +15,7 @@ use xml::reader::{EventReader, XmlEvent};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 /// Different types of name-id formats from the spec
+#[derive(Default)]
 pub enum NameIdFormat {
     /// Email Address
     EmailAddress,
@@ -26,6 +28,7 @@ pub enum NameIdFormat {
     /// Don't keep this, it'll change
     Transient,
     /// 🤷‍♂️🤷‍♀️ who even knows
+    #[default]
     Unspecified,
     /// Windows format
     WindowsDomainQualifiedName,
@@ -33,36 +36,30 @@ pub enum NameIdFormat {
     X509SubjectName,
 }
 
-impl Default for NameIdFormat {
-    fn default() -> NameIdFormat {
-        NameIdFormat::Unspecified
-    }
-}
-
-impl ToString for NameIdFormat {
-    fn to_string(&self) -> String {
+impl fmt::Display for NameIdFormat {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             NameIdFormat::EmailAddress => {
-                "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress".to_string()
+                f.write_str("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
             }
-            NameIdFormat::Entity => "urn:oasis:names:tc:SAML:2.0:nameid-format:entity".to_string(),
+            NameIdFormat::Entity => f.write_str("urn:oasis:names:tc:SAML:2.0:nameid-format:entity"),
             NameIdFormat::Kerberos => {
-                " urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos".to_string()
+                f.write_str(" urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos")
             }
             NameIdFormat::Persistent => {
-                "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent".to_string()
+                f.write_str("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent")
             }
             NameIdFormat::Transient => {
-                "urn:oasis:names:tc:SAML:2.0:nameid-format:transient".to_string()
+                f.write_str("urn:oasis:names:tc:SAML:2.0:nameid-format:transient")
             }
             NameIdFormat::Unspecified => {
-                "urn:oasis:names:tc:SAML:1.0:nameid-format:unspecified".to_string()
+                f.write_str("urn:oasis:names:tc:SAML:1.0:nameid-format:unspecified")
             }
             NameIdFormat::WindowsDomainQualifiedName => {
-                "urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName".to_string()
+                f.write_str("urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName")
             }
             NameIdFormat::X509SubjectName => {
-                "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName".to_string()
+                f.write_str("urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName")
             }
         }
     }
@@ -102,11 +99,11 @@ pub enum SamlBindingType {
     SingleLogoutService,
 }
 
-impl ToString for SamlBindingType {
-    fn to_string(&self) -> String {
+impl fmt::Display for SamlBindingType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SamlBindingType::AssertionConsumerService => "AssertionConsumerService".to_string(),
-            SamlBindingType::SingleLogoutService => "SingleLogoutService".to_string(),
+            SamlBindingType::AssertionConsumerService => f.write_str("AssertionConsumerService"),
+            SamlBindingType::SingleLogoutService => f.write_str("SingleLogoutService"),
         }
     }
 }
@@ -125,8 +122,10 @@ impl FromStr for SamlBindingType {
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 /// Binding methods
 /// TODO: should this be renamed to binding method?
+#[derive(Default)]
 pub enum SamlBinding {
     /// HTTP-POST method
+    #[default]
     HttpPost,
     /// HTTP-REDIRECT method
     HttpRedirect,
@@ -137,17 +136,12 @@ pub enum SamlBinding {
 // Failed to parse AssertionConsumerService: "UNMATCHED BINDING: urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact: Must be a valid type"
 // Failed to parse AssertionConsumerService: "UNMATCHED BINDING: urn:oasis:names:tc:SAML:2.0:bindings:PAOS: Must be a valid type"
 
-impl Default for SamlBinding {
-    fn default() -> Self {
-        SamlBinding::HttpPost
-    }
-}
-impl ToString for SamlBinding {
-    fn to_string(&self) -> String {
+impl fmt::Display for SamlBinding {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SamlBinding::HttpPost => "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST".to_string(),
+            SamlBinding::HttpPost => f.write_str("urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"),
             SamlBinding::HttpRedirect => {
-                "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-REDIRECT".to_string()
+                f.write_str("urn:oasis:names:tc:SAML:2.0:bindings:HTTP-REDIRECT")
             }
         }
     }
@@ -183,16 +177,6 @@ pub struct ServiceBinding {
 }
 
 impl ServiceBinding {
-    /// return a default broken binding for testing or later changing - the ACS is set to `http://0.0.0.0:0/SAML/acs`
-    pub fn default() -> Self {
-        ServiceBinding {
-            servicetype: SamlBindingType::AssertionConsumerService,
-            binding: SamlBinding::default(),
-            location: "http://0.0.0.0:0/SAML/acs".to_string(),
-            index: 0,
-        }
-    }
-
     /// TODO: actually use this in ServiceProvider from_xml or something
     pub fn set_binding(self, binding: String) -> Result<Self, String> {
         match SamlBinding::from_str(&binding) {
@@ -203,6 +187,18 @@ impl ServiceBinding {
                 location: self.location,
                 index: self.index,
             }),
+        }
+    }
+}
+
+impl Default for ServiceBinding {
+    /// return a default broken binding for testing or later changing - the ACS is set to `http://0.0.0.0:0/SAML/acs`
+    fn default() -> Self {
+        ServiceBinding {
+            servicetype: SamlBindingType::AssertionConsumerService,
+            binding: SamlBinding::default(),
+            location: "http://0.0.0.0:0/SAML/acs".to_string(),
+            index: 0,
         }
     }
 }
@@ -262,7 +258,7 @@ impl FromStr for ServiceProvider {
                     // println!("{}+{}", xml_indent(depth), name);
                     tag_name = name.local_name.to_string();
 
-                    meta.attrib_parser(&tag_name, attributes, &upstream_tag);
+                    meta.attrib_parser(&tag_name, attributes, upstream_tag);
                     depth += 1;
                 }
                 Ok(XmlEvent::EndElement { .. /* name */ }) => {

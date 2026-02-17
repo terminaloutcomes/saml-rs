@@ -20,7 +20,7 @@ impl X509Utils for openssl::x509::X509 {
     /// either including the ```--- BEGIN LOLS ---```  or not
     fn get_as_pem_string(&self, includeheaders: bool) -> String {
         let cert_pem = &self.to_pem().unwrap();
-        let cert_pem: String = from_utf8(&cert_pem).unwrap().to_string();
+        let cert_pem: String = from_utf8(cert_pem).unwrap().to_string();
 
         let result = match includeheaders {
             true => cert_pem,
@@ -135,7 +135,7 @@ pub fn generate_signedinfo<W: Write>(
         writer,
     );
 
-    write_event(XmlEvent::characters(&digest), writer);
+    write_event(XmlEvent::characters(digest), writer);
     //end ds:DigestValue
     write_event(XmlEvent::end_element().into(), writer);
 
