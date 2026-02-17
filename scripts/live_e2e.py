@@ -27,17 +27,69 @@ KEYCLOAK_CONTAINER_NAME = "saml-live-e2e-keycloak"
 KEYCLOAK_IMAGE = "quay.io/keycloak/keycloak:26.0.8"
 KEYCLOAK_IMPORT_REALM_SRC = ROOT_DIR / "examples" / "live_e2e" / "keycloak-realm.json"
 KEYCLOAK_IMPORT_REALM_DST = "/opt/keycloak/data/import/saml-e2e-realm.json"
-WAIT_INTERVAL_SECONDS = float(os.getenv("LIVE_E2E_WAIT_INTERVAL_SECONDS", "1"))
-KEYCLOAK_WAIT_TIMEOUT_SECONDS = int(os.getenv("LIVE_E2E_KEYCLOAK_WAIT_TIMEOUT_SECONDS", "180"))
-SAML_SERVER_WAIT_TIMEOUT_SECONDS = int(os.getenv("LIVE_E2E_SAML_SERVER_WAIT_TIMEOUT_SECONDS", "120"))
+
+
+class HarnessError(RuntimeError):
+    """Base error type for the live e2e harness."""
+
+
+class ConfigError(HarnessError):
+    """Raised for invalid harness configuration."""
+
+
+class CommandError(HarnessError):
+    """Raised when an external command fails."""
+
+
+class DockerControlError(HarnessError):
+    """Raised when Docker container lifecycle operations fail."""
+
+
+class WaitTimeoutError(HarnessError):
+    """Raised when waiting for a URL times out."""
+
+
+def _env_float(name: str, default: str) -> float:
+    raw = os.getenv(name, default)
+    try:
+        value = float(raw)
+    except ValueError as error:
+        raise ConfigError(f"{name} must be a float, got {raw!r}") from error
+    if value <= 0:
+        raise ConfigError(f"{name} must be > 0, got {value}")
+    return value
+
+
+def _env_int(name: str, default: str) -> int:
+    raw = os.getenv(name, default)
+    try:
+        value = int(raw)
+    except ValueError as error:
+        raise ConfigError(f"{name} must be an integer, got {raw!r}") from error
+    if value <= 0:
+        raise ConfigError(f"{name} must be > 0, got {value}")
+    return value
+
+
+WAIT_INTERVAL_SECONDS = _env_float("LIVE_E2E_WAIT_INTERVAL_SECONDS", "1")
+KEYCLOAK_WAIT_TIMEOUT_SECONDS = _env_int("LIVE_E2E_KEYCLOAK_WAIT_TIMEOUT_SECONDS", "180")
+SAML_SERVER_WAIT_TIMEOUT_SECONDS = _env_int("LIVE_E2E_SAML_SERVER_WAIT_TIMEOUT_SECONDS", "120")
 
 
 def run_command(args: list[str], env: dict[str, str] | None = None) -> None:
-    subprocess.run(args, cwd=ROOT_DIR, env=env, check=True)
+    try:
+        subprocess.run(args, cwd=ROOT_DIR, env=env, check=True)
+    except FileNotFoundError as error:
+        raise CommandError(f"Missing required executable {args[0]!r}") from error
+    except subprocess.CalledProcessError as error:
+        raise CommandError(f"Command failed with exit code {error.returncode}: {args}") from error
 
 
 def docker_client() -> docker.DockerClient:
-    return docker.from_env()
+    try:
+        return docker.from_env()
+    except DockerException as error:
+        raise DockerControlError(f"Failed to initialize Docker client: {error}") from error
 
 
 def ensure_keycloak_image(client: docker.DockerClient) -> None:
@@ -45,7 +97,16 @@ def ensure_keycloak_image(client: docker.DockerClient) -> None:
         client.images.get(KEYCLOAK_IMAGE)
     except ImageNotFound:
         print(f"Pulling Keycloak image: {KEYCLOAK_IMAGE}")
-        client.images.pull(KEYCLOAK_IMAGE)
+        try:
+            client.images.pull(KEYCLOAK_IMAGE)
+        except DockerException as error:
+            raise DockerControlError(
+                f"Failed to pull Keycloak image {KEYCLOAK_IMAGE}: {error}"
+            ) from error
+    except DockerException as error:
+        raise DockerControlError(
+            f"Failed to inspect Keycloak image {KEYCLOAK_IMAGE}: {error}"
+        ) from error
 
 
 def start_keycloak() -> None:
@@ -59,35 +120,45 @@ def start_keycloak() -> None:
                 print(f"Keycloak container already running: {KEYCLOAK_CONTAINER_NAME}")
                 return
             print(f"Starting existing Keycloak container: {KEYCLOAK_CONTAINER_NAME}")
-            container.start()
+            try:
+                container.start()
+            except DockerException as error:
+                raise DockerControlError(
+                    f"Failed to start Keycloak container {KEYCLOAK_CONTAINER_NAME}: {error}"
+                ) from error
             return
         except NotFound:
             pass
 
         print(f"Creating Keycloak container: {KEYCLOAK_CONTAINER_NAME}")
-        client.containers.run(
-            KEYCLOAK_IMAGE,
-            name=KEYCLOAK_CONTAINER_NAME,
-            command=[
-                "start-dev",
-                "--import-realm",
-                "--http-port=8080",
-                "--hostname=http://localhost:18080",
-                "--hostname-strict=false",
-            ],
-            environment={
-                "KC_BOOTSTRAP_ADMIN_USERNAME": "admin",
-                "KC_BOOTSTRAP_ADMIN_PASSWORD": "admin",
-            },
-            ports={"8080/tcp": 18080},
-            volumes={
-                str(KEYCLOAK_IMPORT_REALM_SRC): {
-                    "bind": KEYCLOAK_IMPORT_REALM_DST,
-                    "mode": "ro",
-                }
-            },
-            detach=True,
-        )
+        try:
+            client.containers.run(
+                KEYCLOAK_IMAGE,
+                name=KEYCLOAK_CONTAINER_NAME,
+                command=[
+                    "start-dev",
+                    "--import-realm",
+                    "--http-port=8080",
+                    "--hostname=http://localhost:18080",
+                    "--hostname-strict=false",
+                ],
+                environment={
+                    "KC_BOOTSTRAP_ADMIN_USERNAME": "admin",
+                    "KC_BOOTSTRAP_ADMIN_PASSWORD": "admin",
+                },
+                ports={"8080/tcp": 18080},
+                volumes={
+                    str(KEYCLOAK_IMPORT_REALM_SRC): {
+                        "bind": KEYCLOAK_IMPORT_REALM_DST,
+                        "mode": "ro",
+                    }
+                },
+                detach=True,
+            )
+        except DockerException as error:
+            raise DockerControlError(
+                f"Failed to create/start Keycloak container {KEYCLOAK_CONTAINER_NAME}: {error}"
+            ) from error
     finally:
         client.close()
 
@@ -103,9 +174,23 @@ def stop_keycloak() -> None:
         container.reload()
         if container.status == "running":
             print(f"Stopping Keycloak container: {KEYCLOAK_CONTAINER_NAME}")
-            container.stop(timeout=10)
+            try:
+                container.stop(timeout=10)
+            except DockerException as error:
+                raise DockerControlError(
+                    f"Failed to stop Keycloak container {KEYCLOAK_CONTAINER_NAME}: {error}"
+                ) from error
         print(f"Removing Keycloak container: {KEYCLOAK_CONTAINER_NAME}")
-        container.remove(v=True, force=True)
+        try:
+            container.remove(v=True, force=True)
+        except DockerException as error:
+            raise DockerControlError(
+                f"Failed to remove Keycloak container {KEYCLOAK_CONTAINER_NAME}: {error}"
+            ) from error
+    except DockerException as error:
+        raise DockerControlError(
+            f"Docker error while stopping Keycloak container {KEYCLOAK_CONTAINER_NAME}: {error}"
+        ) from error
     finally:
         client.close()
 
@@ -121,7 +206,7 @@ def wait_for_url(url: str, label: str, timeout_seconds: int) -> None:
                 return
         except (urllib.error.URLError, TimeoutError, http.client.HTTPException, OSError):
             time.sleep(WAIT_INTERVAL_SECONDS)
-    raise RuntimeError(
+    raise WaitTimeoutError(
         f"Timed out waiting for {label}: {url} after {timeout_seconds}s ({attempts} attempts)"
     )
 
@@ -137,33 +222,43 @@ def is_pid_running(pid: int) -> bool:
 
 
 def prepare_signing_material() -> None:
-    WORK_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        WORK_DIR.mkdir(parents=True, exist_ok=True)
+    except OSError as error:
+        raise HarnessError(f"Failed to create work directory {WORK_DIR}: {error}") from error
     if CERT_PATH.exists() and KEY_PATH.exists():
         return
 
     print(f"Generating temporary SAML signing certificate in {WORK_DIR}")
-    subprocess.run(
-        [
-            "openssl",
-            "req",
-            "-x509",
-            "-newkey",
-            "rsa:2048",
-            "-keyout",
-            str(KEY_PATH),
-            "-out",
-            str(CERT_PATH),
-            "-sha256",
-            "-nodes",
-            "-days",
-            "14",
-            "-subj",
-            "/CN=saml-rs-live-e2e",
-        ],
-        check=True,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
+    try:
+        subprocess.run(
+            [
+                "openssl",
+                "req",
+                "-x509",
+                "-newkey",
+                "rsa:2048",
+                "-keyout",
+                str(KEY_PATH),
+                "-out",
+                str(CERT_PATH),
+                "-sha256",
+                "-nodes",
+                "-days",
+                "14",
+                "-subj",
+                "/CN=saml-rs-live-e2e",
+            ],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except FileNotFoundError as error:
+        raise CommandError("Missing required executable 'openssl'") from error
+    except subprocess.CalledProcessError as error:
+        raise CommandError(
+            f"Failed to generate temporary SAML signing material with openssl: {error}"
+        ) from error
 
 
 def current_signing_env() -> tuple[str, str, str, str]:
@@ -176,14 +271,27 @@ def current_signing_env() -> tuple[str, str, str, str]:
 
 
 def start_saml_server() -> None:
-    WORK_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        WORK_DIR.mkdir(parents=True, exist_ok=True)
+    except OSError as error:
+        raise HarnessError(f"Failed to create work directory {WORK_DIR}: {error}") from error
 
     if SAML_SERVER_PID_FILE.exists():
-        existing_pid = int(SAML_SERVER_PID_FILE.read_text(encoding="utf-8").strip())
+        try:
+            existing_pid = int(SAML_SERVER_PID_FILE.read_text(encoding="utf-8").strip())
+        except (OSError, ValueError) as error:
+            raise HarnessError(
+                f"Failed to read pid file {SAML_SERVER_PID_FILE}: {error}"
+            ) from error
         if is_pid_running(existing_pid):
             print(f"saml_test_server already running with PID {existing_pid}")
             return
-        SAML_SERVER_PID_FILE.unlink(missing_ok=True)
+        try:
+            SAML_SERVER_PID_FILE.unlink(missing_ok=True)
+        except OSError as error:
+            raise HarnessError(
+                f"Failed to remove stale pid file {SAML_SERVER_PID_FILE}: {error}"
+            ) from error
 
     print(f"Starting saml_test_server on host (logs: {SAML_SERVER_LOG})")
     sign_assertion, sign_message, require_signed_authn, c14n_method = (
@@ -208,41 +316,58 @@ def start_saml_server() -> None:
             "SAML_C14N_METHOD": c14n_method,
         }
     )
-    with SAML_SERVER_LOG.open("ab") as log_file:
-        process = subprocess.Popen(
-            [
-                "cargo",
-                "run",
-                "--quiet",
-                "--manifest-path",
-                str(ROOT_DIR / "Cargo.toml"),
-                "-p",
-                "saml_test_server",
-                "--bin",
-                "saml_test_server",
-            ],
-            cwd=ROOT_DIR,
-            env=env,
-            stdin=subprocess.DEVNULL,
-            stdout=log_file,
-            stderr=log_file,
-            start_new_session=True,
-        )
+    try:
+        with SAML_SERVER_LOG.open("ab") as log_file:
+            process = subprocess.Popen(
+                [
+                    "cargo",
+                    "run",
+                    "--quiet",
+                    "--manifest-path",
+                    str(ROOT_DIR / "Cargo.toml"),
+                    "-p",
+                    "saml_test_server",
+                    "--bin",
+                    "saml_test_server",
+                ],
+                cwd=ROOT_DIR,
+                env=env,
+                stdin=subprocess.DEVNULL,
+                stdout=log_file,
+                stderr=log_file,
+                start_new_session=True,
+            )
+    except FileNotFoundError as error:
+        raise CommandError("Missing required executable 'cargo'") from error
+    except OSError as error:
+        raise HarnessError(f"Failed to start saml_test_server: {error}") from error
 
-    SAML_SERVER_PID_FILE.write_text(f"{process.pid}\n", encoding="utf-8")
+    try:
+        SAML_SERVER_PID_FILE.write_text(f"{process.pid}\n", encoding="utf-8")
+    except OSError as error:
+        raise HarnessError(
+            f"Failed to write pid file {SAML_SERVER_PID_FILE}: {error}"
+        ) from error
 
 
 def stop_saml_server() -> None:
     if not SAML_SERVER_PID_FILE.exists():
         return
 
-    pid = int(SAML_SERVER_PID_FILE.read_text(encoding="utf-8").strip())
+    try:
+        pid = int(SAML_SERVER_PID_FILE.read_text(encoding="utf-8").strip())
+    except (OSError, ValueError) as error:
+        raise HarnessError(
+            f"Failed to read pid file {SAML_SERVER_PID_FILE}: {error}"
+        ) from error
     if is_pid_running(pid):
         print(f"Stopping saml_test_server PID {pid}")
         try:
             os.kill(pid, signal.SIGTERM)
         except ProcessLookupError:
             pass
+        except OSError as error:
+            raise HarnessError(f"Failed to send SIGTERM to saml_test_server ({pid}): {error}") from error
         for _ in range(20):
             if not is_pid_running(pid):
                 break
@@ -252,8 +377,17 @@ def stop_saml_server() -> None:
                 os.kill(pid, signal.SIGKILL)
             except ProcessLookupError:
                 pass
+            except OSError as error:
+                raise HarnessError(
+                    f"Failed to send SIGKILL to saml_test_server ({pid}): {error}"
+                ) from error
 
-    SAML_SERVER_PID_FILE.unlink(missing_ok=True)
+    try:
+        SAML_SERVER_PID_FILE.unlink(missing_ok=True)
+    except OSError as error:
+        raise HarnessError(
+            f"Failed to remove pid file {SAML_SERVER_PID_FILE}: {error}"
+        ) from error
 
 
 def up() -> None:
@@ -431,4 +565,11 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except HarnessError as error:
+        print(f"ERROR: {error}", file=sys.stderr)
+        raise SystemExit(1) from error
+    except KeyboardInterrupt as error:
+        print("ERROR: interrupted", file=sys.stderr)
+        raise SystemExit(130) from error

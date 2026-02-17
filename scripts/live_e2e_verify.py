@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import base64
+import binascii
+import http.client
 import http.cookiejar
 import os
 import ssl
@@ -11,7 +13,7 @@ import sys
 import xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 from typing import Dict, Optional, Tuple
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 from urllib.request import (
     HTTPCookieProcessor,
@@ -87,13 +89,19 @@ def _expect_bool(expected: str, observed: bool, label: str) -> None:
 
 
 def inspect_saml_response(saml_response: str) -> None:
-    decoded_xml = base64.b64decode(saml_response).decode("utf-8", errors="replace")
+    try:
+        decoded_xml = base64.b64decode(saml_response).decode("utf-8", errors="replace")
+    except (binascii.Error, ValueError) as error:
+        fail(f"SAMLResponse is not valid base64: {error}")
     ns = {
         "samlp": "urn:oasis:names:tc:SAML:2.0:protocol",
         "saml": "urn:oasis:names:tc:SAML:2.0:assertion",
         "ds": "http://www.w3.org/2000/09/xmldsig#",
     }
-    root = ET.fromstring(decoded_xml)
+    try:
+        root = ET.fromstring(decoded_xml)
+    except ET.ParseError as error:
+        fail(f"SAMLResponse was not valid XML: {error}")
     response_sig = root.find("./ds:Signature", ns) is not None
     assertion_sig = root.find("./saml:Assertion/ds:Signature", ns) is not None
     _expect_bool(EXPECT_RESPONSE_SIGNATURE, response_sig, "response signature")
@@ -128,6 +136,8 @@ def request_no_redirect(opener, url: str, method: str = "GET", body: Optional[by
         status = err.code
         response_headers = dict(err.headers.items())
         return status, response_headers, err.read()
+    except (URLError, TimeoutError, ssl.SSLError, OSError, http.client.HTTPException) as error:
+        fail(f"HTTP request failed for {url}: {error}")
 
 
 def first_location(current_url: str, status: int, headers: Dict[str, str]) -> str:
@@ -272,9 +282,12 @@ def main() -> None:
             )
 
         rendered = body.decode("utf-8", errors="replace")
-        os.makedirs(os.path.dirname(DEBUG_HTML_PATH), exist_ok=True)
-        with open(DEBUG_HTML_PATH, "w", encoding="utf-8") as debug_file:
-            debug_file.write(rendered)
+        try:
+            os.makedirs(os.path.dirname(DEBUG_HTML_PATH), exist_ok=True)
+            with open(DEBUG_HTML_PATH, "w", encoding="utf-8") as debug_file:
+                debug_file.write(rendered)
+        except OSError as error:
+            fail(f"Failed writing debug HTML to {DEBUG_HTML_PATH}: {error}")
         snippet = rendered[:400]
         fail(
             "Unexpected non-redirect while following broker flow "
@@ -293,12 +306,24 @@ if __name__ == "__main__":
             raise SystemExit(1) from error
         print(f"Expected failure observed: {error}")
         raise SystemExit(0) from error
-    except Exception as error:  # noqa: BLE001 - keep broad failure envelope for e2e harness
+    except (
+        URLError,
+        TimeoutError,
+        ssl.SSLError,
+        OSError,
+        http.client.HTTPException,
+        ValueError,
+        ET.ParseError,
+        binascii.Error,
+    ) as error:
         if EXPECT_SUCCESS:
             print(f"ERROR: {error}", file=sys.stderr)
             raise SystemExit(1) from error
         print(f"Expected failure observed: {error}")
         raise SystemExit(0) from error
+    except KeyboardInterrupt as error:
+        print("ERROR: interrupted", file=sys.stderr)
+        raise SystemExit(130) from error
     if not EXPECT_SUCCESS:
         print("ERROR: flow unexpectedly succeeded but failure was expected", file=sys.stderr)
         raise SystemExit(1)
