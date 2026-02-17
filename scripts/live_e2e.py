@@ -4,45 +4,126 @@
 from __future__ import annotations
 
 import argparse
+import http.client
 import os
 import signal
 import subprocess
 import sys
-from tempfile import TemporaryDirectory
 import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 
+import docker
+from docker.errors import DockerException, ImageNotFound, NotFound
+
 ROOT_DIR = Path(__file__).resolve().parent.parent
-COMPOSE_FILE = ROOT_DIR / "docker-compose.live-e2e.yml"
-PROJECT_NAME = "saml-live-e2e"
-WORK_DIR = TemporaryDirectory()
-CERT_PATH = Path(WORK_DIR.name) / "idp-signing-cert.pem"
-KEY_PATH = Path(WORK_DIR.name) / "idp-signing-key.pem"
-SAML_SERVER_PID_FILE = Path(WORK_DIR.name) / "saml_test_server.pid"
-SAML_SERVER_LOG = Path(WORK_DIR.name) / "saml_test_server.log"
+WORK_DIR = ROOT_DIR / ".tmp" / "live-e2e"
+CERT_PATH = WORK_DIR / "idp-signing-cert.pem"
+KEY_PATH = WORK_DIR / "idp-signing-key.pem"
+SAML_SERVER_PID_FILE = WORK_DIR / "saml_test_server.pid"
+SAML_SERVER_LOG = WORK_DIR / "saml_test_server.log"
+KEYCLOAK_CONTAINER_NAME = "saml-live-e2e-keycloak"
+KEYCLOAK_IMAGE = "quay.io/keycloak/keycloak:26.0.8"
+KEYCLOAK_IMPORT_REALM_SRC = ROOT_DIR / "examples" / "live_e2e" / "keycloak-realm.json"
+KEYCLOAK_IMPORT_REALM_DST = "/opt/keycloak/data/import/saml-e2e-realm.json"
+WAIT_INTERVAL_SECONDS = float(os.getenv("LIVE_E2E_WAIT_INTERVAL_SECONDS", "1"))
+KEYCLOAK_WAIT_TIMEOUT_SECONDS = int(os.getenv("LIVE_E2E_KEYCLOAK_WAIT_TIMEOUT_SECONDS", "180"))
+SAML_SERVER_WAIT_TIMEOUT_SECONDS = int(os.getenv("LIVE_E2E_SAML_SERVER_WAIT_TIMEOUT_SECONDS", "120"))
 
 
 def run_command(args: list[str], env: dict[str, str] | None = None) -> None:
     subprocess.run(args, cwd=ROOT_DIR, env=env, check=True)
 
 
-def compose(args: list[str]) -> None:
-    run_command(
-        ["docker", "compose", "-f", str(COMPOSE_FILE), "-p", PROJECT_NAME, *args]
-    )
+def docker_client() -> docker.DockerClient:
+    return docker.from_env()
 
 
-def wait_for_url(url: str, label: str) -> None:
-    for _ in range(90):
+def ensure_keycloak_image(client: docker.DockerClient) -> None:
+    try:
+        client.images.get(KEYCLOAK_IMAGE)
+    except ImageNotFound:
+        print(f"Pulling Keycloak image: {KEYCLOAK_IMAGE}")
+        client.images.pull(KEYCLOAK_IMAGE)
+
+
+def start_keycloak() -> None:
+    client = docker_client()
+    try:
+        ensure_keycloak_image(client)
+        try:
+            container = client.containers.get(KEYCLOAK_CONTAINER_NAME)
+            container.reload()
+            if container.status == "running":
+                print(f"Keycloak container already running: {KEYCLOAK_CONTAINER_NAME}")
+                return
+            print(f"Starting existing Keycloak container: {KEYCLOAK_CONTAINER_NAME}")
+            container.start()
+            return
+        except NotFound:
+            pass
+
+        print(f"Creating Keycloak container: {KEYCLOAK_CONTAINER_NAME}")
+        client.containers.run(
+            KEYCLOAK_IMAGE,
+            name=KEYCLOAK_CONTAINER_NAME,
+            command=[
+                "start-dev",
+                "--import-realm",
+                "--http-port=8080",
+                "--hostname=http://localhost:18080",
+                "--hostname-strict=false",
+            ],
+            environment={
+                "KC_BOOTSTRAP_ADMIN_USERNAME": "admin",
+                "KC_BOOTSTRAP_ADMIN_PASSWORD": "admin",
+            },
+            ports={"8080/tcp": 18080},
+            volumes={
+                str(KEYCLOAK_IMPORT_REALM_SRC): {
+                    "bind": KEYCLOAK_IMPORT_REALM_DST,
+                    "mode": "ro",
+                }
+            },
+            detach=True,
+        )
+    finally:
+        client.close()
+
+
+def stop_keycloak() -> None:
+    client = docker_client()
+    try:
+        try:
+            container = client.containers.get(KEYCLOAK_CONTAINER_NAME)
+        except NotFound:
+            return
+
+        container.reload()
+        if container.status == "running":
+            print(f"Stopping Keycloak container: {KEYCLOAK_CONTAINER_NAME}")
+            container.stop(timeout=10)
+        print(f"Removing Keycloak container: {KEYCLOAK_CONTAINER_NAME}")
+        container.remove(v=True, force=True)
+    finally:
+        client.close()
+
+
+def wait_for_url(url: str, label: str, timeout_seconds: int) -> None:
+    deadline = time.monotonic() + timeout_seconds
+    attempts = 0
+    while time.monotonic() < deadline:
+        attempts += 1
         try:
             with urllib.request.urlopen(url, timeout=5):
                 print(f"{label} is ready: {url}")
                 return
-        except (urllib.error.URLError, TimeoutError):
-            time.sleep(1)
-    raise RuntimeError(f"Timed out waiting for {label}: {url}")
+        except (urllib.error.URLError, TimeoutError, http.client.HTTPException, OSError):
+            time.sleep(WAIT_INTERVAL_SECONDS)
+    raise RuntimeError(
+        f"Timed out waiting for {label}: {url} after {timeout_seconds}s ({attempts} attempts)"
+    )
 
 
 def is_pid_running(pid: int) -> bool:
@@ -177,16 +258,24 @@ def stop_saml_server() -> None:
 
 def up() -> None:
     prepare_signing_material()
-    compose(["up", "-d"])
-    wait_for_url("http://localhost:18080/realms/master", "Keycloak")
+    start_keycloak()
+    wait_for_url(
+        "http://localhost:18080/realms/master",
+        "Keycloak",
+        KEYCLOAK_WAIT_TIMEOUT_SECONDS,
+    )
 
     start_saml_server()
-    wait_for_url("http://localhost:18081/SAML/Metadata", "saml_test_server")
+    wait_for_url(
+        "http://localhost:18081/SAML/Metadata",
+        "saml_test_server",
+        SAML_SERVER_WAIT_TIMEOUT_SECONDS,
+    )
 
 
 def down() -> None:
     stop_saml_server()
-    compose(["down", "-v", "--remove-orphans"])
+    stop_keycloak()
 
 
 def verify(extra_env: dict[str, str] | None = None) -> None:
@@ -219,7 +308,9 @@ def run_case(
     stop_saml_server()
     start_saml_server()
     wait_for_url(
-        "http://localhost:18081/SAML/Metadata", f"saml_test_server ({case_name})"
+        "http://localhost:18081/SAML/Metadata",
+        f"saml_test_server ({case_name})",
+        SAML_SERVER_WAIT_TIMEOUT_SECONDS,
     )
 
     verify(

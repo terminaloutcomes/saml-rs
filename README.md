@@ -32,12 +32,14 @@ You can run a fully local SAML round-trip with:
 
 ### Prerequisites
 
-- Docker + Docker Compose
+- Docker (daemon running)
 - `openssl`
+- `uv` (for running Python harness dependencies)
 
 ### Run
 
 ```shell
+uv sync --all-groups
 just live-e2e
 ```
 
@@ -48,6 +50,8 @@ This command will:
 3. Start `saml_test_server` directly on your host via `cargo run` at `http://localhost:18081`
 4. Run a headless end-to-end verifier (`scripts/live_e2e_verify.py`)
 5. Tear everything down automatically (unless `KEEP_UP=1` is set)
+
+`just live-e2e-test` is also available as an explicit test alias.
 
 ### Helper commands
 
@@ -60,6 +64,14 @@ If you want to keep the stack running after a test:
 
 ```shell
 KEEP_UP=1 ./scripts/live_e2e.py run
+```
+
+You can tune startup waits for slower machines:
+
+```shell
+LIVE_E2E_KEYCLOAK_WAIT_TIMEOUT_SECONDS=300 \
+LIVE_E2E_SAML_SERVER_WAIT_TIMEOUT_SECONDS=180 \
+just live-e2e
 ```
 
 The verifier drives the complete flow without a browser, including Keycloak's first-broker-login profile form.

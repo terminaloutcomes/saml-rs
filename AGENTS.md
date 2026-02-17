@@ -21,6 +21,7 @@
 - `uv sync --all-groups`: install Python tooling used by CI.
 - `uv run pytest`, `uv run mypy test*.py`, `uv run pylint test*.py`: run Python checks.
 - `just live-e2e`: run the local live IdP/SP headless interoperability flow.
+- `just live-e2e-test`: explicit alias for running the same local live e2e flow.
 - `just live-e2e-up`, `just live-e2e-down`: manage only the live test stack lifecycle.
 - A task is not complete until `just check` runs with zero errors and zero warnings.
 
