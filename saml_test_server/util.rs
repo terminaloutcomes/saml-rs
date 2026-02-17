@@ -7,8 +7,8 @@ use std::str::FromStr;
 use std::time::Duration;
 
 use saml_rs::sp::ServiceProvider;
-use std::fs::read_to_string;
 use std::path::Path;
+use tokio::fs::read_to_string;
 
 /// Placeholder function for development purposes, just returns a "Doing nothing" 200 response.
 pub async fn do_nothing(mut _req: Request<AppState>) -> tide::Result {
@@ -41,7 +41,7 @@ pub struct ServerConfig {
     pub saml_signing_cert: Option<X509>,
 }
 
-fn load_sp_metadata(filenames: Vec<String>) -> HashMap<String, ServiceProvider> {
+async fn load_sp_metadata(filenames: Vec<String>) -> HashMap<String, ServiceProvider> {
     // load the SP metadata files
 
     let mut sp_metadata = HashMap::new();
@@ -50,7 +50,7 @@ fn load_sp_metadata(filenames: Vec<String>) -> HashMap<String, ServiceProvider> 
         let expanded_filename: String = shellexpand::tilde(&filename).into_owned();
         if Path::new(&expanded_filename).exists() {
             debug!("Found SP metadata file: {:?}", expanded_filename);
-            let filecontents = match read_to_string(&expanded_filename) {
+            let filecontents = match read_to_string(&expanded_filename).await {
                 Err(error) => {
                     error!(
                         "Couldn't load SP Metadata file {} for some reason: {:?}",
@@ -77,7 +77,7 @@ fn load_sp_metadata(filenames: Vec<String>) -> HashMap<String, ServiceProvider> 
 impl ServerConfig {
     /// Pass this a filename (with or without extension) and it'll choose from JSON/YAML/TOML etc and also check
     /// environment variables starting with SAML_
-    pub fn from_filename_and_env(path: String) -> Self {
+    pub async fn from_filename_and_env(path: String) -> Self {
         let settings = config::Config::builder()
             .add_source(config::File::with_name(&path))
             .add_source(config::Environment::with_prefix("SAML"))
@@ -88,7 +88,7 @@ impl ServerConfig {
 
         debug!("Loading SP Metadata from config.");
 
-        let sp_metadata = load_sp_metadata(filenames);
+        let sp_metadata = load_sp_metadata(filenames).await;
         debug!("Done loading SP Metadata from config.");
 
         let tilde_cert_path: String = settings.get("tls_cert_path").unwrap_or_else(|error| {

@@ -1,2 +1,2 @@
 check:
-    cargo clippy --all-targets --all-features
+    cargo clippy --workspace --all-targets --all-features

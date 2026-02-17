@@ -28,9 +28,9 @@ use tide::utils::After;
 use tide::{Request, Response};
 use tide_openssl::TlsListener;
 
-use std::fs::File;
 use std::io::ErrorKind;
 use std::str::{FromStr, from_utf8};
+use tokio::fs::File;
 
 use http_types::Mime;
 
@@ -46,7 +46,7 @@ use util::*;
 async fn main() -> tide::Result<()> {
     let config_path: String = shellexpand::tilde("~/.config/saml_test_server").into_owned();
 
-    let server_config = util::ServerConfig::from_filename_and_env(config_path);
+    let server_config = util::ServerConfig::from_filename_and_env(config_path).await;
 
     let app_state: AppState = server_config.clone().into();
 
@@ -90,7 +90,7 @@ async fn main() -> tide::Result<()> {
         let tls_cert: String =
             shellexpand::tilde(&server_config.tls_cert_path.as_str()).into_owned();
         let tls_key: String = shellexpand::tilde(&server_config.tls_key_path.as_str()).into_owned();
-        match File::open(&tls_cert) {
+        match File::open(&tls_cert).await {
             Ok(_) => info!("Successfully loaded cert from {:?}", tls_cert),
             Err(error) => {
                 error!(
@@ -100,7 +100,7 @@ async fn main() -> tide::Result<()> {
                 std::process::exit(1);
             }
         }
-        match File::open(&tls_key) {
+        match File::open(&tls_key).await {
             Ok(_) => info!("Successfully loaded key from {:?}", tls_key),
             Err(error) => {
                 error!(
@@ -231,13 +231,10 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         .service_providers
         .contains_key(&parsed_saml_request.issuer)
     {
-        true => {
-            let value = req
-                .state()
-                .service_providers
-                .get(&parsed_saml_request.issuer);
-            value
-        }
+        true => req
+            .state()
+            .service_providers
+            .get(&parsed_saml_request.issuer),
         false => {
             return Err(tide::Error::from_str(
                 tide::StatusCode::BadRequest,
