@@ -6,3 +6,6 @@ Cargo.lock
 .coverage
 .venv
 .tmp/
+cobertura.xml
+tarpaulin*.html
+tarpaulin*.xml
