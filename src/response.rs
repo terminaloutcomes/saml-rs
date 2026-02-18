@@ -12,7 +12,7 @@ use log::error;
 use std::io::Write;
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// Stores all the required elements of a SAML response... maybe?
 pub struct ResponseElements {
     // TODO: why do I have a response_id and an assertion_id?
@@ -377,52 +377,6 @@ impl ResponseElements {
         }
     }
 
-    fn build_assertion(&self) -> Assertion {
-        let conditions_not_before = Utc::now();
-        let session_time = chrono::Duration::minutes(5);
-        let conditions_not_after: DateTime<Utc> = conditions_not_before + session_time;
-        let acs = match self.assertion_consumer_service.clone() {
-            None => match self.service_provider.find_first_acs() {
-                Ok(value) => value.location,
-                Err(error) => {
-                    error!("{:?}, falling back to https://example.com", error);
-                    ServiceBinding::default().location
-                }
-            },
-            Some(value) => value,
-        };
-
-        let subject_data = SubjectData {
-            relay_state: self.relay_state.clone(),
-            qualifier: Some(BaseIDAbstractType::SPNameQualifier),
-            qualifier_value: Some(self.service_provider.entity_id.to_string()),
-            nameid_format: NameIdFormat::Transient,
-            nameid_value: "_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7",
-            acs,
-            subject_not_on_or_after: Utc
-                .with_ymd_and_hms(2024, 1, 18, 6, 21, 48)
-                .single()
-                .unwrap_or_else(Utc::now),
-        };
-
-        Assertion {
-            assertion_id: self.assertion_id.to_string(),
-            issuer: self.issuer.to_string(),
-            signing_algorithm: self.signing_algorithm,
-            digest_algorithm: self.digest_algorithm,
-            canonicalization_method: self.canonicalization_method,
-            issue_instant: self.issue_instant,
-            subject_data,
-            attributes: self.attributes.clone(),
-            audience: self.service_provider.entity_id.to_string(),
-            conditions_not_after,
-            conditions_not_before,
-            sign_assertion: self.sign_assertion,
-            signing_key: Some(self.signing_key.clone()),
-            signing_cert: self.signing_cert.clone(),
-        }
-    }
-
     fn build_response_xml(
         &self,
         assertion_data: &Assertion,
@@ -479,7 +433,7 @@ impl ResponseElements {
 
     /// Render response XML bytes.
     pub fn try_into_xml_bytes(self) -> Result<Vec<u8>, String> {
-        let assertion_data = self.build_assertion();
+        let assertion_data: Assertion = self.clone().try_into()?;
         let unsigned_response = self.build_response_xml(&assertion_data, None)?;
         if !self.sign_message {
             return Ok(unsigned_response);
@@ -532,6 +486,57 @@ impl ResponseElements {
     }
 }
 
+impl TryInto<Assertion> for ResponseElements {
+    type Error = String;
+
+    fn try_into(self) -> Result<Assertion, Self::Error> {
+        let conditions_not_before: DateTime<Utc> = Utc::now();
+        let session_time = chrono::Duration::minutes(5);
+        let conditions_not_after: DateTime<Utc> = conditions_not_before + session_time;
+        let acs = match self.assertion_consumer_service.clone() {
+            None => match self.service_provider.find_first_acs() {
+                Ok(value) => value.location,
+                Err(_) => {
+                    return Err("Failed to find ACS URL from service provider metadata".to_string());
+                }
+            },
+            Some(value) => value,
+        };
+
+        let subject_data = SubjectData {
+            relay_state: self.relay_state.clone(),
+            qualifier: Some(BaseIDAbstractType::SPNameQualifier),
+            qualifier_value: Some(self.service_provider.entity_id.to_string()),
+            nameid_format: NameIdFormat::Transient,
+            // TODO this neds to be generated properly
+            nameid_value: "_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7",
+            acs,
+            // TODO this needs to be generated properly, maybe now + self.session_length_seconds?
+            subject_not_on_or_after: Utc
+                .with_ymd_and_hms(2024, 1, 18, 6, 21, 48)
+                .single()
+                .unwrap_or_else(Utc::now),
+        };
+
+        Ok(Assertion {
+            assertion_id: self.assertion_id.to_string(),
+            issuer: self.issuer.to_string(),
+            signing_algorithm: self.signing_algorithm,
+            digest_algorithm: self.digest_algorithm,
+            canonicalization_method: self.canonicalization_method,
+            issue_instant: self.issue_instant,
+            subject_data,
+            attributes: self.attributes.clone(),
+            audience: self.service_provider.entity_id.to_string(),
+            conditions_not_after,
+            conditions_not_before,
+            sign_assertion: self.sign_assertion,
+            signing_key: Some(self.signing_key.clone()),
+            signing_cert: self.signing_cert.clone(),
+        })
+    }
+}
+
 // TODO: for signing, implement a "return this without signing flagged" fn so we can ... just get an unsigned version
 
 /// Creates a String full of XML based on the ResponsElements
@@ -548,7 +553,7 @@ impl Into<Vec<u8>> for ResponseElements {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// An Authentication Statement for returning inside an assertion
 ///
 /// The expiry's optional
