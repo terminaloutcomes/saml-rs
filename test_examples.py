@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 from lxml import etree
-from signxml import XMLSigner, XMLVerifier, methods  # type: ignore
+from signxml import XMLSigner, XMLVerifier, methods, Certificate  # type: ignore
 
 
 def test_main() -> None:
@@ -23,17 +23,18 @@ def test_main() -> None:
     # with open(f"c14n_{filename}", mode='w', encoding='utf-8') as out_file:
     #     print(xml.etree.ElementTree.canonicalize(from_file=filename, out=out_file))
 
-    file_to_sign = Path(filename, encoding="utf-8").expanduser().resolve()
+    file_to_sign = Path(filename).expanduser().resolve()
     if not file_to_sign.exists():
-        pytest.skip()
+        raise pytest.skip()
     data_to_sign = file_to_sign.read_bytes()
-    cert = (
+
+    cert = Certificate(
         Path("~/Downloads/kanidm_sp_test/m1-server.pem")
         .expanduser()
         .resolve()
         .read_bytes()
     )
-    key = (
+    key = Certificate(
         Path("~/Downloads/kanidm_sp_test/m1-server-key.pem")
         .expanduser()
         .resolve()
@@ -41,7 +42,10 @@ def test_main() -> None:
     )
     root = etree.fromstring(data_to_sign)
     signed_root = XMLSigner(method=methods.enveloped).sign(root, key=key, cert=cert)
-    verified_data = XMLVerifier().verify(signed_root, x509_cert=cert).signed_xml
+    res = XMLVerifier().verify(signed_root, x509_cert=cert)
+    if not isinstance(res, list):
+        res = [res]
+    verified_data = [getattr(x, "signed_xml") for x in res]
 
     print(etree.tostring(signed_root).decode("utf-8"))
     print(f"Verified: {verified_data}")
