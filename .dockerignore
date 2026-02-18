@@ -1,0 +1,10 @@
+.git
+.github
+target
+__pycache__
+.venv
+.pytest_cache
+.mypy_cache
+htmlcov
+.tmp
+coverage.xml

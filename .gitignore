@@ -4,4 +4,8 @@ Cargo.lock
 .pytest*
 **/__pycache__/**
 .coverage
-poetry.lock
+.venv
+.tmp/
+cobertura.xml
+tarpaulin*.html
+tarpaulin*.xml

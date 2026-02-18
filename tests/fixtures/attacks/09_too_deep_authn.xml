@@ -1,0 +1,4 @@
+<samlp:AuthnRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="_attack09" Version="2.0" IssueInstant="2024-01-01T00:00:00Z" Destination="https://idp.example.com/SAML/Redirect" AssertionConsumerServiceURL="https://sp.example.com/SAML/POST">
+  <saml:Issuer xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">https://sp.example.com/metadata</saml:Issuer>
+  <a><b><c><d><e><f><g><h><i><j><k><l><m><n><o><p><q><r><s><t><u><v><w><x><y><z><aa><ab><ac><ad><ae><af><ag><ah><ai><aj><ak><al><am><an><ao><ap><aq><ar><as><at><au><av><aw><ax><ay></ay></ax></aw></av></au></at></as></ar></aq></ap></ao></an></am></al></ak></aj></ai></ah></ag></af></ae></ad></ac></ab></aa></z></y></x></w></v></u></t></s></r></q></p></o></n></m></l></k></j></i></h></g></f></e></d></c></b></a>
+</samlp:AuthnRequest>

@@ -13,7 +13,6 @@ pub fn tide_metadata_response(metadata: SamlMetadata) -> tide::Response {
     // Metadata spec is here http://docs.oasis-open.org/security/saml/v2.0/saml-metadata-2.0-os.pdf
     // application/samlmetadata+xml
     res.set_content_type("application/samlmetadata+xml");
-    res.set_body(generate_metadata_xml(metadata));
+    res.set_body(generate_metadata_xml(&metadata));
     res
 }
-

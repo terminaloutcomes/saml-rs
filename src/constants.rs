@@ -1,9 +1,14 @@
 //! Constants for the saml-rs module.
 
+use serde::{Deserialize, Serialize};
+use std::fmt;
+
 /// 3.2.2.2 Element StatusCode
 ///
 /// From <http://docs.oasis-open.org/security/saml/v2.0/saml-core-2.0-os.pdf>
-#[derive(Debug)]
+
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "PascalCase")]
 pub enum StatusCode {
     //  The permissible top-level <StatusCode> values are as follows:
     /// urn:oasis:names:tc:SAML:2.0:status:Success
@@ -30,7 +35,7 @@ pub enum StatusCode {
     */
     /// urn:oasis:names:tc:SAML:2.0:status:InvalidNameIDPolicy
     /// The responding provider cannot or will not support the requested name identifier policy.
-    InvalidNameIDPolic,
+    InvalidNameIDPolicy,
     /// urn:oasis:names:tc:SAML:2.0:status:NoAuthnContext
     /// The specified authentication context requirements cannot be met by the responder.
     NoAuthnContext,
@@ -80,25 +85,9 @@ pub enum StatusCode {
     /// The SAML responder cannot properly fulfill the request using the protocol binding specified in the request.
     UnsupportedBinding,
 }
-use std::fmt;
 
 impl fmt::Display for StatusCode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
 }
-
-// impl From<String> for StatusCode {
-//     fn from(src: String) -> Self {
-//         match src as str{
-//             // TODO: one day expand on From<&str> for StatusCode if they're needed.
-//             "AuthnFailed".to_string() => StatusCode::AuthnFailed,
-//             // "InvalidAttrNameOrValue" => StatusCode::InvalidAttrNameOrValue,
-//             // "Success" => StatusCode::Success,
-//             // "Requester" => StatusCode::Requester,
-//             // "Responder" => StatusCode::Responder,
-//             // "VersionMismatch" => StatusCode::VersionMismatch,
-//             _ => unimplemented!("saml_rs::constants::Statuscode From<{:?}> not implemented, please add code!", src),
-//         }
-//     }
-// }

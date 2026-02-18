@@ -1,66 +1,43 @@
 [package]
 name = "saml_test_server"
-version = "0.1.0"
-authors = ["James Hodgkinson <james@terminaloutcomes.com>"]
-edition = "2018"
 default-run = "saml_test_server"
+
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+publish = { workspace = true }
 
 [[bin]]
 name = "saml_test_server"
 path = "saml_test_server.rs"
 
+[features]
+default = []
+danger_i_want_to_risk_it_all = ["saml-rs/danger_i_want_to_risk_it_all"]
 
 
 [dependencies]
-
 saml-rs = { path = "../" }
-
-log = "0.4"
-base64 = "0.13"
-
-
-# for inflating AuthN requests
-inflate = "0.4.5"
-
-
-#writing xml
-xml-rs = "0.8"
-
-
-# parsing and shenanigans
-xmlparser = "0.13.3"
-serde = "1.0"
-serde-xml-rs = "0.6.0"
-serde_derive = "1.0"
-serde_json = "1.0"
-
-# certificate things
-
-openssl = "0.10.35"
-reqwest = "0.11"
-
-# testing strings
-
-difference = "2.0.0"
-
-chrono = "0.4.19"
-
-http-types = "2.11.1"
-
-tide = { version="0.16"}
-tide-openssl = "0.1.1"
-async-std = { version = "1.6.0", features = ["attributes"] }
-
-config = "0.13"
-
-shellexpand = "2.0"
-
-driftwood = "0.0.7"
-
-
-# html generation
-tera = "1"
-
-# for test_digest
-sha-1 = "0.10.0"
-hex = "0.4.3"
+log = { workspace = true }
+base64 = { workspace = true }
+inflate = { workspace = true }
+xml-rs = { workspace = true }
+xmlparser = { workspace = true }
+serde = { workspace = true }
+serde-xml-rs = { workspace = true }
+serde_derive = { workspace = true }
+serde_json = { workspace = true }
+openssl = { workspace = true }
+reqwest = { workspace = true }
+difference = { workspace = true }
+chrono = { workspace = true }
+http-types = { workspace = true }
+tide = { workspace = true }
+tide-openssl = { workspace = true }
+config = { workspace = true }
+shellexpand = { workspace = true }
+driftwood = { workspace = true }
+tera = { workspace = true }
+sha-1 = { workspace = true }
+hex = { workspace = true }
+tokio = { workspace = true, features = ["fs", "rt-multi-thread", "macros"] }

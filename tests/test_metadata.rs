@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-    // use saml_rs;
     use chrono::{DateTime, NaiveDate, Utc};
     use saml_rs::metadata::SamlMetadata;
 
@@ -89,15 +88,18 @@ mod tests {
         let result = match test_parse {
             Ok(value) => value,
             Err(error) => {
-                panic!("Failed to parse test sample, this seems bad: {}", error);
+                panic!("Failed to parse test sample, this seems bad: {:?}", error);
             }
         };
 
         let expected_result = saml_rs::AuthnRequest {
-            relay_state: String::from("_6c1cd5d32c2df1bab98f58a144f9b971"),
+            request_id: String::from("_6c1cd5d32c2df1bab98f58a144f9b971"),
             issuer: String::from("https://samltest.id/saml/sp"),
-            issue_instant: DateTime::<Utc>::from_utc(
-                NaiveDate::from_ymd(2021, 7, 19).and_hms(12, 6, 25),
+            issue_instant: DateTime::<Utc>::from_naive_utc_and_offset(
+                NaiveDate::from_ymd_opt(2021, 7, 19)
+                    .unwrap()
+                    .and_hms_opt(12, 6, 25)
+                    .unwrap(),
                 Utc,
             ),
             consumer_service_url: String::from("https://samltest.id/Shibboleth.sso/SAML2/POST"),
@@ -107,10 +109,10 @@ mod tests {
             signature: None,
         };
         assert_eq!(
-            result.relay_state,
+            result.request_id,
             String::from("_6c1cd5d32c2df1bab98f58a144f9b971")
         );
-        assert_eq!(result.relay_state, expected_result.relay_state);
+        assert_eq!(result.request_id, expected_result.request_id);
         assert_eq!(result.issuer, expected_result.issuer);
         assert_eq!(
             result.issue_instant_string(),
@@ -146,7 +148,7 @@ mod tests {
 
     #[test]
     fn test_validate_metadata_samltool() {
-        let metadata: String = saml_rs::metadata::generate_metadata_xml(SamlMetadata::new(
+        let metadata_input = SamlMetadata::new(
             "example.com",
             None,
             None,
@@ -154,7 +156,8 @@ mod tests {
             None,
             None,
             Some(saml_rs::cert::gen_self_signed_certificate("example.com")),
-        ));
+        );
+        let metadata: String = saml_rs::metadata::generate_metadata_xml(&metadata_input);
 
         let params = [
             ("xsd", "md-metadata"),
@@ -170,7 +173,7 @@ mod tests {
         match res {
             Ok(value) => {
                 eprintln!("success doing post: {:?}", value);
-                // eprintln!("{:?}", value.bytes());
+                // debug!("{:?}", value.bytes());
 
                 let content = value.text().unwrap();
                 /* looking for this

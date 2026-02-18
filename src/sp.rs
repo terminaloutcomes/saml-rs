@@ -1,72 +1,66 @@
-//! Service Provider utilities and functions
-//!
+//! Service Provider utilities and functions.
 
-// #![deny(unsafe_code)]
-
+use log::{debug, error, warn};
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::str::FromStr;
 
-use openssl;
 use openssl::x509::X509;
-use std::io::Cursor;
-use xml::attribute::OwnedAttribute;
-use xml::reader::{EventReader, XmlEvent};
+use quick_xml::Reader;
+use quick_xml::events::{BytesStart, Event};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-/// Different types of name-id formats from the spec
+/// Different types of name-id formats from the spec.
+#[derive(Default)]
 pub enum NameIdFormat {
-    /// Email Address
+    /// Email Address.
     EmailAddress,
     /// TODO: entity?
     Entity,
-    /// Kerberos, the worst-eros
+    /// Kerberos, the worst-eros.
     Kerberos,
-    /// Should stay the same
+    /// Should stay the same.
     Persistent,
-    /// Don't keep this, it'll change
+    /// Don't keep this, it'll change.
     Transient,
-    /// 🤷‍♂️🤷‍♀️ who even knows
+    /// Fallback when no explicit format is supplied.
+    #[default]
     Unspecified,
-    /// Windows format
+    /// Windows format.
     WindowsDomainQualifiedName,
-    /// X509 format
+    /// X509 format.
     X509SubjectName,
 }
 
-impl Default for NameIdFormat {
-    fn default() -> NameIdFormat {
-        NameIdFormat::Unspecified
-    }
-}
-
-impl ToString for NameIdFormat {
-    fn to_string(&self) -> String {
+impl fmt::Display for NameIdFormat {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             NameIdFormat::EmailAddress => {
-                "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress".to_string()
+                f.write_str("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
             }
-            NameIdFormat::Entity => "urn:oasis:names:tc:SAML:2.0:nameid-format:entity".to_string(),
+            NameIdFormat::Entity => f.write_str("urn:oasis:names:tc:SAML:2.0:nameid-format:entity"),
             NameIdFormat::Kerberos => {
-                " urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos".to_string()
+                f.write_str("urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos")
             }
             NameIdFormat::Persistent => {
-                "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent".to_string()
+                f.write_str("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent")
             }
             NameIdFormat::Transient => {
-                "urn:oasis:names:tc:SAML:2.0:nameid-format:transient".to_string()
+                f.write_str("urn:oasis:names:tc:SAML:2.0:nameid-format:transient")
             }
             NameIdFormat::Unspecified => {
-                "urn:oasis:names:tc:SAML:1.0:nameid-format:unspecified".to_string()
+                f.write_str("urn:oasis:names:tc:SAML:1.0:nameid-format:unspecified")
             }
             NameIdFormat::WindowsDomainQualifiedName => {
-                "urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName".to_string()
+                f.write_str("urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName")
             }
             NameIdFormat::X509SubjectName => {
-                "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName".to_string()
+                f.write_str("urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName")
             }
         }
     }
 }
+
 impl FromStr for NameIdFormat {
     type Err = &'static str;
 
@@ -93,23 +87,24 @@ impl FromStr for NameIdFormat {
     }
 }
 
-/// Allows one to build a definition with [SamlBindingType::AssertionConsumerService]\(s\) and [SamlBindingType::SingleLogoutService]\(s\)
+/// Allows one to build a definition with [SamlBindingType::AssertionConsumerService](s) and [SamlBindingType::SingleLogoutService](s).
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum SamlBindingType {
-    /// AssertionConsumerService, where you send Authn Rssponses
+    /// AssertionConsumerService, where you send Authn Responses.
     AssertionConsumerService,
-    /// Logout endpoints
+    /// Logout endpoints.
     SingleLogoutService,
 }
 
-impl ToString for SamlBindingType {
-    fn to_string(&self) -> String {
+impl fmt::Display for SamlBindingType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SamlBindingType::AssertionConsumerService => "AssertionConsumerService".to_string(),
-            SamlBindingType::SingleLogoutService => "SingleLogoutService".to_string(),
+            SamlBindingType::AssertionConsumerService => f.write_str("AssertionConsumerService"),
+            SamlBindingType::SingleLogoutService => f.write_str("SingleLogoutService"),
         }
     }
 }
+
 impl FromStr for SamlBindingType {
     type Err = &'static str;
 
@@ -123,79 +118,62 @@ impl FromStr for SamlBindingType {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-/// Binding methods
-/// TODO: should this be renamed to binding method?
-pub enum SamlBinding {
-    /// HTTP-POST method
+/// Binding methods.
+#[derive(Default)]
+pub enum BindingMethod {
+    /// HTTP-POST method.
+    #[default]
     HttpPost,
-    /// HTTP-REDIRECT method
+    /// HTTP-REDIRECT method.
     HttpRedirect,
 }
 
-// TODO: add these bindings, not that we can use them yet
-// Failed to parse AssertionConsumerService: "UNMATCHED BINDING: urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST-SimpleSign: Must be a valid type"
-// Failed to parse AssertionConsumerService: "UNMATCHED BINDING: urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact: Must be a valid type"
-// Failed to parse AssertionConsumerService: "UNMATCHED BINDING: urn:oasis:names:tc:SAML:2.0:bindings:PAOS: Must be a valid type"
-
-impl Default for SamlBinding {
-    fn default() -> Self {
-        SamlBinding::HttpPost
-    }
-}
-impl ToString for SamlBinding {
-    fn to_string(&self) -> String {
+impl fmt::Display for BindingMethod {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SamlBinding::HttpPost => "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST".to_string(),
-            SamlBinding::HttpRedirect => {
-                "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-REDIRECT".to_string()
+            BindingMethod::HttpPost => {
+                f.write_str("urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST")
+            }
+            BindingMethod::HttpRedirect => {
+                f.write_str("urn:oasis:names:tc:SAML:2.0:bindings:HTTP-REDIRECT")
             }
         }
     }
 }
-impl FromStr for SamlBinding {
+
+impl FromStr for BindingMethod {
     type Err = &'static str;
 
-    /// turn a string into a SamlBinding
+    /// Turn a string into a SAML binding.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" => Ok(SamlBinding::HttpPost),
-            "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-REDIRECT" => Ok(SamlBinding::HttpRedirect),
+            "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" => Ok(BindingMethod::HttpPost),
+            "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-REDIRECT" => Ok(BindingMethod::HttpRedirect),
             _ => Err("Must be a valid type"),
         }
     }
 }
 
-/// Types of bindings for service providers
-/// TODO: implement a way of pulling the first/a given logout, or the first/ a given assertionconsumer
+/// Types of bindings for service providers.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ServiceBinding {
-    /// [SamlBindingType] Binding type, things like `HTTP-POST` or `HTTP-REDIRECT`
+    /// [SamlBindingType] Binding type, things like `HTTP-POST` or `HTTP-REDIRECT`.
     pub servicetype: SamlBindingType,
     #[serde(rename = "Binding")]
-    /// Binding method
-    pub binding: SamlBinding,
-    /// Where to send the response to
+    /// Binding method.
+    pub binding: BindingMethod,
+    /// Where to send the response to.
     #[serde(rename = "Location")]
     pub location: String,
-    /// Consumer index, if there's more than 256 then wow, seriously?
+    /// Consumer index.
     #[serde(rename = "Index")]
     pub index: u8,
 }
 
 impl ServiceBinding {
-    /// return a default broken binding for testing or later changing - the ACS is set to `http://0.0.0.0:0/SAML/acs`
-    pub fn default() -> Self {
-        ServiceBinding {
-            servicetype: SamlBindingType::AssertionConsumerService,
-            binding: SamlBinding::default(),
-            location: "http://0.0.0.0:0/SAML/acs".to_string(),
-            index: 0,
-        }
-    }
-
-    /// TODO: actually use this in ServiceProvider from_xml or something
-    pub fn set_binding(self, binding: String) -> Result<Self, String> {
-        match SamlBinding::from_str(&binding) {
+    /// Sets the binding from a string value.
+    pub fn set_binding(self, binding: &str) -> Result<Self, String> {
+        match BindingMethod::from_str(binding) {
             Err(_) => Err("Failed to match binding name".to_string()),
             Ok(saml_binding) => Ok(ServiceBinding {
                 servicetype: self.servicetype,
@@ -207,43 +185,79 @@ impl ServiceBinding {
     }
 }
 
-/// Used for showing the details of the SP Metadata XML file
-fn xml_indent(size: usize) -> String {
-    const INDENT: &str = "    ";
-    (0..size)
-        .map(|_| INDENT)
-        .fold(String::with_capacity(size * INDENT.len()), |r, s| r + s)
+impl Default for ServiceBinding {
+    /// Return a default broken binding for testing or later changing - the ACS is set to `http://0.0.0.0:0/SAML/acs`.
+    fn default() -> Self {
+        ServiceBinding {
+            servicetype: SamlBindingType::AssertionConsumerService,
+            binding: BindingMethod::default(),
+            location: "http://0.0.0.0:0/SAML/acs".to_string(),
+            index: 0,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
-/// SP metadata object, used for being able to find one when an AuthN request comes in (or IdP-initiated, eventually, maymbe?)
+/// SP metadata object, used for finding one when an AuthN request arrives.
 pub struct ServiceProvider {
-    /// EntityID
+    /// EntityID.
     pub entity_id: String,
-    /// Will this SP send signed requests? If so, we'll reject ones that aren't.
+    /// Will this SP send signed requests? If so, unsigned requests should be rejected.
     pub authn_requests_signed: bool,
     /// Does this SP expect signed assertions?
     pub want_assertions_signed: bool,
-    /// The signing (public) certificate for the SP
+    /// The signing (public) certificate for the SP.
     pub x509_certificate: Option<X509>,
-    /// SP Services
+    /// SP services.
     pub services: Vec<ServiceBinding>,
-    /// TODO protocol_support_enumeration? what's this?
+    /// Protocol support enumeration.
     pub protocol_support_enumeration: Option<String>,
-    /// [NameIdFormat] - how we should identify the user
+    /// [NameIdFormat] - how we should identify the user.
     pub nameid_format: NameIdFormat,
 }
 
+fn decode_local_name(start: &BytesStart<'_>) -> String {
+    String::from_utf8_lossy(start.local_name().as_ref()).to_string()
+}
+
+fn decode_attributes(start: &BytesStart<'_>) -> Result<Vec<(String, String)>, String> {
+    let mut result = Vec::new();
+    let mut attributes = start.attributes();
+    attributes.with_checks(true);
+
+    for attribute in attributes {
+        let attribute = attribute.map_err(|error| format!("Invalid attribute: {:?}", error))?;
+        let key = String::from_utf8_lossy(attribute.key.local_name().as_ref()).to_string();
+        let value = attribute
+            .decode_and_unescape_value(start.decoder())
+            .map_err(|error| format!("Invalid attribute value: {:?}", error))?
+            .to_string();
+        result.push((key, value));
+    }
+
+    Ok(result)
+}
+
+fn is_safe_general_reference(reference: &str) -> bool {
+    matches!(reference, "amp" | "lt" | "gt" | "apos" | "quot") || reference.starts_with('#')
+}
+
 impl FromStr for ServiceProvider {
-    type Err = &'static str;
+    // TODO: turn this into a proper error type instead of just a string, and add more context to the errors.
+    type Err = String;
 
     fn from_str(source_xml: &str) -> Result<Self, Self::Err> {
-        let bufreader = Cursor::new(source_xml);
-        let parser = EventReader::new(bufreader);
-        let mut depth = 0;
-        let mut tag_name = "###INVALID###".to_string();
-        let mut certificate_data = None::<X509>;
+        let limits = crate::security::SecurityPolicy::default()
+            .effective()
+            .xml_limits;
+        crate::security::inspect_xml_payload(source_xml, limits)
+            .map_err(|error| format!("SP metadata XML preflight check failed: {}", error))?;
 
+        let mut reader = Reader::from_str(source_xml);
+        reader.config_mut().trim_text(true);
+
+        let mut tag_stack: Vec<String> = Vec::new();
+        let mut certificate_data = None::<X509>;
         let mut meta = ServiceProvider {
             entity_id: "".to_string(),
             authn_requests_signed: false,
@@ -253,73 +267,111 @@ impl FromStr for ServiceProvider {
             protocol_support_enumeration: None,
             nameid_format: NameIdFormat::default(),
         };
-        let upstream_tag = "";
-        for e in parser {
-            match e {
-                Ok(XmlEvent::StartElement {
-                    name, attributes, ..
-                }) => {
-                    // println!("{}+{}", xml_indent(depth), name);
-                    tag_name = name.local_name.to_string();
 
-                    meta.attrib_parser(&tag_name, attributes, &upstream_tag);
-                    depth += 1;
+        loop {
+            match reader.read_event() {
+                Ok(Event::Start(start)) => {
+                    let tag_name = decode_local_name(&start);
+                    let attributes = decode_attributes(&start)?;
+                    meta.attrib_parser(&tag_name, attributes);
+                    tag_stack.push(tag_name);
                 }
-                Ok(XmlEvent::EndElement { .. /* name */ }) => {
-                    depth -= 1;
-                    // println!("{}-{}", xml_indent(depth), name);
+                Ok(Event::Empty(start)) => {
+                    let tag_name = decode_local_name(&start);
+                    let attributes = decode_attributes(&start)?;
+                    meta.attrib_parser(&tag_name, attributes);
                 }
-                Ok(XmlEvent::Characters(s)) => {
-                    match tag_name.as_str() {
-                        "NameIDFormat" => {
-                            debug!("Found NameIDFormat!");
-                            match NameIdFormat::from_str(&s) {
-                                Err(error) => eprintln!("Failed to parse NameIDFormat: {} {:?}", s, error),
-                                Ok(value) => meta.nameid_format = value
-                            }
-
-                        }
-                        "X509Certificate" => {
-                            debug!("Found certificate!");
-                            // certificate_data = s.to_string();
-                            let certificate = crate::cert::init_cert_from_base64(&s);
-                            match certificate {
-                                Ok(value) => {
-                                    log::debug!("Parsed cert successfully.");
-                                    certificate_data = Some(value);
-                                }
-                                Err(error) => {
-                                    eprintln!("error! {:?}", error)
-                                }
-                            };
-                            tag_name = "###INVALID###".to_string();
-                        }
-                        _ => {
-                            println!("Characters: {}{}", xml_indent(depth + 1), s);
-                        }
+                Ok(Event::End(end)) => {
+                    let end_name = String::from_utf8_lossy(end.local_name().as_ref()).to_string();
+                    let Some(open_name) = tag_stack.pop() else {
+                        return Err("Malformed SP metadata XML: unexpected closing tag".to_string());
+                    };
+                    if open_name != end_name {
+                        return Err(format!(
+                            "Malformed SP metadata XML: mismatched closing tag {} for {}",
+                            end_name, open_name
+                        ));
                     }
                 }
-                Err(e) => {
-                    eprintln!("Failed to parse token: {:?}", e);
+                Ok(Event::Text(text)) => {
+                    let content = text
+                        .decode()
+                        .map_err(|error| format!("Failed to decode text node: {:?}", error))?
+                        .trim()
+                        .to_string();
+                    if content.is_empty() {
+                        continue;
+                    }
+                    match tag_stack.last().map(String::as_str) {
+                        Some("NameIDFormat") => match NameIdFormat::from_str(&content) {
+                            Err(error) => {
+                                error!("Failed to parse NameIDFormat: {} {:?}", content, error)
+                            }
+                            Ok(value) => meta.nameid_format = value,
+                        },
+                        Some("X509Certificate") => {
+                            let certificate = crate::cert::init_cert_from_base64(&content)
+                                .map_err(|error| format!("{:?}", error))?;
+                            certificate_data = Some(certificate);
+                        }
+                        _ => {}
+                    }
                 }
-                _ => {}
+                Ok(Event::CData(text)) => {
+                    let content = text
+                        .decode()
+                        .map_err(|error| format!("Failed to decode CDATA node: {:?}", error))?
+                        .trim()
+                        .to_string();
+                    if !content.is_empty() {
+                        return Err(
+                            "SP metadata contains unsupported CDATA content in strict mode"
+                                .to_string(),
+                        );
+                    }
+                }
+                Ok(Event::DocType(_)) => {
+                    return Err(
+                        "SP metadata contains forbidden DOCTYPE/DTD declarations".to_string()
+                    );
+                }
+                Ok(Event::PI(_)) => {
+                    return Err(
+                        "SP metadata contains forbidden processing instructions".to_string()
+                    );
+                }
+                Ok(Event::GeneralRef(reference)) => {
+                    let name = reference
+                        .decode()
+                        .map_err(|error| format!("Failed to decode entity reference: {:?}", error))?
+                        .to_string();
+                    if !is_safe_general_reference(name.as_str()) {
+                        return Err(format!(
+                            "SP metadata contains forbidden entity/reference: {}",
+                            name
+                        ));
+                    }
+                }
+                Ok(Event::Decl(_)) | Ok(Event::Comment(_)) => {}
+                Ok(Event::Eof) => break,
+                Err(error) => return Err(format!("Failed to parse SP metadata XML: {:?}", error)),
             }
         }
 
-        match certificate_data {
-            Some(value) => {
-                meta.x509_certificate = Some(value);
-            }
-            None => {
-                eprintln!("Didn't find a certificate");
-            }
+        if !tag_stack.is_empty() {
+            return Err("Malformed SP metadata XML: unclosed XML elements".to_string());
+        }
+
+        meta.x509_certificate = certificate_data;
+        if meta.x509_certificate.is_none() {
+            warn!("SP metadata did not include an X509 certificate");
         }
         Ok(meta)
     }
 }
 
 impl ServiceProvider {
-    /// Generate a test generic ServiceProvider with nonsense values for testing
+    /// Generate a generic ServiceProvider with placeholder values for testing.
     pub fn test_generic(entity_id: &str) -> Self {
         ServiceProvider {
             entity_id: entity_id.to_string(),
@@ -331,207 +383,116 @@ impl ServiceProvider {
             nameid_format: NameIdFormat::Transient,
         }
     }
-    /// Used for handling the attributes of services in the tags of an SP Metadata XML file
-    ///
-    /// Types tested (poorly):
-    /// - AssertionConsumerService
-    /// - SingleLogoutService
+
+    /// Used for handling the attributes of service endpoint tags.
     fn service_attrib_parser(
         &mut self,
         servicetype: SamlBindingType,
-        attributes: Vec<OwnedAttribute>,
+        attributes: Vec<(String, String)>,
     ) -> Result<ServiceBinding, String> {
-        let mut tmp_sb = ServiceBinding {
+        let mut binding = ServiceBinding {
             servicetype,
-            binding: SamlBinding::HttpPost,
-            location: "".to_string(),
+            binding: BindingMethod::HttpPost,
+            location: String::new(),
             index: 0,
         };
-        for attribute in attributes {
-            match attribute.name.local_name.to_lowercase().as_str() {
+        for (key, value) in attributes {
+            match key.to_ascii_lowercase().as_str() {
                 "binding" => {
-                    log::debug!("Found Binding");
-                    let binding = match SamlBinding::from_str(&attribute.value) {
-                        Ok(value) => value,
-                        Err(error) => {
-                            return Err(format!(
-                                "UNMATCHED BINDING: {}: {}",
-                                &attribute.value, error
-                            ))
-                        }
-                    };
-                    tmp_sb.binding = binding;
+                    binding.binding = BindingMethod::from_str(&value)
+                        .map_err(|error| format!("UNMATCHED BINDING: {}: {}", value, error))?;
                 }
                 "location" => {
-                    log::debug!("Found Location");
-                    tmp_sb.location = attribute.value;
+                    binding.location = value;
                 }
                 "index" => {
-                    log::debug!("Found index");
-                    tmp_sb.index = attribute.value.parse::<u8>().unwrap();
+                    binding.index = value
+                        .parse::<u8>()
+                        .map_err(|error| format!("UNMATCHED INDEX: {}: {:?}", value, error))?;
                 }
                 _ => {
-                    eprintln!(
-                        "Found unhandled attribute in AssertionConsumerService: {:?}",
-                        attribute
+                    error!(
+                        "Unhandled service attribute in {}: {}={}",
+                        servicetype, key, value
                     );
                 }
             }
         }
-        log::debug!("Returning {:?}", tmp_sb);
-        Ok(tmp_sb)
+        Ok(binding)
     }
 
-    /// return the first AssertionConsumerService we find
+    /// Return the first AssertionConsumerService we find.
     pub fn find_first_acs(&self) -> Result<ServiceBinding, &'static str> {
-        if !self.services.is_empty() {
-            for service in &self.services {
-                if let SamlBindingType::AssertionConsumerService = service.servicetype {
-                    return Ok(service.to_owned());
-                };
+        for service in &self.services {
+            if let SamlBindingType::AssertionConsumerService = service.servicetype {
+                return Ok(service.to_owned());
             }
         }
         Err("Couldn't find ACS")
     }
 
-    /// Let's parse some attributes!
-    fn attrib_parser(&mut self, tag: &str, attributes: Vec<OwnedAttribute>, upstream_tag: &str) {
-        eprintln!("attrib_parser - tag={}, attr:{:?}", tag, attributes);
-        eprintln!("Current upstream tag: {}", upstream_tag);
-
+    /// Parse service provider metadata attributes for a given tag.
+    fn attrib_parser(&mut self, tag: &str, attributes: Vec<(String, String)>) {
+        debug!("attrib_parser - tag={}, attr:{:?}", tag, attributes);
         match tag {
             "AssertionConsumerService" => {
-                log::debug!("AssertionConsumerService: {:?}", attributes);
                 match self
                     .service_attrib_parser(SamlBindingType::AssertionConsumerService, attributes)
                 {
-                    Ok(value) => {
-                        let mut a = vec![value];
-                        self.services.append(&mut a);
-                    }
-                    Err(error) => {
-                        eprintln!("Failed to parse AssertionConsumerService: {:?}", error)
-                    }
+                    Ok(value) => self.services.push(value),
+                    Err(error) => error!("Failed to parse AssertionConsumerService: {}", error),
                 }
             }
             "EntityDescriptor" => {
-                for attribute in attributes {
-                    log::debug!("attribute: {}", attribute);
-                    match attribute.name.local_name.as_str() {
-                        "entityID" => {
-                            log::debug!("Setting entityID: {}", attribute.value);
-                            self.entity_id = attribute.value;
+                for (key, value) in attributes {
+                    match key.as_str() {
+                        "entityID" | "ID" => {
+                            self.entity_id = value;
                         }
-                        "ID" => {
-                            log::debug!("Setting entityID: {}", attribute.value);
-                            self.entity_id = attribute.value;
-                        }
-                        // TODO validUntil example value "2100-01-01T00:00:42Z"
                         _ => {
-                            eprintln!(
-                                "found an EntityDescriptor attribute that's not entityID: {:?}",
-                                attribute
+                            error!(
+                                "Found unexpected EntityDescriptor attribute {}={}",
+                                key, value
                             );
                         }
                     }
                 }
             }
             "SingleLogoutService" => {
-                log::debug!("SingleLogoutService: {:?}", attributes);
                 match self.service_attrib_parser(SamlBindingType::SingleLogoutService, attributes) {
-                    Ok(value) => {
-                        let mut a = vec![value];
-                        self.services.append(&mut a);
-                    }
-                    Err(error) => eprintln!("Failed to parse SingleLogoutService: {:?}", error),
+                    Ok(value) => self.services.push(value),
+                    Err(error) => error!("Failed to parse SingleLogoutService: {}", error),
                 }
             }
-
             "SPSSODescriptor" => {
-                log::debug!("Dumping SPSSODescriptor: {:?}", attributes);
-                for attribute in attributes {
-                    match attribute.name.local_name.to_lowercase().as_str() {
-                        "authnrequestssigned" => {
-                            // AuthnRequestsSigned
-                            match attribute.value.to_lowercase().as_str() {
-                                "true" => self.authn_requests_signed = true,
-                                "false" => self.authn_requests_signed = false,
-                                _ => eprintln!(
-                                    "Couldn't parse value of AuthnRequestsSigned: {}",
-                                    attribute.value.to_lowercase()
-                                ),
-                            }
-                        }
-                        "wantassertionssigned" => {
-                            // WantAssertionsSigned
-                            match attribute.value.to_lowercase().as_str() {
-                                "true" => self.want_assertions_signed = true,
-                                "false" => self.want_assertions_signed = false,
-                                _ => eprintln!(
-                                    "Couldn't parse value of WantAssertionsSigned: {}",
-                                    attribute.value.to_lowercase()
-                                ),
-                            }
-                        }
+                for (key, value) in attributes {
+                    match key.to_ascii_lowercase().as_str() {
+                        "authnrequestssigned" => match value.to_ascii_lowercase().as_str() {
+                            "true" => self.authn_requests_signed = true,
+                            "false" => self.authn_requests_signed = false,
+                            _ => error!("Couldn't parse AuthnRequestsSigned value: {}", value),
+                        },
+                        "wantassertionssigned" => match value.to_ascii_lowercase().as_str() {
+                            "true" => self.want_assertions_signed = true,
+                            "false" => self.want_assertions_signed = false,
+                            _ => error!("Couldn't parse WantAssertionsSigned value: {}", value),
+                        },
                         "protocolsupportenumeration" => {
-                            self.protocol_support_enumeration = Some(attribute.value.to_string())
+                            self.protocol_support_enumeration = Some(value);
                         }
-                        _ => eprintln!("SPSSODescriptor attribute not handled {:?}", attribute), // protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"
-                                                                                                 // WantAssertionsSigned="true"
+                        _ => error!("SPSSODescriptor attribute not handled {}={}", key, value),
                     }
                 }
             }
-            // TODO: RequestInitiator
-            "RequestInitiator" => log::warn!("RequestInitiator is yet to be implemented, skipping"),
-            // TODO: SPSSODescriptor?
-            // "SPSSODescriptor" => log::warn!("SPSSODescriptor is yet to be implemented, skipping"),
-            // TODO: SigningMethod - should be relevant to how we respond
-            "SigningMethod" => log::warn!("SigningMethod is yet to be implemented, skipping"),
-            // TODO: DigestMethod - should be relevant to how we respond
-            "DigestMethod" => log::warn!("DigestMethod is yet to be implemented, skipping"),
-
-            "NameIDFormat" => log::debug!("Don't need to parse attributes for NameIDFormat"),
-            "KeyDescriptor" => log::debug!("Don't need to parse attributes for KeyDescriptor"),
-            "KeyInfo" => log::debug!("Don't need to parse attributes for KeyInfo"),
-            "X509Certificate" => log::debug!("Don't need to parse attributes for X509Certificate"),
-            "X509Data" => log::debug!("Don't need to parse attributes for X509Data"),
-            "Logo" => log::debug!("Don't need to parse attributes for Logo"),
-            "Description" => log::debug!("Don't need to parse attributes for Description"),
-            _ => eprintln!(
-                "!!! Asked to parse attributes for tag={}, not caught by anything {:?}",
+            "RequestInitiator" => warn!("RequestInitiator is not implemented, skipping"),
+            "SigningMethod" => warn!("SigningMethod is not implemented, skipping"),
+            "DigestMethod" => warn!("DigestMethod is not implemented, skipping"),
+            "NameIDFormat" | "KeyDescriptor" | "KeyInfo" | "X509Certificate" | "X509Data"
+            | "Logo" | "Description" => {}
+            _ => error!(
+                "Asked to parse attributes for unhandled tag {} ({:?})",
                 tag, attributes
             ),
         }
     }
-
-    //    pub fn add_to_xmlevent(&self, writer: &mut EventWriter<W>) {
-
-    // fn ssp_so_descriptor_handler<R: Read>(&self,
-    //     parser: &mut EventReader<R>,
-    //     meta: &mut ServiceProvider ) {
-
-    // }
 }
-
-/*
-From Running ServiceProvider::from_xml over the sp_metadata_splunk_self_signed.xml:
-
-
-+{urn:oasis:names:tc:SAML:2.0:metadata}md:EntityDescriptor
-    +{urn:oasis:names:tc:SAML:2.0:metadata}md:SPSSODescriptor
-        +{urn:oasis:names:tc:SAML:2.0:metadata}md:KeyDescriptor
-            +{http://www.w3.org/2000/09/xmldsig#}ds:KeyInfo
-                +{http://www.w3.org/2000/09/xmldsig#}ds:X509Data
-                    +{http://www.w3.org/2000/09/xmldsig#}ds:X509Certificate
-                    -{http://www.w3.org/2000/09/xmldsig#}ds:X509Certificate
-                -{http://www.w3.org/2000/09/xmldsig#}ds:X509Data
-            -{http://www.w3.org/2000/09/xmldsig#}ds:KeyInfo
-        -{urn:oasis:names:tc:SAML:2.0:metadata}md:KeyDescriptor
-        +{urn:oasis:names:tc:SAML:2.0:metadata}md:SingleLogoutService
-        -{urn:oasis:names:tc:SAML:2.0:metadata}md:SingleLogoutService
-        +{urn:oasis:names:tc:SAML:2.0:metadata}md:AssertionConsumerService
-        -{urn:oasis:names:tc:SAML:2.0:metadata}md:AssertionConsumerService
-    -{urn:oasis:names:tc:SAML:2.0:metadata}md:SPSSODescriptor
--{urn:oasis:names:tc:SAML:2.0:metadata}md:EntityDescriptor
-
-*/

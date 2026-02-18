@@ -1,0 +1,17 @@
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.8
+    container_name: saml-live-e2e-keycloak
+    command:
+      - start-dev
+      - --import-realm
+      - --http-port=8080
+      - --hostname=http://localhost:18080
+      - --hostname-strict=false
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    ports:
+      - "18080:8080"
+    volumes:
+      - ./examples/live_e2e/keycloak-realm.json:/opt/keycloak/data/import/saml-e2e-realm.json:ro

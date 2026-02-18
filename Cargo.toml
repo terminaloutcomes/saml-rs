@@ -1,53 +1,72 @@
-[package]
-name = "saml-rs"
+[workspace]
+members = ["saml_test_server"]
+
+[workspace.package]
 version = "0.1.0"
 authors = ["James Hodgkinson <james@terminaloutcomes.com>"]
-edition = "2018"
-
+edition = "2024"
 publish = false
 
-[workspace]
+[workspace.dependencies]
+tokio = { version = "1.49.0", features = ["rt", "macros"] }
+base64 = "0.22.1"
+chrono = "0.4.43"
+config = "0.15.19"
+difference = "2.0.0"
+driftwood = "0.0.7"
+hex = "0.4.3"
+http-types = "2.11.1"
+inflate = "0.4.5"
+log = "0.4.29"
+openssl = "0.10.75"
+regex = "1.12.3"
+reqwest = "0.11"
+serde = "1.0.228"
+serde-xml-rs = "0.8.2"
+serde_derive = "1.0"
+serde_json = "1.0"
+sha-1 = "0.10.0"
+shellexpand = "3.1.1"
+tera = "1"
+tide = "0.16"
+tide-openssl = "0.1.1"
+uuid = "1.21.0"
+xml-rs = "1.0.0"
+xmlparser = "0.13.6"
+xml_c14n = "0.3.0"
 
-members = [
-    "saml_test_server"
-]
+[package]
+name = "saml-rs"
+
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+publish = { workspace = true }
+
+[features]
+default = []
+danger_i_want_to_risk_it_all = []
 
 [dependencies]
-
-log = "0.4"
-base64 = "0.13"
-
-# for inflating AuthN requests
-inflate = "0.4.5"
-
-
-#writing xml
-xml-rs = "0.8"
-
-
-# parsing and shenanigans
-xmlparser = "0.13.3"
-serde = "1.0"
-serde-xml-rs = "0.6.0"
-serde_derive = "1.0"
-
-# testing strings
-
-difference = "2.0.0"
-
-chrono = "0.4.19"
-
-openssl = "0.10.35"
-
-# web things
-tide = { version="0.16" }
-
-uuid = { version = "1.0", features = ["serde", "v4"] }
-
+xmlparser = { workspace = true }
+serde = { workspace = true }
+serde-xml-rs = { workspace = true }
+serde_derive = { workspace = true }
+difference = { workspace = true }
+chrono = { workspace = true }
+openssl = { workspace = true }
+log = { workspace = true }
+inflate = { workspace = true }
+xml-rs = { workspace = true }
+base64 = { workspace = true }
+tide = { workspace = true }
+uuid = { workspace = true, features = ["serde", "v4"] }
+tokio = { workspace = true, features = ["fs", "rt"] }
+xml_c14n = { workspace = true }
+quick-xml = "0.39.1"
 
 [dev-dependencies]
-reqwest ={ version="0.11", features = ["blocking", "native-tls"]}
-regex = "1"
-
-# for test_digest
-hex = "0.4.3"
+reqwest = { workspace = true, features = ["blocking", "native-tls"] }
+regex = { workspace = true }
+hex = { workspace = true }
+tokio = { workspace = true, features = ["fs", "rt", "macros"] }

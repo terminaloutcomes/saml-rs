@@ -2,9 +2,10 @@
 
 // #![deny(unsafe_code)]
 
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
+use log::error;
 use openssl;
-use openssl::x509::{X509NameBuilder, X509};
-
+use openssl::x509::{X509, X509NameBuilder};
 use std::fmt;
 
 #[derive(Debug)]
@@ -27,17 +28,17 @@ pub fn init_cert_from_base64(buf: &str) -> Result<X509, CertParseError> {
     // File::open("my_cert.der")?
     //     .read_to_end(&mut buf)?;
 
-    let decoded = base64::decode(buf);
+    let decoded = BASE64_STANDARD.decode(buf);
 
     match decoded {
         Err(error) => {
-            eprintln!("base64 decode error: {:?}", error);
+            error!("base64 decode error: {:?}", error);
             Err(CertParseError)
         }
         Ok(value) => match X509::from_der(&value) {
             Ok(value) => Ok(value),
             Err(error) => {
-                eprintln!("Error parsing DER cert: {:?}", error);
+                error!("Error parsing DER cert: {:?}", error);
                 Err(CertParseError)
             }
         },
@@ -52,7 +53,7 @@ https://docs.rs/openssl/0.10.35/openssl/pkey/index.html
 
 /// Strips `-----BEGIN CERTIFICATE-----` and `-----END CERTIFICATE-----` off a String,
 /// good for including a certificate in an XML declaration for example
-pub fn strip_cert_headers(cert_string: String) -> String {
+pub fn strip_cert_headers(cert_string: &str) -> String {
     cert_string
         .replace("-----BEGIN CERTIFICATE-----", "")
         .replace("-----END CERTIFICATE-----", "")
@@ -62,17 +63,42 @@ pub fn strip_cert_headers(cert_string: String) -> String {
 
 /// generates a really terrible self-signed certificate for testing purposes
 pub fn gen_self_signed_certificate(hostname: &str) -> X509 {
-    let mut x509_name = X509NameBuilder::new().unwrap();
-    x509_name.append_entry_by_text("C", "AU").unwrap();
-    x509_name.append_entry_by_text("ST", "Woo").unwrap();
-    x509_name
-        .append_entry_by_text("O", "Example organization")
-        .unwrap();
-    x509_name.append_entry_by_text("CN", &hostname).unwrap();
+    let mut x509_name = match X509NameBuilder::new() {
+        Ok(value) => value,
+        Err(error) => {
+            error!("Failed to create x509 name builder: {:?}", error);
+            std::process::exit(1)
+        }
+    };
+    if let Err(error) = x509_name.append_entry_by_text("C", "AU") {
+        error!("Failed to set x509 subject country: {:?}", error);
+        std::process::exit(1);
+    }
+    if let Err(error) = x509_name.append_entry_by_text("ST", "Woo") {
+        error!("Failed to set x509 subject state: {:?}", error);
+        std::process::exit(1);
+    }
+    if let Err(error) = x509_name.append_entry_by_text("O", "Example organization") {
+        error!("Failed to set x509 subject organization: {:?}", error);
+        std::process::exit(1);
+    }
+    if let Err(error) = x509_name.append_entry_by_text("CN", hostname) {
+        error!("Failed to set x509 subject common name: {:?}", error);
+        std::process::exit(1);
+    }
     let x509_name = x509_name.build();
 
-    let mut x509 = X509::builder().unwrap();
-    x509.set_subject_name(&x509_name).unwrap();
+    let mut x509 = match X509::builder() {
+        Ok(value) => value,
+        Err(error) => {
+            error!("Failed to create x509 builder: {:?}", error);
+            std::process::exit(1)
+        }
+    };
+    if let Err(error) = x509.set_subject_name(&x509_name) {
+        error!("Failed to set x509 subject name: {:?}", error);
+        std::process::exit(1);
+    }
 
     x509.build()
 }

@@ -1,11 +1,8 @@
 //! Internal utilities for doing things with XML
 
-// #![deny(unsafe_code)]
-
+use log::{debug, error};
 use std::io::Write;
-
 use std::str::from_utf8;
-
 use xml::writer::{EventWriter, XmlEvent};
 
 /// Extensions for [openssl::x509::X509] for nicer functionality
@@ -19,19 +16,31 @@ impl X509Utils for openssl::x509::X509 {
     /// return an X509 object as a string,
     /// either including the ```--- BEGIN LOLS ---```  or not
     fn get_as_pem_string(&self, includeheaders: bool) -> String {
-        let cert_pem = &self.to_pem().unwrap();
-        let cert_pem: String = from_utf8(&cert_pem).unwrap().to_string();
+        let cert_pem_bytes = match self.to_pem() {
+            Ok(value) => value,
+            Err(error) => {
+                error!("Failed to convert cert to PEM: {:?}", error);
+                return String::new();
+            }
+        };
+        let cert_pem = match from_utf8(&cert_pem_bytes) {
+            Ok(value) => value.to_string(),
+            Err(error) => {
+                error!("Failed to decode PEM as utf8: {:?}", error);
+                return String::new();
+            }
+        };
 
         let result = match includeheaders {
             true => cert_pem,
-            false => crate::cert::strip_cert_headers(cert_pem),
+            false => crate::cert::strip_cert_headers(&cert_pem),
         };
-        log::debug!(
+        debug!(
             "############### start get_as_pem_string includeheaders: {} ###############",
             includeheaders
         );
-        log::debug!("{}", result);
-        log::debug!("############### end get_as_pem_string ###############");
+        debug!("{}", result);
+        debug!("############### end get_as_pem_string ###############");
         result
     }
 }
@@ -44,18 +53,39 @@ pub fn write_event<W: Write>(event: XmlEvent, writer: &mut EventWriter<W>) -> St
     }
 }
 
-/// add a signature to the statement
+/// Signature metadata used for generating XML-DSig blocks.
+#[derive(Clone, Debug)]
+pub struct SignatureConfig {
+    /// The ID value of the element being signed, without leading `#`.
+    pub reference_id: String,
+    /// Signature algorithm URI.
+    pub signing_algorithm: crate::sign::SigningAlgorithm,
+    /// Digest algorithm URI.
+    pub digest_algorithm: crate::sign::DigestAlgorithm,
+    /// Canonicalization method URI.
+    pub canonicalization_method: crate::sign::CanonicalizationMethod,
+    /// Signing certificate to include in `ds:KeyInfo`.
+    pub signing_cert: Option<openssl::x509::X509>,
+}
+
+/// Add a `ds:SignedInfo` block.
 pub fn generate_signedinfo<W: Write>(
-    attr: &crate::assertion::Assertion,
+    config: &SignatureConfig,
     digest: &str,
     writer: &mut EventWriter<W>,
 ) {
     // start ds:SignedInfo
-    write_event(XmlEvent::start_element(("ds", "SignedInfo")).into(), writer);
+    write_event(
+        XmlEvent::start_element(("ds", "SignedInfo"))
+            .attr("xmlns:ds", "http://www.w3.org/2000/09/xmldsig#")
+            .into(),
+        writer,
+    );
     // start CanonicalizationMethod Tag
+    let c14n_method: String = config.canonicalization_method.into();
     write_event(
         XmlEvent::start_element(("ds", "CanonicalizationMethod"))
-            .attr("Algorithm", "http://www.w3.org/2001/10/xml-exc-c14n#")
+            .attr("Algorithm", &c14n_method)
             .into(),
         writer,
     );
@@ -64,11 +94,11 @@ pub fn generate_signedinfo<W: Write>(
 
     // https://www.w3.org/TR/xmldsig-core/#sec-SignatureMethod
 
-    let test: String = attr.signing_algorithm.into();
+    let signing_algorithm: String = config.signing_algorithm.into();
 
     write_event(
         XmlEvent::start_element(("ds", "SignatureMethod"))
-            .attr("Algorithm", &test)
+            .attr("Algorithm", &signing_algorithm)
             .into(),
         writer,
     );
@@ -84,7 +114,7 @@ pub fn generate_signedinfo<W: Write>(
     */
     write_event(
         XmlEvent::start_element(("ds", "Reference"))
-            .attr("URI", &format!("#{}", attr.assertion_id))
+            .attr("URI", &format!("#{}", config.reference_id))
             .into(),
         writer,
     );
@@ -105,7 +135,7 @@ pub fn generate_signedinfo<W: Write>(
 
     write_event(
         XmlEvent::start_element(("ds", "Transform"))
-            .attr("Algorithm", "http://www.w3.org/2001/10/xml-exc-c14n#")
+            .attr("Algorithm", &c14n_method)
             .into(),
         writer,
     );
@@ -115,7 +145,7 @@ pub fn generate_signedinfo<W: Write>(
     //end ds:Transforms
     write_event(XmlEvent::end_element().into(), writer);
 
-    let digestmethod: String = attr.digest_algorithm.into();
+    let digestmethod: String = config.digest_algorithm.into();
 
     // start ds:DigestMethod
     // <https://www.w3.org/TR/xmldsig-core/#sec-DigestMethod>
@@ -135,7 +165,7 @@ pub fn generate_signedinfo<W: Write>(
         writer,
     );
 
-    write_event(XmlEvent::characters(&digest), writer);
+    write_event(XmlEvent::characters(digest), writer);
     //end ds:DigestValue
     write_event(XmlEvent::end_element().into(), writer);
 
@@ -146,13 +176,13 @@ pub fn generate_signedinfo<W: Write>(
     write_event(XmlEvent::end_element().into(), writer);
 }
 
-/// add a signature to the statement
-pub fn add_assertion_signature<W: Write>(
-    attr: &crate::assertion::Assertion,
-    digest: String,
-    base64_encoded_signature: String,
+/// Add a `ds:Signature` block.
+pub fn add_signature<W: Write>(
+    config: &SignatureConfig,
+    digest: &str,
+    base64_encoded_signature: &str,
     writer: &mut EventWriter<W>,
-) {
+) -> Result<(), String> {
     write_event(
         XmlEvent::start_element(("ds", "Signature"))
             .attr("xmlns:ds", "http://www.w3.org/2000/09/xmldsig#")
@@ -160,7 +190,7 @@ pub fn add_assertion_signature<W: Write>(
         writer,
     );
 
-    generate_signedinfo(attr, &digest, writer);
+    generate_signedinfo(config, digest, writer);
 
     // start ds:SignatureValue
     write_event(
@@ -168,7 +198,7 @@ pub fn add_assertion_signature<W: Write>(
         writer,
     );
 
-    write_event(XmlEvent::characters(&base64_encoded_signature), writer);
+    write_event(XmlEvent::characters(base64_encoded_signature), writer);
     // characters
     // end ds:SignatureValue
     write_event(XmlEvent::end_element().into(), writer);
@@ -183,7 +213,12 @@ pub fn add_assertion_signature<W: Write>(
         writer,
     );
 
-    let mut stripped_cert = attr.signing_cert.clone().unwrap().get_as_pem_string(false);
+    let mut stripped_cert = match config.signing_cert.as_ref() {
+        Some(cert) => cert.get_as_pem_string(false),
+        None => {
+            return Err("Missing signing certificate while generating signature".to_string());
+        }
+    };
     // TODO: is this terrible, or is this terrible? It's terrible, find a better way of cleaning this up.
     stripped_cert = stripped_cert
         .replace("\r\n", "")
@@ -199,4 +234,5 @@ pub fn add_assertion_signature<W: Write>(
 
     //end ds:Signature
     write_event(XmlEvent::end_element().into(), writer);
+    Ok(())
 }

@@ -1,0 +1,6 @@
+<samlp:AuthnRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="_attack15" Version="2.0" IssueInstant="2024-01-01T00:00:00Z" Destination="https://idp.example.com/SAML/Redirect" AssertionConsumerServiceURL="https://sp.example.com/SAML/POST">
+  <saml:Issuer xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">https://sp.example.com/metadata</saml:Issuer>
+  <samlp:AuthnRequest ID="_nested" Version="2.0" IssueInstant="2024-01-01T00:00:00Z" Destination="https://evil.example" AssertionConsumerServiceURL="https://evil.example/acs">
+    <saml:Issuer xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">https://evil.example</saml:Issuer>
+  </samlp:AuthnRequest>
+</samlp:AuthnRequest>

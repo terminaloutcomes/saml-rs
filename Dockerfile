@@ -1,4 +1,4 @@
-FROM rust:latest as builder
+FROM rust:latest AS builder
 
 # based on https://blog.logrocket.com/packaging-a-rust-web-service-using-docker/
 
@@ -7,11 +7,10 @@ ADD . /build/
 WORKDIR /build/saml_test_server/
 RUN cargo build --release
 
-FROM debian:buster-slim
+FROM debian:bookworm-slim
 ARG APP=/usr/src/app
 
 RUN apt-get update \
-    && apt-get -y upgrade \
     && apt-get install -y ca-certificates tzdata dumb-init \
     && rm -rf /var/lib/apt/lists/*
 

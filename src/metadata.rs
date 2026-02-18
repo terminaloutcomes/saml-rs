@@ -1,13 +1,11 @@
 //! Handy for the XML metadata part of SAML
 
-// #![deny(unsafe_code)]
-
 use crate::xml::X509Utils;
-use openssl::x509::X509;
-use std::str::from_utf8;
-
 use crate::xml::write_event;
+use log::error;
+use openssl::x509::X509;
 use std::io::Write;
+use std::str::from_utf8;
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
 /// Stores the required data for generating a SAML metadata XML file
@@ -122,7 +120,7 @@ pub fn xml_add_certificate<W: Write>(
 /// Generates the XML For a metadata file
 ///
 /// Current response data is based on the data returned from  <https://samltest.id/saml/idp>
-pub fn generate_metadata_xml(metadata: SamlMetadata) -> String {
+pub fn generate_metadata_xml(metadata: &SamlMetadata) -> String {
     let mut buffer = Vec::new();
     let mut writer = EmitterConfig::new()
         .perform_indent(true)
@@ -173,7 +171,7 @@ pub fn generate_metadata_xml(metadata: SamlMetadata) -> String {
     );
     write_event(
         // TODO: nameid-format should definitely be configurable
-        XmlEvent::characters(&"urn:oasis:names:tc:SAML:2.0:nameid-format:transient"),
+        XmlEvent::characters("urn:oasis:names:tc:SAML:2.0:nameid-format:transient"),
         &mut writer,
     );
     write_event(XmlEvent::end_element().into(), &mut writer);
@@ -196,7 +194,7 @@ pub fn generate_metadata_xml(metadata: SamlMetadata) -> String {
 
     write_event(
         XmlEvent::start_element(("md", "ContactPerson"))
-            // TODO: be able to enumerate technical contacts in IdP metadta
+            // TODO: be able to enumerate technical contacts in IdP metadata
             .attr("contactType", "technical")
             .into(),
         &mut writer,
@@ -208,7 +206,7 @@ pub fn generate_metadata_xml(metadata: SamlMetadata) -> String {
     );
     write_event(
         // TODO: md:contactperson name should be configurable
-        XmlEvent::characters(&"Admin"),
+        XmlEvent::characters("Admin"),
         &mut writer,
     );
     write_event(XmlEvent::end_element().into(), &mut writer);
@@ -219,7 +217,7 @@ pub fn generate_metadata_xml(metadata: SamlMetadata) -> String {
     );
     write_event(
         // TODO: md:contactperson EmailAddress should be configurable
-        XmlEvent::characters(&"mailto:admin@example.com"),
+        XmlEvent::characters("mailto:admin@example.com"),
         &mut writer,
     );
     write_event(XmlEvent::end_element().into(), &mut writer);
@@ -231,5 +229,11 @@ pub fn generate_metadata_xml(metadata: SamlMetadata) -> String {
     write_event(XmlEvent::end_element().into(), &mut writer);
 
     // TODO: figure out if we really need that prepended silliness '<?xml version=\"1.0\"?>'
-    format!("<?xml version=\"1.0\"?>\n{}", from_utf8(&buffer).unwrap())
+    match from_utf8(&buffer) {
+        Ok(value) => format!("<?xml version=\"1.0\"?>\n{}", value),
+        Err(error) => {
+            error!("Failed to render metadata as utf8: {:?}", error);
+            String::from("<?xml version=\"1.0\"?>\n")
+        }
+    }
 }
