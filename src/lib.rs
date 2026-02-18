@@ -13,21 +13,11 @@
 #![warn(missing_docs)]
 #![deny(missing_debug_implementations)]
 
-//! A library for doing SAML things, terribly, in rust.
+//! A library for doing SAML things, terribly (so far), in rust.
 //!
-//! My main aim at the moment is to provide IdP capabilities for the [Kanidm](https://github.com/kanidm/kanidm) project.
-//!
-//! `#![deny(unsafe_code)]` is used everywhere to avoid unsafe code tricks. This is why we're using rust, after all! 🦀
-//! //!
 //! If you would like to help - please log PRs/Issues against [terminaloutcomes/saml-rs](https://github.com/terminaloutcomes/saml-rs).
 //!
 //! There's a test application [saml_test_server](../saml_test_server/index.html) based on [tide](https://docs.rs/tide/) to allow one to test functionality.
-//!
-//! # Current progress:
-//!
-//! - Compiles, most of the time
-//! - `saml_test_server` runs on HTTP and HTTPS, parses Redirect requests as-needed. Doesn't parse them well... or validate them if they're signed, but it's a start!
-//! - Parses and ... seems to handle SP XML data so we can store a representation of it and match them up later
 //!
 //! # Next steps:
 //!
