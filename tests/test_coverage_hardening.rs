@@ -27,7 +27,7 @@ fn fixed_datetime() -> DateTime<Utc> {
     DateTime::<Utc>::from_naive_utc_and_offset(
         NaiveDate::from_ymd_opt(2024, 7, 17)
             .and_then(|value| value.and_hms_opt(9, 1, 48))
-            .unwrap_or_else(|| panic!("failed to create fixed datetime")),
+            .expect("failed to construct fixed datetime for tests"),
         Utc,
     )
 }
