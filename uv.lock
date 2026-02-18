@@ -17,17 +17,18 @@ wheels = [
 
 [[package]]
 name = "black"
-version = "22.12.0"
+version = "24.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
     { name = "mypy-extensions" },
+    { name = "packaging" },
     { name = "pathspec" },
     { name = "platformdirs" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a6/59/e873cc6807fb62c11131e5258ca15577a3b7452abad08dc49286cf8245e8/black-22.12.0.tar.gz", hash = "sha256:229351e5a18ca30f447bf724d007f890f97e13af070bb6ad4c0a441cd7596a2f", size = 553112, upload-time = "2022-12-09T15:57:04.428Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8f/5f/bac24a952668c7482cfdb4ebf91ba57a796c9da8829363a772040c1a3312/black-24.3.0.tar.gz", hash = "sha256:a0c9c4a0771afc6919578cec71ce82a3e31e054904e7197deacbc9382671c41f", size = 634292, upload-time = "2024-03-15T19:35:43.699Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0c/51/1f7f93c0555eaf4cbb628e26ba026e3256174a45bd9397ff1ea7cf96bad5/black-22.12.0-py3-none-any.whl", hash = "sha256:436cc9167dd28040ad90d3b404aec22cedf24a6e4d7de221bec2730ec0c97bcf", size = 167343, upload-time = "2022-12-09T15:57:02.229Z" },
+    { url = "https://files.pythonhosted.org/packages/4d/ea/31770a7e49f3eedfd8cd7b35e78b3a3aaad860400f8673994bc988318135/black-24.3.0-py3-none-any.whl", hash = "sha256:41622020d7120e01d377f74249e677039d20e6344ff5851de8a10f11f513bf93", size = 201493, upload-time = "2024-03-15T19:35:41.572Z" },
 ]
 
 [[package]]
@@ -485,13 +486,13 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "black", specifier = ">=22.10.0,<23.0.0" },
+    { name = "black", specifier = ">=22.10.0,<25.0.0" },
     { name = "coverage", specifier = ">=6.5.0,<7.0.0" },
     { name = "lxml", specifier = ">=5.4.0" },
     { name = "lxml-stubs", specifier = ">=0.4.0,<1.0.0" },
     { name = "mypy", specifier = ">=0.991,<1.0.0" },
     { name = "pylint", specifier = ">=2.15.5,<3.0.0" },
-    { name = "pytest", specifier = ">=7.2.0,<8.0.0" },
+    { name = "pytest", specifier = ">=7.2.0,<10.0.0" },
     { name = "ty", specifier = ">=0.0.17" },
 ]
 
