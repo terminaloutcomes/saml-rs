@@ -1,8 +1,12 @@
 //! Constants for the saml-rs module.
 
+use serde::{Deserialize, Serialize};
+use std::fmt;
+
 /// 3.2.2.2 Element StatusCode
 ///
 /// From <http://docs.oasis-open.org/security/saml/v2.0/saml-core-2.0-os.pdf>
+
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "PascalCase")]
 pub enum StatusCode {
@@ -81,9 +85,6 @@ pub enum StatusCode {
     /// The SAML responder cannot properly fulfill the request using the protocol binding specified in the request.
     UnsupportedBinding,
 }
-use std::fmt;
-
-use serde::{Deserialize, Serialize};
 
 impl fmt::Display for StatusCode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
