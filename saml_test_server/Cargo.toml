@@ -11,6 +11,10 @@ publish = { workspace = true }
 name = "saml_test_server"
 path = "saml_test_server.rs"
 
+[features]
+default = []
+danger_i_want_to_risk_it_all = ["saml-rs/danger_i_want_to_risk_it_all"]
+
 
 [dependencies]
 saml-rs = { path = "../" }

@@ -7,7 +7,7 @@ use crate::sign::{CanonicalizationMethod, DigestAlgorithm, SigningAlgorithm};
 use crate::sp::*;
 use crate::xml::write_event;
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
-use chrono::{DateTime, SecondsFormat, TimeZone, Utc};
+use chrono::{DateTime, SecondsFormat, Utc};
 use log::error;
 use std::io::Write;
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
@@ -32,8 +32,8 @@ pub struct ResponseElements {
     pub destination: String,
 
     // #[serde(rename = "InResponseTo")]
-    /// RelayState from the original AuthN request
-    pub relay_state: String,
+    /// AuthnRequest ID from the original request, serialized as InResponseTo.
+    pub in_response_to: String,
 
     // #[serde(rename = "Issuer")]
     /// Issuer of the response?
@@ -52,6 +52,9 @@ pub struct ResponseElements {
 
     /// [crate::sp::ServiceProvider]
     pub service_provider: ServiceProvider,
+
+    /// Value to place in Subject/NameID.
+    pub nameid_value: String,
 
     /// TODO: Decide if we can just pick it from the SP
     pub assertion_consumer_service: Option<String>,
@@ -86,12 +89,13 @@ pub struct ResponseElementsBuilder {
     response_id: Option<String>,
     issue_instant: Option<DateTime<Utc>>,
     destination: Option<String>,
-    relay_state: Option<String>,
+    in_response_to: Option<String>,
     issuer: Option<String>,
     attributes: Vec<AssertionAttribute>,
     authnstatement: Option<AuthNStatement>,
     assertion_id: Option<String>,
     service_provider: Option<ServiceProvider>,
+    nameid_value: Option<String>,
     assertion_consumer_service: Option<String>,
     session_length_seconds: u32,
     status: crate::constants::StatusCode,
@@ -111,12 +115,13 @@ impl ResponseElementsBuilder {
             response_id: None,
             issue_instant: None,
             destination: None,
-            relay_state: None,
+            in_response_to: None,
             issuer: None,
             attributes: vec![],
             authnstatement: None,
             assertion_id: None,
             service_provider: None,
+            nameid_value: None,
             assertion_consumer_service: None,
             session_length_seconds: 60,
             status: crate::constants::StatusCode::AuthnFailed,
@@ -148,9 +153,9 @@ impl ResponseElementsBuilder {
         self
     }
 
-    /// Sets the relay state.
-    pub fn relay_state(mut self, relay_state: impl Into<String>) -> Self {
-        self.relay_state = Some(relay_state.into());
+    /// Sets the AuthnRequest ID this response corresponds to.
+    pub fn in_response_to(mut self, in_response_to: impl Into<String>) -> Self {
+        self.in_response_to = Some(in_response_to.into());
         self
     }
 
@@ -181,6 +186,12 @@ impl ResponseElementsBuilder {
     /// Sets the service provider.
     pub fn service_provider(mut self, service_provider: ServiceProvider) -> Self {
         self.service_provider = Some(service_provider);
+        self
+    }
+
+    /// Sets the NameID value to place in Subject.
+    pub fn nameid_value(mut self, nameid_value: impl Into<String>) -> Self {
+        self.nameid_value = Some(nameid_value.into());
         self
     }
 
@@ -257,9 +268,10 @@ impl ResponseElementsBuilder {
     pub fn build(self) -> Result<ResponseElements, &'static str> {
         let issuer = required_non_empty(self.issuer, "issuer")?;
         let destination = required_non_empty(self.destination, "destination")?;
-        let relay_state = required_non_empty(self.relay_state, "relay_state")?;
+        let in_response_to = required_non_empty(self.in_response_to, "in_response_to")?;
         let authnstatement = required(self.authnstatement, "authnstatement")?;
         let service_provider = required(self.service_provider, "service_provider")?;
+        let nameid_value = required_non_empty(self.nameid_value, "nameid_value")?;
 
         if self.session_length_seconds == 0 {
             return Err("session_length_seconds must be greater than 0");
@@ -275,13 +287,19 @@ impl ResponseElementsBuilder {
         }
 
         let assertion_id = match self.assertion_id {
-            Some(value) if !value.trim().is_empty() => value,
-            Some(_) => return Err("assertion_id must not be empty"),
+            Some(value) if value.trim().is_empty() => return Err("assertion_id must not be empty"),
+            Some(value) if !saml_id_is_valid(&value) => {
+                return Err("assertion_id must begin with '_' and contain only [A-Za-z0-9_.-]");
+            }
+            Some(value) => value,
             None => ResponseElements::new_assertion_id(),
         };
         let response_id = match self.response_id {
-            Some(value) if !value.trim().is_empty() => value,
-            Some(_) => return Err("response_id must not be empty"),
+            Some(value) if value.trim().is_empty() => return Err("response_id must not be empty"),
+            Some(value) if !saml_id_is_valid(&value) => {
+                return Err("response_id must begin with '_' and contain only [A-Za-z0-9_.-]");
+            }
+            Some(value) => value,
             None => ResponseElements::new_response_id(),
         };
         let Some(signing_key) = self.signing_key else {
@@ -292,12 +310,13 @@ impl ResponseElementsBuilder {
             response_id,
             issue_instant: self.issue_instant.unwrap_or_else(Utc::now),
             destination,
-            relay_state,
+            in_response_to,
             issuer,
             attributes: self.attributes,
             authnstatement,
             assertion_id,
             service_provider,
+            nameid_value,
             assertion_consumer_service: self.assertion_consumer_service,
             session_length_seconds: self.session_length_seconds,
             status: self.status,
@@ -333,6 +352,12 @@ fn required_non_empty(value: Option<String>, field: &'static str) -> Result<Stri
     Ok(value)
 }
 
+fn saml_id_is_valid(value: &str) -> bool {
+    let mut chars = value.chars();
+    matches!(chars.next(), Some('_'))
+        && chars.all(|char| char.is_ascii_alphanumeric() || matches!(char, '_' | '-' | '.'))
+}
+
 use uuid::Uuid;
 
 impl ResponseElements {
@@ -343,7 +368,7 @@ impl ResponseElements {
 
     /// Creates a random assertion ID.
     pub fn new_assertion_id() -> String {
-        Uuid::new_v4().to_string()
+        format!("_{}", Uuid::new_v4())
     }
 
     /// Creates a random SAML-safe response ID.
@@ -399,7 +424,7 @@ impl ResponseElements {
                 .attr("xmlns:saml", "urn:oasis:names:tc:SAML:2.0:assertion")
                 .attr("Destination", &self.destination)
                 .attr("ID", &self.response_id)
-                .attr("InResponseTo", &self.relay_state)
+                .attr("InResponseTo", &self.in_response_to)
                 .attr("IssueInstant", &response_issue_instant)
                 .attr("Version", "2.0")
                 .into(),
@@ -490,9 +515,11 @@ impl TryInto<Assertion> for ResponseElements {
     type Error = String;
 
     fn try_into(self) -> Result<Assertion, Self::Error> {
-        let conditions_not_before: DateTime<Utc> = Utc::now();
-        let session_time = chrono::Duration::minutes(5);
-        let conditions_not_after: DateTime<Utc> = conditions_not_before + session_time;
+        let conditions_not_before = self.issue_instant;
+        let session_time = chrono::Duration::seconds(i64::from(self.session_length_seconds));
+        let conditions_not_after = conditions_not_before
+            .checked_add_signed(session_time)
+            .ok_or_else(|| "Failed to compute assertion expiry timestamp".to_string())?;
         let acs = match self.assertion_consumer_service.clone() {
             None => match self.service_provider.find_first_acs() {
                 Ok(value) => value.location,
@@ -504,18 +531,13 @@ impl TryInto<Assertion> for ResponseElements {
         };
 
         let subject_data = SubjectData {
-            relay_state: self.relay_state.clone(),
+            in_response_to: self.in_response_to.clone(),
             qualifier: Some(BaseIDAbstractType::SPNameQualifier),
             qualifier_value: Some(self.service_provider.entity_id.to_string()),
             nameid_format: NameIdFormat::Transient,
-            // TODO this neds to be generated properly
-            nameid_value: "_ce3d2948b4cf20146dee0a0b3dd6f69b6cf86f62d7",
+            nameid_value: self.nameid_value.clone(),
             acs,
-            // TODO this needs to be generated properly, maybe now + self.session_length_seconds?
-            subject_not_on_or_after: Utc
-                .with_ymd_and_hms(2024, 1, 18, 6, 21, 48)
-                .single()
-                .unwrap_or_else(Utc::now),
+            subject_not_on_or_after: conditions_not_after,
         };
 
         Ok(Assertion {

@@ -93,7 +93,7 @@ mod tests {
         };
 
         let expected_result = saml_rs::AuthnRequest {
-            relay_state: String::from("_6c1cd5d32c2df1bab98f58a144f9b971"),
+            request_id: String::from("_6c1cd5d32c2df1bab98f58a144f9b971"),
             issuer: String::from("https://samltest.id/saml/sp"),
             issue_instant: DateTime::<Utc>::from_naive_utc_and_offset(
                 NaiveDate::from_ymd_opt(2021, 7, 19)
@@ -109,10 +109,10 @@ mod tests {
             signature: None,
         };
         assert_eq!(
-            result.relay_state,
+            result.request_id,
             String::from("_6c1cd5d32c2df1bab98f58a144f9b971")
         );
-        assert_eq!(result.relay_state, expected_result.relay_state);
+        assert_eq!(result.request_id, expected_result.request_id);
         assert_eq!(result.issuer, expected_result.issuer);
         assert_eq!(
             result.issue_instant_string(),

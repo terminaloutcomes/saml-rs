@@ -23,6 +23,7 @@
 - `just live-e2e`: run the local live IdP/SP headless interoperability flow.
 - `just live-e2e-test`: explicit alias for running the same local live e2e flow.
 - `just live-e2e-up`, `just live-e2e-down`: manage only the live test stack lifecycle.
+- `just schemas-fetch`, `just schemas-verify`: reproduce and verify vendored SAML/XSD schema assets in `examples/schemas/`.
 - A task is not complete until `just check` runs with zero errors and zero warnings.
 
 ## Coding Style & Naming Conventions
@@ -45,6 +46,13 @@
 - Recommended format: `<type>(<scope>): imperative summary` (e.g., `fix(response): validate destination URL`).
 - PRs should include: purpose, behavior changes, test evidence (commands run), and linked issues.
 - For protocol/XML changes, include a minimal sample payload or fixture update in `examples/`.
+
+## Pre-Release Compatibility Policy
+
+- This project is pre-release; prioritize correctness and clarity over backward compatibility.
+- Do not add compatibility shims, aliases, deprecation bridges, or dual-field support for renamed APIs.
+- When a field/type/behavior is wrong, replace it directly and update all call sites/tests in the same change.
+- Treat breaking changes as expected; document them clearly in PR notes and tests.
 
 ## Security & Configuration Tips
 

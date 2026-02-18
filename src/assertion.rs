@@ -400,8 +400,8 @@ impl fmt::Display for BaseIDAbstractType {
 ///
 /// TODO: Justify the existence of the elements of this struct ... more completely.
 pub struct SubjectData {
-    /// Relay state as provided by the [crate::AuthnRequest]
-    pub relay_state: String,
+    /// AuthnRequest ID used for InResponseTo correlation.
+    pub in_response_to: String,
     /// Qualifier TODO: What's the qualifier again?
     pub qualifier: Option<BaseIDAbstractType>,
     /// Qualifier value TODO: I really should know what these are
@@ -409,7 +409,7 @@ pub struct SubjectData {
     /// [crate::sp::NameIdFormat], what kind of format you're... going TODO oh no I've done it again
     pub nameid_format: crate::sp::NameIdFormat,
     /// NameID value - I know this one, it's the reference to the user, like username or some rando noise if it's transient. Regret, if it's [crate::sp::NameIdFormat::Kerberos]
-    pub nameid_value: &'static str,
+    pub nameid_value: String,
     /// The AssertionConsumerService - where we'll send the request.
     pub acs: String,
     /// The expiry of this Assertion. Woo, recovered there at the end.
@@ -438,7 +438,7 @@ fn add_subject<W: Write>(subjectdata: &SubjectData, writer: &mut EventWriter<W>)
     };
     write_event(name_id_start.into(), writer);
 
-    write_event(XmlEvent::characters(subjectdata.nameid_value), writer);
+    write_event(XmlEvent::characters(&subjectdata.nameid_value), writer);
     // end nameid statement
     write_event(XmlEvent::end_element().into(), writer);
 
@@ -453,7 +453,7 @@ fn add_subject<W: Write>(subjectdata: &SubjectData, writer: &mut EventWriter<W>)
     //start subjectconfirmationdata
     write_event(
         XmlEvent::start_element(("saml", "SubjectConfirmationData"))
-            .attr("InResponseTo", &subjectdata.relay_state)
+            .attr("InResponseTo", &subjectdata.in_response_to)
             .attr(
                 "NotOnOrAfter",
                 &subjectdata
@@ -504,10 +504,7 @@ pub fn add_attribute<W: Write>(attr: &AssertionAttribute, writer: &mut EventWrit
     );
     for value in &attr.values {
         write_event(
-            XmlEvent::start_element(("saml", "AttributeValue"))
-                .attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance") // TODO: moved 2021-08-26 to make c14n work, is this valid, or is it going to bite me
-                .attr("xsi:type", "xs:string")
-                .into(),
+            XmlEvent::start_element(("saml", "AttributeValue")).into(),
             writer,
         );
         write_event(XmlEvent::characters(value), writer);

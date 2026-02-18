@@ -23,6 +23,12 @@ live-e2e-up:
 live-e2e-down:
     uv run scripts/live_e2e.py down
 
+schemas-fetch:
+    uv run python scripts/fetch_saml_schemas.py
+
+schemas-verify:
+    uv run python scripts/fetch_saml_schemas.py --verify-only
+
 docs:
     cargo doc --no-deps --workspace --document-private-items
 

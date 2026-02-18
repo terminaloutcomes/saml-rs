@@ -128,7 +128,8 @@ fn sample_response_builder(
     ResponseElements::builder()
         .issuer("https://idp.example.com/metadata")
         .destination("https://sp.example.com/acs")
-        .relay_state("_relay")
+        .in_response_to("_relay")
+        .nameid_value("alice")
         .authnstatement(authnstatement)
         .service_provider(saml_rs::sp::ServiceProvider::test_generic(
             "https://sp.example.com/metadata",
@@ -213,7 +214,7 @@ fn decode_helpers_cover_plaintext_and_error_paths() {
 fn authn_request_try_from_reports_missing_required_fields() {
     fn complete_parser() -> saml_rs::AuthnRequestParser {
         saml_rs::AuthnRequestParser {
-            relay_state: Some("_relay".to_string()),
+            request_id: Some("_relay".to_string()),
             issue_instant: Some(fixed_datetime()),
             consumer_service_url: Some("https://sp.example.com/acs".to_string()),
             issuer: Some("https://sp.example.com/metadata".to_string()),
@@ -226,11 +227,11 @@ fn authn_request_try_from_reports_missing_required_fields() {
     }
 
     let mut missing_relay = complete_parser();
-    missing_relay.relay_state = None;
+    missing_relay.request_id = None;
     let relay_result = saml_rs::AuthnRequest::try_from(missing_relay);
     match relay_result {
-        Ok(_) => panic!("missing relay_state should fail"),
-        Err(error) => assert!(error.message.contains("relay_state")),
+        Ok(_) => panic!("missing request_id should fail"),
+        Err(error) => assert!(error.message.contains("request_id")),
     }
 
     let mut missing_issue = complete_parser();
@@ -297,6 +298,28 @@ fn response_builder_rejects_bad_inputs_and_builds_unsigned_responses() {
         Err(error) => assert_eq!(error, "signing_cert must be set when signing is enabled"),
     }
 
+    let bad_assertion_id = sample_response_builder(false, false, None)
+        .assertion_id("abc")
+        .build();
+    match bad_assertion_id {
+        Ok(_) => panic!("builder should reject non-SAML-safe assertion ids"),
+        Err(error) => assert_eq!(
+            error,
+            "assertion_id must begin with '_' and contain only [A-Za-z0-9_.-]"
+        ),
+    }
+
+    let bad_response_id = sample_response_builder(false, false, None)
+        .response_id("abc")
+        .build();
+    match bad_response_id {
+        Ok(_) => panic!("builder should reject non-SAML-safe response ids"),
+        Err(error) => assert_eq!(
+            error,
+            "response_id must begin with '_' and contain only [A-Za-z0-9_.-]"
+        ),
+    }
+
     let unsigned = match sample_response_builder(false, false, None).build() {
         Ok(value) => value,
         Err(error) => panic!("unsigned response should build successfully: {}", error),
@@ -311,6 +334,9 @@ fn response_builder_rejects_bad_inputs_and_builds_unsigned_responses() {
         Err(error) => panic!("response xml should be utf8: {:?}", error),
     };
     assert!(!xml.contains("<ds:Signature"));
+    assert_eq!(xml.matches("InResponseTo=\"_relay\"").count(), 2);
+    assert!(xml.contains(">alice</saml:NameID>"));
+    assert!(xml.contains("NotOnOrAfter=\"2024-07-17T09:02:48"));
 
     let regenerated = match sample_response_builder(false, false, None).build() {
         Ok(value) => value.regenerate_response_id(),

@@ -14,7 +14,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_debug_implementations)]
 
-use log::{debug, error, info};
+use log::*;
 use saml_rs::SamlQuery;
 use saml_rs::assertion::AssertionAttribute;
 use saml_rs::metadata::{SamlMetadata, generate_metadata_xml};
@@ -23,7 +23,7 @@ use saml_rs::sign::SigningAlgorithm;
 use saml_rs::sp::{BindingMethod, ServiceProvider};
 
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
-use chrono::{DateTime, Duration, NaiveDate, Utc};
+use chrono::Utc;
 
 use tide::log;
 use tide::utils::After;
@@ -41,11 +41,92 @@ pub mod util;
 use util::*;
 // use util::do_nothing;
 
+fn env_flag_enabled(name: &str) -> bool {
+    match std::env::var(name) {
+        Ok(value) => {
+            let normalized = value.trim().to_ascii_lowercase();
+            matches!(normalized.as_str(), "1" | "true" | "yes" | "on")
+        }
+        Err(_) => false,
+    }
+}
+
+#[cfg(feature = "danger_i_want_to_risk_it_all")]
+fn configure_danger_mode_from_env() {
+    let requested_overrides = [
+        "SAML_DANGER_ALLOW_UNSIGNED_AUTHN_REQUESTS",
+        "SAML_DANGER_ALLOW_UNKNOWN_SERVICE_PROVIDERS",
+        "SAML_DANGER_ALLOW_WEAK_ALGORITHMS",
+    ]
+    .iter()
+    .copied()
+    .filter(|name| env_flag_enabled(name))
+    .collect::<Vec<_>>();
+
+    if !env_flag_enabled("SAML_DANGER_UNLOCK") {
+        if !requested_overrides.is_empty() {
+            error!(
+                "Danger overrides requested without SAML_DANGER_UNLOCK: {:?}",
+                requested_overrides
+            );
+            std::process::exit(1);
+        }
+        return;
+    }
+
+    let token = saml_rs::security::danger::unlock();
+    info!("Danger mode unlocked for saml_test_server via SAML_DANGER_UNLOCK.");
+
+    let mut enabled_any_override = false;
+
+    if env_flag_enabled("SAML_DANGER_ALLOW_UNSIGNED_AUTHN_REQUESTS") {
+        saml_rs::security::danger::enable_unsigned_authn_requests(&token);
+        info!("Enabled unsigned AuthnRequests in danger mode.");
+        enabled_any_override = true;
+    }
+    if env_flag_enabled("SAML_DANGER_ALLOW_UNKNOWN_SERVICE_PROVIDERS") {
+        saml_rs::security::danger::enable_unknown_service_providers(&token);
+        info!("Enabled unknown service providers in danger mode.");
+        enabled_any_override = true;
+    }
+    if env_flag_enabled("SAML_DANGER_ALLOW_WEAK_ALGORITHMS") {
+        saml_rs::security::danger::enable_weak_algorithms(&token);
+        info!("Enabled weak signature algorithms in danger mode.");
+        enabled_any_override = true;
+    }
+
+    if !enabled_any_override {
+        warn!("SAML_DANGER_UNLOCK is set but no danger overrides were requested.");
+    }
+}
+#[cfg(not(feature = "danger_i_want_to_risk_it_all"))]
+fn configure_danger_mode_from_env() {
+    let requested = [
+        "SAML_DANGER_UNLOCK",
+        "SAML_DANGER_ALLOW_UNSIGNED_AUTHN_REQUESTS",
+        "SAML_DANGER_ALLOW_UNKNOWN_SERVICE_PROVIDERS",
+        "SAML_DANGER_ALLOW_WEAK_ALGORITHMS",
+    ]
+    .iter()
+    .copied()
+    .filter(|name| env_flag_enabled(name))
+    .collect::<Vec<_>>();
+
+    if !requested.is_empty() {
+        error!(
+            "Danger env vars set without the danger_i_want_to_risk_it_all feature: {:?}",
+            requested
+        );
+        std::process::exit(1);
+    }
+}
+
 #[tokio::main]
 /// Spins up a test server
 ///
 /// This uses HTTPS if you specify `TIDE_CERT_PATH` and `TIDE_KEY_PATH` environment variables.
 async fn main() -> tide::Result<()> {
+    configure_danger_mode_from_env();
     let config_path = match std::env::var("SAML_CONFIG_PATH") {
         Ok(path) => path,
         Err(_) => shellexpand::tilde("~/.config/saml_test_server").into_owned(),
@@ -396,8 +477,8 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     response_body.push_str("</ul>");
 
     response_body.push_str(&format!(
-        "<p>relay_state: {:?}</p>",
-        parsed_saml_request.relay_state
+        "<p>request_id: {:?}</p>",
+        parsed_saml_request.request_id
     ));
     response_body.push_str(&format!(
         "<p>issue_instant: {:?}</p>",
@@ -431,27 +512,10 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
 
     // start building the actual response
 
-    let authn_instant = DateTime::<Utc>::from_naive_utc_and_offset(
-        NaiveDate::from_ymd_opt(2014, 7, 17)
-            .unwrap()
-            .and_hms_opt(1, 1, 48)
-            .unwrap(),
-        Utc,
-    );
-    // 2024-07-17T09:01:48Z
-    // adding three years including skip years
-    let session_expiry = match DateTime::<Utc>::from_naive_utc_and_offset(
-        NaiveDate::from_ymd_opt(2014, 7, 17)
-            .unwrap()
-            .and_hms_opt(9, 1, 48)
-            .unwrap(),
-        Utc,
-    )
-    .checked_add_signed(Duration::days(3653))
-    {
-        Some(value) => value,
-        _ => Utc::now(),
-    };
+    let authn_instant = Utc::now();
+    let session_expiry = authn_instant
+        .checked_add_signed(chrono::Duration::seconds(30))
+        .unwrap_or(authn_instant);
 
     // TODO: work out where the AuthNStatement goes
     let authnstatement = AuthNStatement {
@@ -476,7 +540,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         issuer: req.state().hostname.to_string(),
         response_id: ResponseElements::new_response_id(),
         issue_instant: Utc::now(),
-        relay_state: parsed_saml_request.relay_state,
+        in_response_to: parsed_saml_request.request_id,
         attributes: responseattributes,
         // TODO: figure out if this should be the ACS found in _form_target above or the parsed_saml_request.consumer_service_url
         // destination: form_target,
@@ -484,6 +548,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         authnstatement,
         assertion_id: ResponseElements::new_assertion_id(),
         service_provider: service_provider.to_owned(),
+        nameid_value: "yaleman".to_string(),
         assertion_consumer_service: Some(parsed_saml_request.consumer_service_url),
 
         session_length_seconds: 30,
