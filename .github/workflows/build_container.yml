@@ -15,7 +15,7 @@ jobs:
         with:
           python-version: '3.13'
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       - # https://github.com/docker/login-action/#github-container-registry
