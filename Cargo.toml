@@ -64,7 +64,9 @@ uuid = { workspace = true, features = ["serde", "v4"] }
 tokio = { workspace = true, features = ["fs", "rt"] }
 xml_c14n = { workspace = true }
 quick-xml = "0.39.1"
-
+aes-gcm = "0.10"
+rsa = "0.9"
+rand = "0.10.0"
 [dev-dependencies]
 reqwest = { workspace = true, features = ["blocking", "native-tls"] }
 regex = { workspace = true }
