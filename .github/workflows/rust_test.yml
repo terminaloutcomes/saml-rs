@@ -1,3 +1,4 @@
+---
 name: Rust Testing
 on: [push]
 
@@ -7,14 +8,22 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6.0.2
-      - uses: icepuma/rust-action@master
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          args: cargo test
+          components: rustfmt, clippy, rust-analyzer
+      - name: Run tests
+        run: cargo test --workspace
   cargo_build:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v6.0.2
-      - uses: icepuma/rust-action@master
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          args: cargo build
+          components: rustfmt, clippy, rust-analyzer
+      - name: Run builds
+        run: |
+          cargo build --workspace
+          cargo build --features danger_i_want_to_risk_it_all -p saml-rs

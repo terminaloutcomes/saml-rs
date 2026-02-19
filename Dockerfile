@@ -2,10 +2,12 @@ FROM rust:latest AS builder
 
 # based on https://blog.logrocket.com/packaging-a-rust-web-service-using-docker/
 
+RUN apt-get update && apt-get -y install build-essential clang llvm mold && apt-get clean
+
 RUN mkdir /build/
 ADD . /build/
 WORKDIR /build/saml_test_server/
-RUN cargo build --release
+RUN cargo build --release --quiet
 
 FROM debian:bookworm-slim
 ARG APP=/usr/src/app
