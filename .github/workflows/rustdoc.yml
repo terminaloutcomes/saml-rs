@@ -1,3 +1,4 @@
+---
 name: GitHub Pages
 
 on:
@@ -7,9 +8,10 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v6.0.2
 
@@ -25,9 +27,6 @@ jobs:
 
       - name: Make base index file
         run: echo '<meta http-equiv=refresh content=0;url=saml_rs/index.html>' > target/doc/index.html
-
-      # - name: pip install
-      #   run: python3 -m pip install --user ghp-import  && ghp-import -p -f -n target/doc
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
