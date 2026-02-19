@@ -376,7 +376,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "coverage", specifier = ">=6.5.0,<7.0.0" },
+    { name = "coverage", specifier = ">=6.5.0,<8.0.0" },
     { name = "lxml", specifier = ">=5.4.0" },
     { name = "lxml-stubs", specifier = ">=0.4.0,<1.0.0" },
     { name = "mypy", specifier = ">=0.991,<1.0.0" },

@@ -3,7 +3,7 @@ name: mypy
 "on":
   push:
     branches:
-      - main  # Set a branch to deploy
+      - main # Set a branch to deploy
   pull_request:
 
 jobs:
@@ -11,15 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
-        with:
-          fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
       - name: Set up Python 3.13
         uses: actions/setup-python@v4
         with:
-          python-version: '3.13'
-      - name: Running mypy
+          python-version: "3.13"
+      - name: Running type checking on python
         run: |
-          python --version
           python -m pip install --quiet --no-cache-dir --upgrade uv
           uv sync --all-groups
-          uv run mypy test*.py
+          uv run ty check --error-on-warning --output-format github

@@ -42,7 +42,7 @@ set positional-arguments
         --exclude-files=src/logging/consoleexporter.rs \
         $@
 
-# run coverage checks
+# run rust coverage checks
 coverage:
     just coverage_inner --out=Html
     @echo "Coverage report should be at file://$(pwd)/tarpaulin-report.html"

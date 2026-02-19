@@ -29,11 +29,17 @@ from lxml import etree as LET
 
 REDIRECT_CODES = {301, 302, 303, 307, 308}
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-DEBUG_HTML_PATH = os.getenv("LIVE_E2E_DEBUG_HTML", ".tmp/live-e2e/last-keycloak-page.html")
+DEBUG_HTML_PATH = os.getenv(
+    "LIVE_E2E_DEBUG_HTML", ".tmp/live-e2e/last-keycloak-page.html"
+)
 EXPECT_RESULT = os.getenv("LIVE_E2E_EXPECT_RESULT", "success").strip().lower()
 EXPECTED_ERROR_CLASS = os.getenv("LIVE_E2E_EXPECTED_ERROR_CLASS", "").strip()
-EXPECT_ASSERTION_SIGNATURE = os.getenv("LIVE_E2E_EXPECT_ASSERTION_SIGNATURE", "ignore").lower()
-EXPECT_RESPONSE_SIGNATURE = os.getenv("LIVE_E2E_EXPECT_RESPONSE_SIGNATURE", "ignore").lower()
+EXPECT_ASSERTION_SIGNATURE = os.getenv(
+    "LIVE_E2E_EXPECT_ASSERTION_SIGNATURE", "ignore"
+).lower()
+EXPECT_RESPONSE_SIGNATURE = os.getenv(
+    "LIVE_E2E_EXPECT_RESPONSE_SIGNATURE", "ignore"
+).lower()
 EXPECT_C14N_METHOD = os.getenv("LIVE_E2E_EXPECT_C14N_METHOD", "ignore").lower()
 TAMPER_MODE = os.getenv("LIVE_E2E_TAMPER_MODE", "none").strip().lower()
 CLOCK_SKEW_SECONDS = int(os.getenv("LIVE_E2E_ALLOWED_CLOCK_SKEW_SECONDS", "120"))
@@ -47,7 +53,9 @@ SCHEMA_DIR = os.path.abspath(
 class FlowError(RuntimeError):
     """Raised for controlled protocol-flow failures."""
 
-    def __init__(self, error_class: str, message: str) -> None:
+    def __init__(
+        self, message: str = "", error_class: str = "response_validation_error"
+    ) -> None:
         super().__init__(message)
         self.error_class = error_class
 
@@ -55,14 +63,14 @@ class FlowError(RuntimeError):
 class LocalInsecureCookiePolicy(http.cookiejar.DefaultCookiePolicy):
     """Allow secure cookies on localhost HTTP during local-only test runs."""
 
-    def return_ok_secure(self, cookie, request):  # type: ignore[override]
+    def return_ok_secure(self, cookie, request):
         return True
 
 
 class NoRedirectHandler(HTTPRedirectHandler):
     """Keep redirect responses visible to the caller."""
 
-    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[override]
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
 
 
@@ -75,7 +83,7 @@ class SamlFormParser(HTMLParser):
         self.in_target_form = False
         self.inputs: Dict[str, str] = {}
 
-    def handle_starttag(self, tag: str, attrs) -> None:  # type: ignore[override]
+    def handle_starttag(self, tag: str, attrs) -> None:
         attrs_dict = dict(attrs)
         if tag.lower() == "form":
             method = attrs_dict.get("method", "get").lower()
@@ -87,13 +95,9 @@ class SamlFormParser(HTMLParser):
             if name:
                 self.inputs[name] = attrs_dict.get("value", "")
 
-    def handle_endtag(self, tag: str) -> None:  # type: ignore[override]
+    def handle_endtag(self, tag: str) -> None:
         if tag.lower() == "form" and self.in_target_form:
             self.in_target_form = False
-
-
-def fail(message: str, error_class: str = "response_validation_error") -> None:
-    raise FlowError(error_class, message)
 
 
 def _expect_bool(expected: str, observed: bool, label: str) -> None:
@@ -101,7 +105,7 @@ def _expect_bool(expected: str, observed: bool, label: str) -> None:
         return
     wanted = expected in {"1", "true", "yes"}
     if wanted != observed:
-        fail(
+        raise FlowError(
             f"{label} expectation mismatch: expected={wanted}, observed={observed}",
             "signature_expectation_mismatch",
         )
@@ -114,9 +118,9 @@ def _parse_saml_datetime(value: str, label: str) -> datetime:
     try:
         parsed = datetime.fromisoformat(raw_value)
     except ValueError as error:
-        fail(f"Invalid {label} datetime value {value!r}: {error}")
+        raise FlowError(f"Invalid {label} datetime value {value!r}: {error}")
     if parsed.tzinfo is None:
-        fail(f"Invalid {label} datetime value {value!r}: missing timezone")
+        raise FlowError(f"Invalid {label} datetime value {value!r}: missing timezone")
     return parsed.astimezone(timezone.utc)
 
 
@@ -149,12 +153,12 @@ class LocalSchemaResolver(LET.Resolver):
             "http://www.w3.org/TR/2002/REC-xmlenc-core-20021210/xenc-schema.xsd": "xenc-schema.xsd",
         }
 
-    def resolve(self, url, _pubid, context):  # type: ignore[override]
-        mapped = self.absolute_map.get(url, os.path.basename(url))
-        candidate = os.path.join(self.schema_dir, mapped)
-        if os.path.exists(candidate):
-            return self.resolve_filename(candidate, context)
-        return None
+    # def resolve(self, url, _pubid, context):
+    #     mapped = self.absolute_map.get(url, os.path.basename(url))
+    #     candidate = os.path.join(self.schema_dir, mapped)
+    #     if os.path.exists(candidate):
+    #         return self.resolve_filename(candidate, context)
+    #     return None
 
 
 def _validate_response_schema(decoded_xml: str) -> None:
@@ -165,32 +169,47 @@ def _validate_response_schema(decoded_xml: str) -> None:
     try:
         schema_doc = LET.parse(schema_path, parser)
     except OSError as error:
-        fail(f"Failed loading schema file {schema_path}: {error}", "schema_validation_error")
+        raise FlowError(
+            f"Failed loading schema file {schema_path}: {error}",
+            "schema_validation_error",
+        )
     except LET.XMLSyntaxError as error:
-        fail(f"Schema XML syntax error in {schema_path}: {error}", "schema_validation_error")
+        raise FlowError(
+            f"Schema XML syntax error in {schema_path}: {error}",
+            "schema_validation_error",
+        )
 
     try:
         schema = LET.XMLSchema(schema_doc)
     except LET.XMLSchemaParseError as error:
-        fail(f"Failed to parse protocol schema {schema_path}: {error}", "schema_validation_error")
+        raise FlowError(
+            f"Failed to parse protocol schema {schema_path}: {error}",
+            "schema_validation_error",
+        )
 
     try:
         document = LET.fromstring(
             decoded_xml.encode("utf-8"), parser=LET.XMLParser(no_network=True)
         )
     except LET.XMLSyntaxError as error:
-        fail(f"SAMLResponse schema parse failed: {error}", "schema_validation_error")
+        raise FlowError(
+            f"SAMLResponse schema parse failed: {error}", "schema_validation_error"
+        )
 
     if not schema.validate(document):
         error = schema.error_log.last_error
-        fail(f"SAMLResponse failed XSD validation: {error}", "schema_validation_error")
+        raise FlowError(
+            f"SAMLResponse failed XSD validation: {error}", "schema_validation_error"
+        )
 
 
 def _decode_authn_request_xml(encoded_request: str) -> str:
     try:
         decoded = base64.b64decode(encoded_request)
     except (binascii.Error, ValueError) as error:
-        fail(f"SAMLRequest is not valid base64: {error}", "request_decode_error")
+        raise FlowError(
+            f"SAMLRequest is not valid base64: {error}", "request_decode_error"
+        )
 
     try:
         inflated = zlib.decompress(decoded, -15)
@@ -200,35 +219,50 @@ def _decode_authn_request_xml(encoded_request: str) -> str:
     try:
         return inflated.decode("utf-8")
     except UnicodeDecodeError as error:
-        fail(f"SAMLRequest was not utf-8 XML: {error}", "request_decode_error")
+        raise FlowError(
+            f"SAMLRequest was not utf-8 XML: {error}", "request_decode_error"
+        )
 
 
 def _extract_authn_request_context(idp_url: str) -> tuple[str, str, str, str]:
     query = parse_qs(urlparse(idp_url).query)
     encoded_request = query.get("SAMLRequest", [None])[0]
     if not encoded_request:
-        fail("IdP redirect URL did not contain SAMLRequest", "request_validation_error")
+        raise FlowError(
+            "IdP redirect URL did not contain SAMLRequest", "request_validation_error"
+        )
     relay_state = query.get("RelayState", [""])[0]
 
     request_xml = _decode_authn_request_xml(encoded_request)
     try:
         request_root = ET.fromstring(request_xml)
     except ET.ParseError as error:
-        fail(f"Decoded SAMLRequest was not valid XML: {error}", "request_validation_error")
+        raise FlowError(
+            f"Decoded SAMLRequest was not valid XML: {error}",
+            "request_validation_error",
+        )
 
     request_id = request_root.attrib.get("ID")
     if not request_id:
-        fail("AuthnRequest was missing ID", "request_validation_error")
+        raise FlowError("AuthnRequest was missing ID", "request_validation_error")
     if not _is_saml_id(request_id):
-        fail(f"AuthnRequest ID is not SAML-safe: {request_id}", "request_validation_error")
+        raise FlowError(
+            f"AuthnRequest ID is not SAML-safe: {request_id}",
+            "request_validation_error",
+        )
     acs_url = request_root.attrib.get("AssertionConsumerServiceURL")
     if not acs_url:
-        fail("AuthnRequest was missing AssertionConsumerServiceURL", "request_validation_error")
+        raise FlowError(
+            "AuthnRequest was missing AssertionConsumerServiceURL",
+            "request_validation_error",
+        )
 
     issuer_node = request_root.find("{urn:oasis:names:tc:SAML:2.0:assertion}Issuer")
-    issuer_text = issuer_node.text.strip() if issuer_node is not None and issuer_node.text else ""
+    issuer_text = (
+        issuer_node.text.strip() if issuer_node is not None and issuer_node.text else ""
+    )
     if not issuer_text:
-        fail("AuthnRequest was missing Issuer", "request_validation_error")
+        raise FlowError("AuthnRequest was missing Issuer", "request_validation_error")
 
     return request_id, relay_state, acs_url, issuer_text
 
@@ -238,7 +272,7 @@ def _tamper_authnrequest_signature(idp_url: str) -> str:
     query = parse_qs(parsed.query, keep_blank_values=True)
     signatures = query.get("Signature")
     if not signatures:
-        fail(
+        raise FlowError(
             "Tamper mode requested authnrequest signature corruption but Signature is absent",
             "tamper_precondition_failed",
         )
@@ -258,7 +292,9 @@ def inspect_saml_response(
     try:
         decoded_xml = base64.b64decode(saml_response).decode("utf-8", errors="replace")
     except (binascii.Error, ValueError) as error:
-        fail(f"SAMLResponse is not valid base64: {error}", "response_validation_error")
+        raise FlowError(
+            f"SAMLResponse is not valid base64: {error}", "response_validation_error"
+        )
     _validate_response_schema(decoded_xml)
     ns = {
         "samlp": "urn:oasis:names:tc:SAML:2.0:protocol",
@@ -268,14 +304,16 @@ def inspect_saml_response(
     try:
         root = ET.fromstring(decoded_xml)
     except ET.ParseError as error:
-        fail(f"SAMLResponse was not valid XML: {error}", "response_validation_error")
+        raise FlowError(
+            f"SAMLResponse was not valid XML: {error}", "response_validation_error"
+        )
     response_sig = root.find("./ds:Signature", ns) is not None
     assertion_sig = root.find("./saml:Assertion/ds:Signature", ns) is not None
     _expect_bool(EXPECT_RESPONSE_SIGNATURE, response_sig, "response signature")
     _expect_bool(EXPECT_ASSERTION_SIGNATURE, assertion_sig, "assertion signature")
 
     if observed_relay_state != expected_relay_state:
-        fail(
+        raise FlowError(
             "RelayState mismatch between redirect request and IdP form: "
             f"expected={expected_relay_state!r}, observed={observed_relay_state!r}",
             "response_validation_error",
@@ -283,40 +321,42 @@ def inspect_saml_response(
 
     response_version = root.attrib.get("Version")
     if response_version != "2.0":
-        fail(f"SAML Response Version must be 2.0, got {response_version!r}")
+        raise FlowError(f"SAML Response Version must be 2.0, got {response_version!r}")
     response_id = root.attrib.get("ID")
     if not _is_saml_id(response_id):
-        fail(f"SAML Response ID is not SAML-safe: {response_id!r}")
+        raise FlowError(f"SAML Response ID is not SAML-safe: {response_id!r}")
     response_in_response_to = root.attrib.get("InResponseTo")
     if response_in_response_to != expected_request_id:
-        fail(
+        raise FlowError(
             "Response InResponseTo does not match AuthnRequest ID: "
             f"expected={expected_request_id!r}, got={response_in_response_to!r}",
         )
     destination = root.attrib.get("Destination")
     if not destination:
-        fail("SAML Response missing Destination")
+        raise FlowError("SAML Response missing Destination")
     if destination != expected_acs_url:
-        fail(
+        raise FlowError(
             "Response Destination does not match AuthnRequest AssertionConsumerServiceURL: "
             f"expected={expected_acs_url!r}, got={destination!r}",
         )
 
     assertion = root.find("./saml:Assertion", ns)
     if assertion is None:
-        fail("SAML Response missing Assertion element")
+        raise FlowError("SAML Response missing Assertion element")
     assertion_id = assertion.attrib.get("ID")
     if not _is_saml_id(assertion_id):
-        fail(f"Assertion ID is not SAML-safe: {assertion_id!r}")
+        raise FlowError(f"Assertion ID is not SAML-safe: {assertion_id!r}")
     if assertion.attrib.get("Version") != "2.0":
-        fail(f"Assertion Version must be 2.0, got {assertion.attrib.get('Version')!r}")
+        raise FlowError(
+            f"Assertion Version must be 2.0, got {assertion.attrib.get('Version')!r}"
+        )
 
     issue_instant = root.attrib.get("IssueInstant")
     assertion_issue_instant = assertion.attrib.get("IssueInstant")
     if not issue_instant:
-        fail("SAML Response missing IssueInstant")
+        raise FlowError("SAML Response missing IssueInstant")
     if not assertion_issue_instant:
-        fail("Assertion missing IssueInstant")
+        raise FlowError("Assertion missing IssueInstant")
     _parse_saml_datetime(issue_instant, "Response IssueInstant")
     _parse_saml_datetime(assertion_issue_instant, "Assertion IssueInstant")
 
@@ -324,47 +364,49 @@ def inspect_saml_response(
         "./saml:Subject/saml:SubjectConfirmation/saml:SubjectConfirmationData", ns
     )
     if subject_confirmation_data is None:
-        fail("Assertion missing SubjectConfirmationData")
+        raise FlowError("Assertion missing SubjectConfirmationData")
     subject_in_response_to = subject_confirmation_data.attrib.get("InResponseTo")
     if subject_in_response_to != expected_request_id:
-        fail(
+        raise FlowError(
             "SubjectConfirmationData InResponseTo does not match AuthnRequest ID: "
             f"expected={expected_request_id!r}, got={subject_in_response_to!r}",
         )
     recipient = subject_confirmation_data.attrib.get("Recipient")
     if not recipient:
-        fail("SubjectConfirmationData missing Recipient")
+        raise FlowError("SubjectConfirmationData missing Recipient")
     if recipient != destination:
-        fail(
+        raise FlowError(
             "SubjectConfirmationData Recipient and Response Destination must match: "
             f"recipient={recipient!r}, destination={destination!r}",
         )
     if recipient != expected_acs_url:
-        fail(
+        raise FlowError(
             "SubjectConfirmationData Recipient does not match AuthnRequest AssertionConsumerServiceURL: "
             f"expected={expected_acs_url!r}, got={recipient!r}",
         )
 
     conditions = assertion.find("./saml:Conditions", ns)
     if conditions is None:
-        fail("Assertion missing Conditions")
+        raise FlowError("Assertion missing Conditions")
     not_before_raw = conditions.attrib.get("NotBefore")
     not_on_or_after_raw = conditions.attrib.get("NotOnOrAfter")
     if not not_before_raw or not not_on_or_after_raw:
-        fail("Assertion Conditions must include NotBefore and NotOnOrAfter")
+        raise FlowError("Assertion Conditions must include NotBefore and NotOnOrAfter")
     not_before = _parse_saml_datetime(not_before_raw, "Conditions NotBefore")
-    not_on_or_after = _parse_saml_datetime(not_on_or_after_raw, "Conditions NotOnOrAfter")
+    not_on_or_after = _parse_saml_datetime(
+        not_on_or_after_raw, "Conditions NotOnOrAfter"
+    )
 
     subject_not_on_or_after_raw = subject_confirmation_data.attrib.get("NotOnOrAfter")
     if not subject_not_on_or_after_raw:
-        fail("SubjectConfirmationData missing NotOnOrAfter")
+        raise FlowError("SubjectConfirmationData missing NotOnOrAfter")
     subject_not_on_or_after = _parse_saml_datetime(
         subject_not_on_or_after_raw,
         "SubjectConfirmationData NotOnOrAfter",
     )
 
     if not_before > not_on_or_after:
-        fail(
+        raise FlowError(
             "Conditions NotBefore must be <= NotOnOrAfter: "
             f"NotBefore={not_before.isoformat()}, NotOnOrAfter={not_on_or_after.isoformat()}"
         )
@@ -372,17 +414,17 @@ def inspect_saml_response(
     now = datetime.now(timezone.utc)
     skew = timedelta(seconds=CLOCK_SKEW_SECONDS)
     if now + skew < not_before:
-        fail(
+        raise FlowError(
             f"Assertion is not yet valid: now={now.isoformat()} "
             f"NotBefore={not_before.isoformat()} skew={CLOCK_SKEW_SECONDS}s"
         )
     if now - skew >= not_on_or_after:
-        fail(
+        raise FlowError(
             f"Assertion Conditions expired: now={now.isoformat()} "
             f"NotOnOrAfter={not_on_or_after.isoformat()} skew={CLOCK_SKEW_SECONDS}s"
         )
     if now - skew >= subject_not_on_or_after:
-        fail(
+        raise FlowError(
             f"SubjectConfirmationData expired: now={now.isoformat()} "
             f"NotOnOrAfter={subject_not_on_or_after.isoformat()} skew={CLOCK_SKEW_SECONDS}s"
         )
@@ -396,7 +438,7 @@ def inspect_saml_response(
         if node.text
     ]
     if expected_audience not in audiences:
-        fail(
+        raise FlowError(
             f"Expected audience {expected_audience!r} not present in assertion audiences {audiences!r}"
         )
 
@@ -406,20 +448,22 @@ def inspect_saml_response(
             "inclusive": "http://www.w3.org/TR/2001/REC-xml-c14n-20010315",
         }.get(EXPECT_C14N_METHOD)
         if not expected_uri:
-            fail(
+            raise FlowError(
                 f"Unknown LIVE_E2E_EXPECT_C14N_METHOD={EXPECT_C14N_METHOD}",
                 "configuration_error",
             )
         c14n_nodes = root.findall(".//ds:CanonicalizationMethod", ns)
         if not c14n_nodes:
-            fail("Expected SignedInfo CanonicalizationMethod nodes but found none")
+            raise FlowError(
+                "Expected SignedInfo CanonicalizationMethod nodes but found none"
+            )
         bad_nodes = [
             node.attrib.get("Algorithm")
             for node in c14n_nodes
             if node.attrib.get("Algorithm") != expected_uri
         ]
         if bad_nodes:
-            fail(
+            raise FlowError(
                 f"Unexpected c14n algorithms found: {bad_nodes}, expected only {expected_uri}"
             )
 
@@ -444,19 +488,27 @@ def request_no_redirect(
         status = err.code
         response_headers = dict(err.headers.items())
         return status, response_headers, err.read()
-    except (URLError, TimeoutError, ssl.SSLError, OSError, http.client.HTTPException) as error:
-        fail(f"HTTP request failed for {url}: {error}", "http_request_failed")
+    except (
+        URLError,
+        TimeoutError,
+        ssl.SSLError,
+        OSError,
+        http.client.HTTPException,
+    ) as error:
+        raise FlowError(
+            f"HTTP request failed for {url}: {error}", "http_request_failed"
+        )
 
 
 def first_location(current_url: str, status: int, headers: Dict[str, str]) -> str:
     if status not in REDIRECT_CODES:
-        fail(
+        raise FlowError(
             f"Expected redirect from {current_url}, got status={status}",
             "redirect_protocol_error",
         )
     location = headers.get("Location")
     if not location:
-        fail(
+        raise FlowError(
             f"Redirect from {current_url} did not include Location header",
             "redirect_protocol_error",
         )
@@ -465,7 +517,7 @@ def first_location(current_url: str, status: int, headers: Dict[str, str]) -> st
 
 def main() -> None:
     if EXPECT_RESULT not in {"success", "error"}:
-        fail(
+        raise FlowError(
             f"LIVE_E2E_EXPECT_RESULT must be success|error, got {EXPECT_RESULT!r}",
             "configuration_error",
         )
@@ -515,7 +567,9 @@ def main() -> None:
         current_url = next_url
 
     if idp_url is None:
-        fail("Never reached IdP Redirect endpoint", "idp_redirect_not_reached")
+        raise FlowError(
+            "Never reached IdP Redirect endpoint", "idp_redirect_not_reached"
+        )
 
     if TAMPER_MODE == "authnrequest_signature_corrupt":
         idp_url = _tamper_authnrequest_signature(idp_url)
@@ -529,7 +583,7 @@ def main() -> None:
 
     status, _, body = request_no_redirect(opener, idp_url)
     if status not in {200, 203}:
-        fail(
+        raise FlowError(
             f"IdP redirect endpoint returned unexpected status={status}",
             "idp_redirect_rejected",
         )
@@ -539,12 +593,14 @@ def main() -> None:
     parser.feed(html)
 
     if not parser.form_action:
-        fail("IdP response page did not include a POST form action", "idp_form_missing")
+        raise FlowError(
+            "IdP response page did not include a POST form action", "idp_form_missing"
+        )
 
     saml_response = parser.inputs.get("SAMLResponse")
     relay_state = parser.inputs.get("RelayState", "")
     if not saml_response:
-        fail(
+        raise FlowError(
             "IdP response page did not include a SAMLResponse input",
             "idp_form_missing",
         )
@@ -579,7 +635,7 @@ def main() -> None:
 
     if status not in REDIRECT_CODES:
         snippet = body.decode("utf-8", errors="replace")[:400]
-        fail(
+        raise FlowError(
             f"Broker endpoint did not redirect after SAML POST (status={status})\n{snippet}",
             "broker_post_rejected",
         )
@@ -600,7 +656,7 @@ def main() -> None:
                 )
                 print(f"Callback URL: {current_url}")
                 return
-            fail(
+            raise FlowError(
                 f"Reached callback without auth code: {current_url}",
                 "callback_missing_code",
             )
@@ -615,7 +671,7 @@ def main() -> None:
             parser = SamlFormParser()
             parser.feed(rendered)
             if not parser.form_action:
-                fail(
+                raise FlowError(
                     "First-broker-login page did not include a submit form action",
                     "broker_flow_unexpected_status",
                 )
@@ -644,7 +700,7 @@ def main() -> None:
                 continue
 
             snippet = body.decode("utf-8", errors="replace")[:400]
-            fail(
+            raise FlowError(
                 "First-broker-login form submission did not redirect "
                 f"(status={status}, url={form_action})\n{snippet}",
                 "broker_flow_unexpected_status",
@@ -656,18 +712,21 @@ def main() -> None:
             with open(DEBUG_HTML_PATH, "w", encoding="utf-8") as debug_file:
                 debug_file.write(rendered)
         except OSError as error:
-            fail(
+            raise FlowError(
                 f"Failed writing debug HTML to {DEBUG_HTML_PATH}: {error}",
                 "io_error",
             )
         snippet = rendered[:400]
-        fail(
+        raise FlowError(
             "Unexpected non-redirect while following broker flow "
             f"(status={status}, url={current_url}, dumped_html={DEBUG_HTML_PATH})\n{snippet}",
             "broker_flow_unexpected_status",
         )
 
-    fail("Exceeded redirect limit while waiting for final callback", "redirect_limit_exceeded")
+    raise FlowError(
+        "Exceeded redirect limit while waiting for final callback",
+        "redirect_limit_exceeded",
+    )
 
 
 def _handle_failure(error_class: str, message: str) -> int:
