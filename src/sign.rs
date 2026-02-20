@@ -52,6 +52,85 @@ pub enum SigningAlgorithm {
     InvalidAlgorithm,
 }
 
+/// Content encryption algorithms for SAML assertion encryption
+///
+/// <https://www.w3.org/TR/xmldsig-core/#sec-PKCS1>
+#[allow(non_camel_case_types)]
+#[derive(Copy, Clone, Debug)]
+pub enum ContentEncryptionAlgorithm {
+    /// AES-128-CBC with HMAC-SHA-256
+    A128CBC_HS256,
+    /// AES-256-CBC with HMAC-SHA-512 (default)
+    A256CBC_HS512,
+    /// AES-128-GCM
+    A128GCM,
+    /// AES-256-GCM
+    A256GCM,
+}
+
+impl ContentEncryptionAlgorithm {
+    /// Returns the URI for this algorithm
+    pub fn as_uri(&self) -> &'static str {
+        match self {
+            ContentEncryptionAlgorithm::A128CBC_HS256 => {
+                "http://www.w3.org/2001/04/xmlenc#aes128-cbc"
+            }
+            ContentEncryptionAlgorithm::A256CBC_HS512 => {
+                "http://www.w3.org/2001/04/xmlenc#aes256-cbc"
+            }
+            ContentEncryptionAlgorithm::A128GCM => "http://www.w3.org/2001/04/xmlenc#aes128-gcm",
+            ContentEncryptionAlgorithm::A256GCM => "http://www.w3.org/2001/04/xmlenc#aes256-gcm",
+        }
+    }
+}
+
+/// Key encryption algorithms for SAML assertion encryption
+#[derive(Copy, Clone, Debug)]
+#[allow(non_camel_case_types)]
+pub enum KeyEncryptionAlgorithm {
+    /// RSAES-OAEP with SHA-1 (deprecated but sometimes required)
+    RSA_OAEP,
+    /// RSAES-OAEP with SHA-256 (default)
+    RSA_OAEP_256,
+    /// RSAES-OAEP with SHA-384
+    RSA_OAEP_384,
+    /// RSAES-OAEP with SHA-512
+    RSA_OAEP_512,
+    /// ECDH-ES with AES-KW 128-bit key
+    ECDH_ES_AES_KW_128,
+    /// ECDH-ES with AES-KW 192-bit key
+    ECDH_ES_AES_KW_192,
+    /// ECDH-ES with AES-KW 256-bit key
+    ECDH_ES_AES_KW_256,
+}
+
+impl KeyEncryptionAlgorithm {
+    /// Returns the URI for this algorithm
+    pub fn as_uri(&self) -> &'static str {
+        match self {
+            KeyEncryptionAlgorithm::RSA_OAEP => "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p",
+            KeyEncryptionAlgorithm::RSA_OAEP_256 => {
+                "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p#sha256"
+            }
+            KeyEncryptionAlgorithm::RSA_OAEP_384 => {
+                "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p#sha384"
+            }
+            KeyEncryptionAlgorithm::RSA_OAEP_512 => {
+                "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p#sha512"
+            }
+            KeyEncryptionAlgorithm::ECDH_ES_AES_KW_128 => {
+                "http://www.w3.org/2001/04/xmlenc#ECDH-ES"
+            }
+            KeyEncryptionAlgorithm::ECDH_ES_AES_KW_192 => {
+                "http://www.w3.org/2001/04/xmlenc#ECDH-ES"
+            }
+            KeyEncryptionAlgorithm::ECDH_ES_AES_KW_256 => {
+                "http://www.w3.org/2001/04/xmlenc#ECDH-ES"
+            }
+        }
+    }
+}
+
 impl SigningAlgorithm {
     fn message_digest(self) -> Result<openssl::hash::MessageDigest, String> {
         match self {

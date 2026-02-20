@@ -67,6 +67,12 @@ quick-xml = "0.39.1"
 aes-gcm = "0.10"
 rsa = "0.9"
 rand = "0.10"
+aes = "0.8"
+hmac = "0.12"
+sha2 = "0.10"
+typenum = "1.17"
+rust-crypto = "0.2.36"
+
 [dev-dependencies]
 reqwest = { workspace = true, features = ["blocking", "native-tls"] }
 regex = { workspace = true }
