@@ -27,7 +27,6 @@ serde = { workspace = true }
 serde-xml-rs = { workspace = true }
 serde_derive = { workspace = true }
 serde_json = { workspace = true }
-openssl = { workspace = true }
 reqwest = { workspace = true }
 difference = { workspace = true }
 chrono = { workspace = true }
@@ -41,3 +40,6 @@ tera = { workspace = true }
 sha-1 = { workspace = true }
 hex = { workspace = true }
 tokio = { workspace = true, features = ["fs", "rt-multi-thread", "macros"] }
+x509-cert = "0.2.5"
+signature = { version = "2.2.0", features = ["derive", "digest"] }
+rsa = { version = "0.9.10", features = ["sha1", "sha2", "serde"] }

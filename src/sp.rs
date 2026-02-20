@@ -4,8 +4,8 @@ use log::{debug, error, warn};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
+use x509_cert::Certificate;
 
-use openssl::x509::X509;
 use quick_xml::Reader;
 use quick_xml::events::{BytesStart, Event};
 
@@ -207,7 +207,7 @@ pub struct ServiceProvider {
     /// Does this SP expect signed assertions?
     pub want_assertions_signed: bool,
     /// The signing (public) certificate for the SP.
-    pub x509_certificate: Option<X509>,
+    pub x509_certificate: Option<Certificate>,
     /// SP services.
     pub services: Vec<ServiceBinding>,
     /// Protocol support enumeration.
@@ -257,7 +257,7 @@ impl FromStr for ServiceProvider {
         reader.config_mut().trim_text(true);
 
         let mut tag_stack: Vec<String> = Vec::new();
-        let mut certificate_data = None::<X509>;
+        let mut certificate_data = None::<Certificate>;
         let mut meta = ServiceProvider {
             entity_id: "".to_string(),
             authn_requests_signed: false,

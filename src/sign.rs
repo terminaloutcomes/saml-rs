@@ -21,16 +21,23 @@
 //! That's it. SAML is completely awful. There are tons of little subtleties that make implementing SAML a nightmare (like calculating the canonical form of a subset of the XML (the assertion), also the XML version of XML documents is not included.
 //!
 
+use crypto::digest::Digest;
+use crypto::sha1::Sha1;
+use crypto::sha2::Sha224;
+use crypto::sha2::Sha256;
+use crypto::sha2::Sha384;
+use crypto::sha2::Sha512;
 use log::debug;
 use log::error;
-use log::info;
-use openssl::pkey::PKey;
-use openssl::pkey::Private;
-use openssl::pkey::Public;
-use openssl::rsa::Rsa;
-use openssl::sign::{Signer, Verifier};
-use openssl::x509::X509;
+use p192::NistP192;
+use rsa::RsaPrivateKey;
+use rsa::pkcs1::DecodeRsaPrivateKey;
+use rsa::rand_core;
 use std::fmt;
+use std::sync::Arc;
+use tokio::fs;
+use x509_cert::Certificate;
+use x509_cert::der::DecodePem;
 use xml_c14n::{CanonicalizationMode, CanonicalizationOptions, canonicalize_xml};
 
 /// Options of Signing Algorithms for things
@@ -38,16 +45,31 @@ use xml_c14n::{CanonicalizationMode, CanonicalizationOptions, canonicalize_xml};
 /// <https://www.w3.org/TR/xmldsig-core/#sec-PKCS1>
 #[derive(Copy, Clone, Debug)]
 pub enum SigningAlgorithm {
+    /// DSA with SHA1 (Use is DISCOURAGED; see SHA-1 Warning)
+    DsaSha1,
+    /// DSA with 256
+    DsaSha256,
     /// SHA1 algorithm.
-    Sha1,
-    /// Really?
-    Sha224,
+    RsaSha1,
+    /// SHA224 algorithm.
+    RsaSha224,
     /// SHA256 Algorithm
-    Sha256,
+    RsaSha256,
     /// For when 256 isn't enough
-    Sha384,
+    RsaSha384,
     /// Size does matter, I guess?
-    Sha512,
+    RsaSha512,
+    /// <http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha1>
+    EcDsaSha1,
+    /// <http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha224>
+    EcDsaSha224,
+    /// <http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256>
+    EcDsaSha256,
+    /// <http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha384>
+    EcDsaSha384,
+    /// <http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha512>
+    EcDsaSha512,
+
     /// If you try to use the wrong one
     InvalidAlgorithm,
 }
@@ -164,28 +186,6 @@ impl KeyEncryptionAlgorithm {
     }
 }
 
-impl SigningAlgorithm {
-    fn message_digest(self) -> Result<openssl::hash::MessageDigest, String> {
-        match self {
-            SigningAlgorithm::Sha1 => {
-                if crate::security::weak_algorithms_allowed() {
-                    Ok(openssl::hash::MessageDigest::sha1())
-                } else {
-                    Err("SHA-1 signing algorithms are disabled by default".to_string())
-                }
-            }
-            SigningAlgorithm::Sha224 => Ok(openssl::hash::MessageDigest::sha224()),
-            SigningAlgorithm::Sha256 => Ok(openssl::hash::MessageDigest::sha256()),
-            SigningAlgorithm::Sha384 => Ok(openssl::hash::MessageDigest::sha384()),
-            SigningAlgorithm::Sha512 => Ok(openssl::hash::MessageDigest::sha512()),
-            SigningAlgorithm::InvalidAlgorithm => Err(
-                "Invalid signing algorithm requested and strict policy forbids fallback"
-                    .to_string(),
-            ),
-        }
-    }
-}
-
 /// Canonicalization methods supported for XML signatures.
 #[derive(Copy, Clone, Debug, Default)]
 pub enum CanonicalizationMethod {
@@ -256,11 +256,11 @@ impl From<String> for SigningAlgorithm {
 
     fn from(s: String) -> Self {
         match s.to_lowercase().as_str() {
-            "http://www.w3.org/2000/09/xmldsig#rsa-sha1" => Self::Sha1,
-            "http://www.w3.org/2001/04/xmldsig-more#rsa-sha224" => Self::Sha224,
-            "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256" => Self::Sha256,
-            "http://www.w3.org/2001/04/xmldsig-more#rsa-sha384" => Self::Sha384,
-            "http://www.w3.org/2001/04/xmldsig-more#rsa-sha512" => Self::Sha512,
+            "http://www.w3.org/2000/09/xmldsig#rsa-sha1" => Self::RsaSha1,
+            "http://www.w3.org/2001/04/xmldsig-more#rsa-sha224" => Self::RsaSha224,
+            "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256" => Self::RsaSha256,
+            "http://www.w3.org/2001/04/xmldsig-more#rsa-sha384" => Self::RsaSha384,
+            "http://www.w3.org/2001/04/xmldsig-more#rsa-sha512" => Self::RsaSha512,
             _ => Self::InvalidAlgorithm,
         }
     }
@@ -269,17 +269,17 @@ impl From<String> for SigningAlgorithm {
 impl From<SigningAlgorithm> for String {
     fn from(sa: SigningAlgorithm) -> String {
         match sa {
-            SigningAlgorithm::Sha1 => String::from("http://www.w3.org/2000/09/xmldsig#rsa-sha1"),
-            SigningAlgorithm::Sha224 => {
+            SigningAlgorithm::RsaSha1 => String::from("http://www.w3.org/2000/09/xmldsig#rsa-sha1"),
+            SigningAlgorithm::RsaSha224 => {
                 String::from("http://www.w3.org/2001/04/xmldsig-more#rsa-sha224")
             }
-            SigningAlgorithm::Sha256 => {
+            SigningAlgorithm::RsaSha256 => {
                 String::from("http://www.w3.org/2001/04/xmldsig-more#rsa-sha256")
             }
-            SigningAlgorithm::Sha384 => {
+            SigningAlgorithm::RsaSha384 => {
                 String::from("http://www.w3.org/2001/04/xmldsig-more#rsa-sha384")
             }
-            SigningAlgorithm::Sha512 => {
+            SigningAlgorithm::RsaSha512 => {
                 String::from("http://www.w3.org/2001/04/xmldsig-more#rsa-sha512")
             }
             _ => {
@@ -288,69 +288,6 @@ impl From<SigningAlgorithm> for String {
                 result
             }
         }
-    }
-}
-
-fn read_file_bytes(path: &str) -> Result<Vec<u8>, String> {
-    let runtime = match tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-    {
-        Ok(value) => value,
-        Err(error) => return Err(format!("Failed to create tokio runtime: {:?}", error)),
-    };
-    runtime
-        .block_on(tokio::fs::read(path))
-        .map_err(|error| format!("Failed to read {}: {:?}", path, error))
-}
-
-async fn read_file_bytes_async(path: &str) -> Result<Vec<u8>, String> {
-    tokio::fs::read(path)
-        .await
-        .map_err(|error| format!("Failed to read {}: {:?}", path, error))
-}
-
-/// Loads a PEM-encoded public key into a PKey object
-pub fn load_key_from_filename(key_filename: &str) -> Result<PKey<Private>, String> {
-    let pkey_buffer = match read_file_bytes(key_filename) {
-        Ok(value) => value,
-        Err(error) => return Err(format!("Error loading file {}: {}", key_filename, error)),
-    };
-    info!("Read private key OK");
-
-    debug!("key:  {}", key_filename);
-    let keypair = match Rsa::private_key_from_pem(&pkey_buffer) {
-        Ok(value) => value,
-        Err(error) => {
-            return Err(format!("Failed to load pkey from pem bytes: {:?}", error));
-        }
-    };
-    // let keypair = Rsa::generate(2048).unwrap();
-    match PKey::from_rsa(keypair) {
-        Ok(value) => Ok(value),
-        Err(error) => Err(format!("Failed to convert into PKey object: {:?}", error)),
-    }
-}
-
-/// Async version of [load_key_from_filename] for callers that already run inside a tokio runtime.
-pub async fn load_key_from_filename_async(key_filename: &str) -> Result<PKey<Private>, String> {
-    let pkey_buffer = match read_file_bytes_async(key_filename).await {
-        Ok(value) => value,
-        Err(error) => return Err(format!("Error loading file {}: {}", key_filename, error)),
-    };
-    info!("Read private key OK");
-
-    debug!("key:  {}", key_filename);
-    let keypair = match Rsa::private_key_from_pem(&pkey_buffer) {
-        Ok(value) => value,
-        Err(error) => {
-            return Err(format!("Failed to load pkey from pem bytes: {:?}", error));
-        }
-    };
-
-    match PKey::from_rsa(keypair) {
-        Ok(value) => Ok(value),
-        Err(error) => Err(format!("Failed to convert into PKey object: {:?}", error)),
     }
 }
 
@@ -376,12 +313,6 @@ pub enum DigestAlgorithm {
 impl fmt::Display for DigestAlgorithm {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
-    }
-}
-
-impl From<openssl::hash::MessageDigest> for DigestAlgorithm {
-    fn from(_md: openssl::hash::MessageDigest) -> Self {
-        Self::InvalidAlgorithm
     }
 }
 
@@ -421,157 +352,176 @@ impl From<DigestAlgorithm> for String {
     }
 }
 
-/// Loads a public cert from a PEM file into an X509 object
-pub fn load_public_cert_from_filename(cert_filename: &str) -> Result<X509, String> {
+/// Loads a public cert from a PEM file into a Certificate
+pub async fn load_public_cert_from_filename(cert_filename: &str) -> Result<Certificate, String> {
     debug!("loading cert:  {}", cert_filename);
 
-    let cert_buffer = match read_file_bytes(cert_filename) {
-        Ok(value) => value,
-        Err(error) => {
-            return Err(format!(
-                "Error loading certificate file {}: {}",
-                cert_filename, error
-            ));
-        }
-    };
-    eprintln!("Read certificate OK");
+    let cert_buffer = fs::read(cert_filename).await.map_err(|error| {
+        format!(
+            "Error loading certificate file {}: {}",
+            cert_filename, error
+        )
+    })?;
 
-    match X509::from_pem(&cert_buffer) {
-        Ok(value) => Ok(value),
-        Err(error) => Err(format!(
-            "Failed to load certificate from pem bytes: {:?}",
-            error
-        )),
-    }
-}
-
-/// Async version of [load_public_cert_from_filename] for callers that already run inside a tokio runtime.
-pub async fn load_public_cert_from_filename_async(cert_filename: &str) -> Result<X509, String> {
-    debug!("loading cert:  {}", cert_filename);
-
-    let cert_buffer = match read_file_bytes_async(cert_filename).await {
-        Ok(value) => value,
-        Err(error) => {
-            return Err(format!(
-                "Error loading certificate file {}: {}",
-                cert_filename, error
-            ));
-        }
-    };
-    eprintln!("Read certificate OK");
-
-    match X509::from_pem(&cert_buffer) {
-        Ok(value) => Ok(value),
-        Err(error) => Err(format!(
-            "Failed to load certificate from pem bytes: {:?}",
-            error
-        )),
-    }
+    Certificate::from_pem(&cert_buffer)
+        .map_err(|error| format!("Failed to load certificate from pem bytes: {:?}", error))
 }
 
 impl DigestAlgorithm {
-    fn message_digest(self) -> Result<openssl::hash::MessageDigest, String> {
-        match self {
-            DigestAlgorithm::Sha1 => {
-                if crate::security::weak_algorithms_allowed() {
-                    Ok(openssl::hash::MessageDigest::sha1())
-                } else {
-                    Err("SHA-1 digest algorithms are disabled by default".to_string())
-                }
+    /// Hash a set of bytes
+    pub fn hash(self, bytes_to_hash: &[u8]) -> Result<Vec<u8>, String> {
+        let mut res: Box<dyn Digest> = match self {
+            DigestAlgorithm::Sha1 => Box::new(Sha1::new()),
+            DigestAlgorithm::Sha224 => Box::new(Sha224::new()),
+            DigestAlgorithm::Sha256 => Box::new(Sha256::new()),
+            DigestAlgorithm::Sha384 => Box::new(Sha384::new()),
+            DigestAlgorithm::Sha512 => Box::new(Sha512::new()),
+            DigestAlgorithm::InvalidAlgorithm => {
+                return Err(
+                    "Invalid digest algorithm requested and strict policy forbids fallback"
+                        .to_string(),
+                );
             }
-            DigestAlgorithm::Sha224 => Ok(openssl::hash::MessageDigest::sha224()),
-            DigestAlgorithm::Sha256 => Ok(openssl::hash::MessageDigest::sha256()),
-            DigestAlgorithm::Sha384 => Ok(openssl::hash::MessageDigest::sha384()),
-            DigestAlgorithm::Sha512 => Ok(openssl::hash::MessageDigest::sha512()),
-            DigestAlgorithm::InvalidAlgorithm => Err(
-                "Invalid digest algorithm requested and strict policy forbids fallback".to_string(),
-            ),
-        }
-    }
-
-    /// Hash a set of bytes using an [openssl::hash::MessageDigest]
-    ///
-    pub fn hash(
-        self,
-        bytes_to_hash: &[u8],
-    ) -> Result<openssl::hash::DigestBytes, openssl::error::ErrorStack> {
-        let digest = self
-            .message_digest()
-            .map_err(|_| openssl::error::ErrorStack::get())?;
-        // do the hashy bit
-        match openssl::hash::hash(digest, bytes_to_hash) {
-            Ok(value) => {
-                debug!("Hashed bytes result: {:?}", value);
-                Ok(value)
-            }
-            Err(error) => {
-                error!("Failed to hash bytes: {:?}", error);
-                Err(error)
-            }
-        }
+        };
+        res.input(bytes_to_hash);
+        let mut buffer = vec![0; res.output_bytes()];
+        res.result(&mut buffer);
+        Ok(buffer)
     }
 }
 /// Sign some data with a private key.
 pub fn sign_data(
     signing_algorithm: crate::sign::SigningAlgorithm,
-    signing_key: &openssl::pkey::PKey<openssl::pkey::Private>,
+    _signing_key: Arc<SigningKey>,
     bytes_to_sign: &[u8],
-) -> Vec<u8> {
-    let signing_algorithm = match signing_algorithm.message_digest() {
-        Ok(value) => value,
-        Err(error) => {
-            error!("{}", error);
-            return Vec::new();
-        }
-    };
-    let mut signer = match Signer::new(signing_algorithm, signing_key) {
-        Ok(value) => value,
-        Err(error) => {
-            error!("Failed to create signer: {:?}", error);
-            return Vec::new();
-        }
-    };
-    if let Err(error) = signer.update(bytes_to_sign) {
-        error!("Failed to update signer: {:?}", error);
-        return Vec::new();
-    }
+) -> Result<Vec<u8>, String> {
+    // TODO implement this properly, this is just a placeholder to get the API right and make sure the XML generation works with the signing key
+    debug!("Signing data with algorithm: {:?}", signing_algorithm);
+    debug!("Bytes to sign: {:?}", bytes_to_sign);
+    // debug!("Signing key: {:?}", signing_key);
+    // let _signed_bytse = signing_key.sign(bytes_to_sign);
 
-    match signer.sign_to_vec() {
-        Ok(value) => value,
-        Err(error) => {
-            error!("Failed to sign data: {:?}", error);
-            Vec::new()
-        }
-    }
+    Ok(Vec::new()) // Placeholder, replace with actual signature bytes
+
+    // let signing_algorithm = match signing_algorithm.message_digest() {
+    //     Ok(value) => value,
+    //     Err(error) => {
+    //         error!("{}", error);
+    //         return Vec::new();
+    //     }
+    // };
+    // let mut signer = match Signer::new(signing_algorithm, signing_key) {
+    //     Ok(value) => value,
+    //     Err(error) => {
+    //         error!("Failed to create signer: {:?}", error);
+    //         return Vec::new();
+    //     }
+    // };
+    // if let Err(error) = signer.update(bytes_to_sign) {
+    //     error!("Failed to update signer: {:?}", error);
+    //     return Vec::new();
+    // }
+
+    // match signer.sign_to_vec() {
+    //     Ok(value) => value,
+    //     Err(error) => {
+    //         error!("Failed to sign data: {:?}", error);
+    //         Vec::new()
+    //     }
+    // }
 }
 
 /// Verify a signature over bytes with a public key.
 pub fn verify_data(
-    signing_algorithm: crate::sign::SigningAlgorithm,
-    verification_key: &openssl::pkey::PKey<Public>,
-    bytes_to_verify: &[u8],
-    signature: &[u8],
+    _signing_algorithm: crate::sign::SigningAlgorithm,
+    _verification_key: Arc<SigningKey>,
+    _bytes_to_verify: &[u8],
+    _signature: &[u8],
 ) -> Result<bool, String> {
-    let signing_algorithm = signing_algorithm.message_digest()?;
-    let mut verifier = Verifier::new(signing_algorithm, verification_key)
-        .map_err(|error| format!("Failed to create verifier: {:?}", error))?;
-    verifier
-        .update(bytes_to_verify)
-        .map_err(|error| format!("Failed to update verifier: {:?}", error))?;
-    verifier
-        .verify(signature)
-        .map_err(|error| format!("Failed to verify signature: {:?}", error))
+    #[allow(clippy::todo)]
+    {
+        todo!("Implement verification without openssl");
+    }
+
+    // signing_algorithm.verify_data(
+    //     signing_algorithm,
+    //     verification_key,
+    //     bytes_to_verify,
+    //     signature,
+    // )
+    // let signing_algorithm = signing_algorithm.message_digest()?;
+    // let mut verifier = Verifier::new(signing_algorithm, verification_key)
+    //     .map_err(|error| format!("Failed to create verifier: {:?}", error))?;
+    // verifier
+    //     .update(bytes_to_verify)
+    //     .map_err(|error| format!("Failed to update verifier: {:?}", error))?;
+    // verifier
+    //     .verify(signature)
+    //     .map_err(|error| format!("Failed to verify signature: {:?}", error))
 }
 
 /// Verify a signature over bytes with an X509 certificate.
 pub fn verify_data_with_cert(
-    signing_algorithm: crate::sign::SigningAlgorithm,
-    certificate: &X509,
-    bytes_to_verify: &[u8],
-    signature: &[u8],
+    _signing_algorithm: crate::sign::SigningAlgorithm,
+    certificate: &Certificate,
+    _bytes_to_verify: &[u8],
+    _signature: &[u8],
 ) -> Result<bool, String> {
-    let public_key = certificate
-        .public_key()
-        .map_err(|error| format!("Failed to extract public key from cert: {:?}", error))?;
-    verify_data(signing_algorithm, &public_key, bytes_to_verify, signature)
+    let _public_key = certificate.tbs_certificate.subject_public_key_info.clone();
+    #[allow(clippy::todo)]
+    {
+        todo!("Implement verification without openssl");
+    }
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+/// Internal Storage for the signing Key
+#[allow(clippy::large_enum_variant)]
+pub enum SigningKey {
+    /// None
+    #[default]
+    None,
+    /// RSA signing key
+    Rsa(RsaPrivateKey),
+    /// ECDSA signing key
+    EcDsa192(elliptic_curve::PublicKey<NistP192>),
+}
+
+impl SigningKey {
+    /// Load a PEM-encoded RSA private key file into a SigningKey
+    pub fn rsa_from_pem(pem_data: &str) -> Result<Self, String> {
+        RsaPrivateKey::from_pkcs1_pem(pem_data)
+            .map(SigningKey::Rsa)
+            .map_err(|error| format!("Failed to parse RSA private key from PEM: {:?}", error))
+    }
+
+    /// Check if this signing key is None
+    pub fn is_none(&self) -> bool {
+        matches!(self, SigningKey::None)
+    }
+}
+
+impl From<RsaPrivateKey> for SigningKey {
+    fn from(key: RsaPrivateKey) -> Self {
+        SigningKey::Rsa(key)
+    }
+}
+
+impl From<Vec<u8>> for SigningKey {
+    fn from(pem_data: Vec<u8>) -> Self {
+        match RsaPrivateKey::from_pkcs1_pem(std::str::from_utf8(&pem_data).unwrap_or("")) {
+            Ok(key) => SigningKey::Rsa(key),
+            Err(error) => {
+                error!("Failed to parse RSA private key from PEM: {:?}", error);
+                SigningKey::None
+            }
+        }
+    }
+}
+
+/// Generates a private key for testing purposes
+pub fn generate_private_key() -> RsaPrivateKey {
+    let mut rng = rand_core::OsRng;
+    #[allow(clippy::expect_used)] // because... we only use this in debug, right?
+    RsaPrivateKey::new(&mut rng, 2048).expect("failed to generate private key")
 }

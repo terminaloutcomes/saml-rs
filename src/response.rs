@@ -3,16 +3,17 @@
 // #![deny(unsafe_code)]
 
 use crate::assertion::{Assertion, AssertionAttribute, BaseIDAbstractType, SubjectData};
-use crate::sign::{CanonicalizationMethod, DigestAlgorithm, SigningAlgorithm};
+use crate::sign::{CanonicalizationMethod, DigestAlgorithm, SigningAlgorithm, SigningKey};
 use crate::sp::*;
 use crate::xml::write_event;
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use chrono::{DateTime, SecondsFormat, Utc};
 use log::error;
 use std::io::Write;
+use std::sync::Arc;
+use x509_cert::Certificate;
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
-#[derive(Debug, Clone)]
 /// Stores all the required elements of a SAML response... maybe?
 pub struct ResponseElements {
     // TODO: why do I have a response_id and an assertion_id?
@@ -70,11 +71,10 @@ pub struct ResponseElements {
 
     /// Should we sign the message?
     pub sign_message: bool,
-
-    /// an openssl private key for signing
-    pub signing_key: openssl::pkey::PKey<openssl::pkey::Private>,
+    /// a private key for signing
+    pub signing_key: Arc<SigningKey>,
     /// The signing certificate
-    pub signing_cert: Option<openssl::x509::X509>,
+    pub signing_cert: Option<Certificate>,
     /// Signature algorithm for assertion/message signing.
     pub signing_algorithm: SigningAlgorithm,
     /// Digest algorithm for assertion/message signing.
@@ -83,8 +83,33 @@ pub struct ResponseElements {
     pub canonicalization_method: CanonicalizationMethod,
 }
 
+impl std::fmt::Debug for ResponseElements {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ResponseElements")
+            .field("response_id", &self.response_id)
+            .field("issue_instant", &self.issue_instant)
+            .field("destination", &self.destination)
+            .field("in_response_to", &self.in_response_to)
+            .field("issuer", &self.issuer)
+            .field("attributes", &self.attributes)
+            .field("authnstatement", &self.authnstatement)
+            .field("assertion_id", &self.assertion_id)
+            .field("service_provider", &self.service_provider)
+            .field("nameid_value", &self.nameid_value)
+            .field(
+                "assertion_consumer_service",
+                &self.assertion_consumer_service,
+            )
+            .field("session_length_seconds", &self.session_length_seconds)
+            .field("status", &self.status)
+            .field("sign_assertion", &self.sign_assertion)
+            .field("sign_message", &self.sign_message)
+            // skipping signing_key and signing_cert for debug output since they can be large and not very informative
+            .finish()
+    }
+}
+
 /// A builder for [ResponseElements] that validates required fields before creation.
-#[derive(Debug)]
 pub struct ResponseElementsBuilder {
     response_id: Option<String>,
     issue_instant: Option<DateTime<Utc>>,
@@ -101,11 +126,37 @@ pub struct ResponseElementsBuilder {
     status: crate::constants::StatusCode,
     sign_assertion: bool,
     sign_message: bool,
-    signing_key: Option<openssl::pkey::PKey<openssl::pkey::Private>>,
-    signing_cert: Option<openssl::x509::X509>,
+    signing_key: Arc<SigningKey>, // TODO find a trait for this that can support ec and RSA keys
+    signing_cert: Option<x509_cert::Certificate>,
     signing_algorithm: SigningAlgorithm,
     digest_algorithm: DigestAlgorithm,
     canonicalization_method: CanonicalizationMethod,
+}
+
+impl std::fmt::Debug for ResponseElementsBuilder {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ResponseElementsBuilder")
+            .field("response_id", &self.response_id)
+            .field("issue_instant", &self.issue_instant)
+            .field("destination", &self.destination)
+            .field("in_response_to", &self.in_response_to)
+            .field("issuer", &self.issuer)
+            .field("attributes", &self.attributes)
+            .field("authnstatement", &self.authnstatement)
+            .field("assertion_id", &self.assertion_id)
+            .field("service_provider", &self.service_provider)
+            .field("nameid_value", &self.nameid_value)
+            .field(
+                "assertion_consumer_service",
+                &self.assertion_consumer_service,
+            )
+            .field("session_length_seconds", &self.session_length_seconds)
+            .field("status", &self.status)
+            .field("sign_assertion", &self.sign_assertion)
+            .field("sign_message", &self.sign_message)
+            // skipping signing_key and signing_cert for debug output since they can be large and not very informative
+            .finish()
+    }
 }
 
 impl ResponseElementsBuilder {
@@ -127,9 +178,9 @@ impl ResponseElementsBuilder {
             status: crate::constants::StatusCode::AuthnFailed,
             sign_assertion: true,
             sign_message: true,
-            signing_key: None,
+            signing_key: SigningKey::None.into(),
             signing_cert: None,
-            signing_algorithm: SigningAlgorithm::Sha256,
+            signing_algorithm: SigningAlgorithm::RsaSha256,
             digest_algorithm: DigestAlgorithm::Sha256,
             canonicalization_method: CanonicalizationMethod::ExclusiveCanonical10,
         }
@@ -172,96 +223,112 @@ impl ResponseElementsBuilder {
     }
 
     /// Sets the authn statement.
-    pub fn authnstatement(mut self, authnstatement: AuthNStatement) -> Self {
-        self.authnstatement = Some(authnstatement);
-        self
+    pub fn authnstatement(self, authnstatement: AuthNStatement) -> Self {
+        Self {
+            authnstatement: Some(authnstatement),
+            ..self
+        }
     }
 
     /// Sets the assertion ID.
-    pub fn assertion_id(mut self, assertion_id: impl Into<String>) -> Self {
-        self.assertion_id = Some(assertion_id.into());
-        self
+    pub fn assertion_id(self, assertion_id: impl Into<String>) -> Self {
+        Self {
+            assertion_id: Some(assertion_id.into()),
+            ..self
+        }
     }
 
     /// Sets the service provider.
-    pub fn service_provider(mut self, service_provider: ServiceProvider) -> Self {
-        self.service_provider = Some(service_provider);
-        self
+    pub fn service_provider(self, service_provider: ServiceProvider) -> Self {
+        Self {
+            service_provider: Some(service_provider),
+            ..self
+        }
     }
 
     /// Sets the NameID value to place in Subject.
-    pub fn nameid_value(mut self, nameid_value: impl Into<String>) -> Self {
-        self.nameid_value = Some(nameid_value.into());
-        self
+    pub fn nameid_value(self, nameid_value: impl Into<String>) -> Self {
+        Self {
+            nameid_value: Some(nameid_value.into()),
+            ..self
+        }
     }
 
     /// Sets the assertion consumer service URL.
-    pub fn assertion_consumer_service(
-        mut self,
-        assertion_consumer_service: Option<String>,
-    ) -> Self {
-        self.assertion_consumer_service = assertion_consumer_service;
-        self
+    pub fn assertion_consumer_service(self, assertion_consumer_service: Option<String>) -> Self {
+        Self {
+            assertion_consumer_service,
+            ..self
+        }
     }
 
     /// Sets the session length in seconds.
-    pub fn session_length_seconds(mut self, session_length_seconds: u32) -> Self {
-        self.session_length_seconds = session_length_seconds;
-        self
+    pub fn session_length_seconds(self, session_length_seconds: u32) -> Self {
+        Self {
+            session_length_seconds,
+            ..self
+        }
     }
 
     /// Sets the SAML status code.
-    pub fn status(mut self, status: crate::constants::StatusCode) -> Self {
-        self.status = status;
-        self
+    pub fn status(self, status: crate::constants::StatusCode) -> Self {
+        Self { status, ..self }
     }
 
     /// Enables or disables assertion signing.
-    pub fn sign_assertion(mut self, sign_assertion: bool) -> Self {
-        self.sign_assertion = sign_assertion;
-        self
+    pub fn sign_assertion(self, sign_assertion: bool) -> Self {
+        Self {
+            sign_assertion,
+            ..self
+        }
     }
 
     /// Enables or disables message signing.
-    pub fn sign_message(mut self, sign_message: bool) -> Self {
-        self.sign_message = sign_message;
-        self
+    pub fn sign_message(self, sign_message: bool) -> Self {
+        Self {
+            sign_message,
+            ..self
+        }
     }
 
     /// Sets the private key used for signing.
-    pub fn signing_key(
-        mut self,
-        signing_key: Option<openssl::pkey::PKey<openssl::pkey::Private>>,
-    ) -> Self {
-        self.signing_key = signing_key;
-        self
+    pub fn signing_key(self, signing_key: Arc<SigningKey>) -> Self {
+        Self {
+            signing_key,
+            ..self
+        }
     }
 
     /// Sets the X509 certificate used for signing.
-    pub fn signing_cert(mut self, signing_cert: Option<openssl::x509::X509>) -> Self {
-        self.signing_cert = signing_cert;
-        self
+    pub fn signing_cert(self, signing_cert: Option<x509_cert::Certificate>) -> Self {
+        Self {
+            signing_cert,
+            ..self
+        }
     }
 
     /// Sets the signature algorithm.
-    pub fn signing_algorithm(mut self, signing_algorithm: SigningAlgorithm) -> Self {
-        self.signing_algorithm = signing_algorithm;
-        self
+    pub fn signing_algorithm(self, signing_algorithm: SigningAlgorithm) -> Self {
+        Self {
+            signing_algorithm,
+            ..self
+        }
     }
 
     /// Sets the digest algorithm.
-    pub fn digest_algorithm(mut self, digest_algorithm: DigestAlgorithm) -> Self {
-        self.digest_algorithm = digest_algorithm;
-        self
+    pub fn digest_algorithm(self, digest_algorithm: DigestAlgorithm) -> Self {
+        Self {
+            digest_algorithm,
+            ..self
+        }
     }
 
     /// Sets canonicalization method.
-    pub fn canonicalization_method(
-        mut self,
-        canonicalization_method: CanonicalizationMethod,
-    ) -> Self {
-        self.canonicalization_method = canonicalization_method;
-        self
+    pub fn canonicalization_method(self, canonicalization_method: CanonicalizationMethod) -> Self {
+        Self {
+            canonicalization_method,
+            ..self
+        }
     }
 
     /// Builds [ResponseElements] after validating required values.
@@ -278,7 +345,7 @@ impl ResponseElementsBuilder {
         }
 
         if self.sign_assertion || self.sign_message {
-            if self.signing_key.is_none() {
+            if self.signing_key.eq(&SigningKey::None.into()) {
                 return Err("signing_key must be set when signing is enabled");
             }
             if self.signing_cert.is_none() {
@@ -302,9 +369,6 @@ impl ResponseElementsBuilder {
             Some(value) => value,
             None => ResponseElements::new_response_id(),
         };
-        let Some(signing_key) = self.signing_key else {
-            return Err("signing_key must be set when signing is enabled");
-        };
 
         Ok(ResponseElements {
             response_id,
@@ -322,8 +386,8 @@ impl ResponseElementsBuilder {
             status: self.status,
             sign_assertion: self.sign_assertion,
             sign_message: self.sign_message,
-            signing_key,
-            signing_cert: self.signing_cert,
+            signing_key: self.signing_key.clone(),
+            signing_cert: self.signing_cert.clone(),
             signing_algorithm: self.signing_algorithm,
             digest_algorithm: self.digest_algorithm,
             canonicalization_method: self.canonicalization_method,
@@ -405,7 +469,7 @@ impl ResponseElements {
     fn build_response_xml(
         &self,
         assertion_data: &Assertion,
-        message_signature: Option<(&str, &str)>,
+        message_signature: Option<(String, String)>,
     ) -> Result<Vec<u8>, String> {
         let mut buffer = Vec::new();
         let mut writer = EmitterConfig::new()
@@ -442,8 +506,8 @@ impl ResponseElements {
             };
             crate::xml::add_signature(
                 &signature_config,
-                digest_value,
-                signature_value,
+                &digest_value,
+                &signature_value,
                 &mut writer,
             )?;
         }
@@ -458,15 +522,10 @@ impl ResponseElements {
 
     /// Render response XML bytes.
     pub fn try_into_xml_bytes(self) -> Result<Vec<u8>, String> {
-        let assertion_data: Assertion = self.clone().try_into()?;
+        let assertion_data: Assertion = (&self).try_into()?;
         let unsigned_response = self.build_response_xml(&assertion_data, None)?;
         if !self.sign_message {
             return Ok(unsigned_response);
-        }
-
-        let signing_key = &self.signing_key;
-        if self.signing_cert.is_none() {
-            return Err("signing_cert must be set when signing is enabled".to_string());
         }
 
         let unsigned_xml = String::from_utf8(unsigned_response)
@@ -476,42 +535,52 @@ impl ResponseElements {
             .digest_algorithm
             .hash(canonical_response.as_bytes())
             .map_err(|error| format!("Failed to hash canonical response: {:?}", error))?;
-        let base64_digest = BASE64_STANDARD.encode(digest_bytes);
 
-        let signature_config = crate::xml::SignatureConfig {
-            reference_id: self.response_id.clone(),
-            signing_algorithm: self.signing_algorithm,
-            digest_algorithm: self.digest_algorithm,
-            canonicalization_method: self.canonicalization_method,
-            signing_cert: self.signing_cert.clone(),
-        };
+        let mut message_signature = None;
 
-        let mut signedinfo_buffer = Vec::new();
-        let mut signedinfo_writer = EmitterConfig::new()
-            .perform_indent(false)
-            .write_document_declaration(false)
-            .normalize_empty_elements(true)
-            .pad_self_closing(false)
-            .create_writer(&mut signedinfo_buffer);
-        crate::xml::generate_signedinfo(&signature_config, &base64_digest, &mut signedinfo_writer);
-        let signedinfo_xml = String::from_utf8(signedinfo_buffer)
-            .map_err(|error| format!("SignedInfo was not utf8: {:?}", error))?;
-        let canonical_signedinfo = self.canonicalization_method.canonicalize(&signedinfo_xml)?;
-        let signed = crate::sign::sign_data(
-            self.signing_algorithm,
-            signing_key,
-            canonical_signedinfo.as_bytes(),
-        );
-        if signed.is_empty() {
-            return Err("Failed to generate message signature bytes".to_string());
+        if !self.signing_key.is_none() {
+            let base64_digest = BASE64_STANDARD.encode(digest_bytes);
+
+            let signature_config = crate::xml::SignatureConfig {
+                reference_id: self.response_id.clone(),
+                signing_algorithm: self.signing_algorithm,
+                digest_algorithm: self.digest_algorithm,
+                canonicalization_method: self.canonicalization_method,
+                signing_cert: self.signing_cert.clone(),
+            };
+
+            let mut signedinfo_buffer = Vec::new();
+            let mut signedinfo_writer = EmitterConfig::new()
+                .perform_indent(false)
+                .write_document_declaration(false)
+                .normalize_empty_elements(true)
+                .pad_self_closing(false)
+                .create_writer(&mut signedinfo_buffer);
+            crate::xml::generate_signedinfo(
+                &signature_config,
+                &base64_digest,
+                &mut signedinfo_writer,
+            );
+            let signedinfo_xml = String::from_utf8(signedinfo_buffer)
+                .map_err(|error| format!("SignedInfo was not utf8: {:?}", error))?;
+            let canonical_signedinfo =
+                self.canonicalization_method.canonicalize(&signedinfo_xml)?;
+
+            let signed = crate::sign::sign_data(
+                self.signing_algorithm,
+                self.signing_key.clone(),
+                canonical_signedinfo.as_bytes(),
+            )
+            .map_err(|error| format!("Failed to sign response: {:?}", error))?;
+            let base64_signature = BASE64_STANDARD.encode(&signed);
+            message_signature = Some((base64_digest, base64_signature));
         }
-        let base64_signature = BASE64_STANDARD.encode(&signed);
 
-        self.build_response_xml(&assertion_data, Some((&base64_digest, &base64_signature)))
+        self.build_response_xml(&assertion_data, message_signature)
     }
 }
 
-impl TryInto<Assertion> for ResponseElements {
+impl TryInto<Assertion> for &ResponseElements {
     type Error = String;
 
     fn try_into(self) -> Result<Assertion, Self::Error> {
@@ -553,7 +622,7 @@ impl TryInto<Assertion> for ResponseElements {
             conditions_not_after,
             conditions_not_before,
             sign_assertion: self.sign_assertion,
-            signing_key: Some(self.signing_key.clone()),
+            signing_key: self.signing_key.clone(),
             signing_cert: self.signing_cert.clone(),
         })
     }

@@ -1,11 +1,10 @@
 //! Handy for the XML metadata part of SAML
 
-use crate::xml::X509Utils;
 use crate::xml::write_event;
-use log::error;
-use openssl::x509::X509;
 use std::io::Write;
 use std::str::from_utf8;
+use x509_cert::Certificate;
+use x509_cert::der::EncodePem;
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
 /// Stores the required data for generating a SAML metadata XML file
@@ -27,7 +26,7 @@ pub struct SamlMetadata {
     /// Appended to the baseurl when using the [SamlMetadata::post_url] function
     pub post_suffix: String,
     /// Public certificate for signing/encryption
-    pub x509_certificate: Option<X509>,
+    pub x509_certificate: Option<x509_cert::Certificate>,
 }
 
 impl SamlMetadata {
@@ -39,7 +38,7 @@ impl SamlMetadata {
         logout_suffix: Option<String>,
         redirect_suffix: Option<String>,
         post_suffix: Option<String>,
-        x509_certificate: Option<X509>,
+        x509_certificate: Option<Certificate>,
     ) -> Self {
         let hostname = hostname.to_string();
         let baseurl = baseurl.unwrap_or(format!("https://{}/SAML", hostname));
@@ -60,9 +59,17 @@ impl SamlMetadata {
     }
 
     /// really simple version with a self-signed certificate based on just the hostname. Mainly for testing.
-    pub fn from_hostname(hostname: &str) -> SamlMetadata {
-        let cert = crate::cert::gen_self_signed_certificate(hostname);
-        SamlMetadata::new(hostname, None, None, None, None, None, Some(cert))
+    pub fn from_hostname(hostname: &str) -> Result<SamlMetadata, String> {
+        let cert = crate::cert::gen_self_signed_certificate(hostname)?;
+        Ok(SamlMetadata::new(
+            hostname,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(cert),
+        ))
     }
 
     /// return the generated Logout URL based on the baseurl + logout_suffix
@@ -120,7 +127,7 @@ pub fn xml_add_certificate<W: Write>(
 /// Generates the XML For a metadata file
 ///
 /// Current response data is based on the data returned from  <https://samltest.id/saml/idp>
-pub fn generate_metadata_xml(metadata: &SamlMetadata) -> String {
+pub fn generate_metadata_xml(metadata: &SamlMetadata) -> Result<String, String> {
     let mut buffer = Vec::new();
     let mut writer = EmitterConfig::new()
         .perform_indent(true)
@@ -147,7 +154,9 @@ pub fn generate_metadata_xml(metadata: &SamlMetadata) -> String {
     );
 
     if let Some(value) = &metadata.x509_certificate {
-        let base64_encoded_certificate = value.get_as_pem_string(false);
+        let base64_encoded_certificate = value
+            .to_pem(rsa::pkcs8::LineEnding::CRLF)
+            .map_err(|e| format!("Failed to encode certificate to PEM: {}", e))?;
         xml_add_certificate("signing", &base64_encoded_certificate, &mut writer);
         // xml_add_certificate("encryption", &base64_encoded_certificate, &mut writer);
     };
@@ -230,10 +239,7 @@ pub fn generate_metadata_xml(metadata: &SamlMetadata) -> String {
 
     // TODO: figure out if we really need that prepended silliness '<?xml version=\"1.0\"?>'
     match from_utf8(&buffer) {
-        Ok(value) => format!("<?xml version=\"1.0\"?>\n{}", value),
-        Err(error) => {
-            error!("Failed to render metadata as utf8: {:?}", error);
-            String::from("<?xml version=\"1.0\"?>\n")
-        }
+        Ok(value) => Ok(format!("<?xml version=\"1.0\"?>\n{}", value)),
+        Err(error) => Err(format!("Failed to render metadata as utf8: {:?}", error)),
     }
 }

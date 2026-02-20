@@ -1,6 +1,7 @@
 //! Extensions for things and generic utilities
 
 use chrono::{DateTime, SecondsFormat, Utc};
+use rsa::{RsaPrivateKey, RsaPublicKey};
 
 /// Extensions for [chrono::DateTime] for nicer functionality
 pub trait DateTimeUtils {
@@ -29,4 +30,14 @@ pub fn to_hex_string(bytes: &[u8], join: Option<&str>) -> String {
         Some(joinval) => strs.join(joinval),
         None => strs.join(""),
     }
+}
+
+/// Generates a new RSA key pair for testing purposes.
+pub fn generate_keypair() -> Result<(RsaPrivateKey, RsaPublicKey), rsa::errors::Error> {
+    let mut rng = aes_gcm::aead::OsRng;
+    let bits = 2048;
+    let priv_key = RsaPrivateKey::new(&mut rng, bits)?;
+    let pub_key = RsaPublicKey::from(&priv_key);
+
+    Ok((priv_key, pub_key))
 }

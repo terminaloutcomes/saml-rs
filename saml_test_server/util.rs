@@ -1,29 +1,30 @@
-use log::{debug, error};
-use tide::Request;
-
 use http_types::Mime;
-use std::collections::HashMap;
-use std::str::FromStr;
-use std::time::Duration;
-
-use saml_rs::sign::CanonicalizationMethod;
+use log::{debug, error};
+use saml_rs::sign::{CanonicalizationMethod, SigningKey};
 use saml_rs::sp::ServiceProvider;
+use std::collections::HashMap;
+use std::convert::From;
 use std::path::Path;
+use std::str::FromStr;
+use std::sync::Arc;
+use std::time::Duration;
+use tide::Request;
+use tokio::fs;
 use tokio::fs::read_to_string;
 
 /// Placeholder function for development purposes, just returns a "Doing nothing" 200 response.
 pub async fn do_nothing(mut _req: Request<AppState>) -> tide::Result {
     Ok(tide::Response::builder(418)
         .body("Doing nothing")
-        .content_type(Mime::from_str("text/html;charset=utf-8").unwrap())
+        .content_type(
+            Mime::from_str("text/html;charset=utf-8")
+                .expect("Failed to parse MIME type for do_nothing response"),
+        )
         // .header("custom-header", "value")
         .build())
 }
 
-use openssl::x509::X509;
-
-// #[derive(serde_deserialize, Debug)]
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct ServerConfig {
     pub bind_address: String,
     pub bind_port: u16,
@@ -46,8 +47,8 @@ pub struct ServerConfig {
     pub require_signed_authn_requests: bool,
     pub canonicalization_method: CanonicalizationMethod,
 
-    pub saml_signing_key: Option<openssl::pkey::PKey<openssl::pkey::Private>>,
-    pub saml_signing_cert: Option<X509>,
+    pub saml_signing_key: Arc<SigningKey>,
+    pub saml_signing_cert: Option<x509_cert::Certificate>,
 }
 
 async fn load_sp_metadata(filenames: Vec<String>) -> HashMap<String, ServiceProvider> {
@@ -70,7 +71,8 @@ async fn load_sp_metadata(filenames: Vec<String>) -> HashMap<String, ServiceProv
                 Ok(value) => value,
             };
             // parse the XML
-            let parsed_sp = saml_rs::sp::ServiceProvider::from_str(&filecontents).unwrap();
+            let parsed_sp = saml_rs::sp::ServiceProvider::from_str(&filecontents)
+                .expect("Failed to parse SP metadata XML from file");
             debug!("SP Metadata loaded: {:?}", parsed_sp);
             sp_metadata.insert(parsed_sp.entity_id.to_string(), parsed_sp);
         } else {
@@ -91,7 +93,7 @@ impl ServerConfig {
             .add_source(config::File::with_name(&path).required(false))
             .add_source(config::Environment::with_prefix("SAML"))
             .build()
-            .unwrap();
+            .expect("Failed to build configuration from file and environment variables");
 
         let filenames: Vec<String> = settings.get("sp_metadata_files").unwrap_or_default();
 
@@ -162,8 +164,7 @@ impl ServerConfig {
         let saml_cert_path = shellexpand::tilde(&tilde_saml_cert_path).into_owned();
         let saml_key_path = shellexpand::tilde(&tilde_saml_key_path).into_owned();
 
-        use saml_rs::sign::load_key_from_filename_async;
-        let saml_signing_key = match load_key_from_filename_async(&saml_key_path).await {
+        let saml_signing_key = match fs::read_to_string(&saml_key_path).await {
             Ok(value) => value,
             Err(error) => {
                 error!(
@@ -173,13 +174,22 @@ impl ServerConfig {
                 std::process::exit(1);
             }
         };
+        let saml_signing_key = saml_rs::sign::SigningKey::rsa_from_pem(&saml_signing_key)
+            .unwrap_or_else(|error| {
+                error!(
+                    "Failed to parse SAML signing key as RSA private key from {}: {:?}",
+                    &saml_key_path, error
+                );
+                std::process::exit(1);
+            });
+
         let saml_signing_cert =
-            match saml_rs::sign::load_public_cert_from_filename_async(&saml_cert_path).await {
+            match saml_rs::sign::load_public_cert_from_filename(&saml_cert_path).await {
                 Ok(value) => value,
                 Err(error) => {
                     error!(
                         "Failed to load SAML signing cert from {}: {:?}",
-                        &saml_key_path, error
+                        &saml_cert_path, error
                     );
                     std::process::exit(1);
                 }
@@ -236,7 +246,7 @@ impl ServerConfig {
             require_signed_authn_requests,
             canonicalization_method,
 
-            saml_signing_key: Some(saml_signing_key),
+            saml_signing_key: saml_signing_key.into(),
             saml_signing_cert: Some(saml_signing_cert),
         }
     }
@@ -268,13 +278,11 @@ impl Default for ServerConfig {
             require_signed_authn_requests: true,
             canonicalization_method: CanonicalizationMethod::ExclusiveCanonical10,
 
-            saml_signing_key: None,
+            saml_signing_key: saml_rs::sign::SigningKey::None.into(),
             saml_signing_cert: None,
         }
     }
 }
-
-use openssl::pkey;
 
 #[derive(Clone, Debug)]
 pub struct AppState {
@@ -293,11 +301,9 @@ pub struct AppState {
     pub require_signed_authn_requests: bool,
     pub canonicalization_method: CanonicalizationMethod,
 
-    pub saml_signing_key: pkey::PKey<pkey::Private>,
-    pub saml_signing_cert: X509,
+    pub saml_signing_key: Arc<SigningKey>,
+    pub saml_signing_cert: Option<x509_cert::Certificate>,
 }
-
-use std::convert::From;
 
 impl From<ServerConfig> for AppState {
     fn from(server_config: ServerConfig) -> AppState {
@@ -316,8 +322,8 @@ impl From<ServerConfig> for AppState {
             sign_message: server_config.sign_message,
             require_signed_authn_requests: server_config.require_signed_authn_requests,
             canonicalization_method: server_config.canonicalization_method,
-            saml_signing_key: server_config.saml_signing_key.unwrap(),
-            saml_signing_cert: server_config.saml_signing_cert.unwrap(),
+            saml_signing_key: server_config.saml_signing_key,
+            saml_signing_cert: server_config.saml_signing_cert,
         }
     }
 }

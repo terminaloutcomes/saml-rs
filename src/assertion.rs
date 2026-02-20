@@ -26,14 +26,14 @@
 use log::{debug, error};
 use serde::Serialize;
 
+use crate::sign::SigningKey;
 use crate::utils::*;
 use crate::xml::write_event;
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use chrono::{DateTime, SecondsFormat, Utc};
-use openssl::x509::X509;
-use std::fmt;
 use std::io::Write;
 use std::str::from_utf8;
+use std::{fmt, sync::Arc};
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
 /// AssertionTypes, from <http://docs.oasis-open.org/security/saml/v2.0/saml-schema-assertion-2.0.xsd> ```<complexType name="AssertionType">```
@@ -52,7 +52,7 @@ enum StatusCode {
     Success,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 /// The content of an assertion
 pub struct Assertion {
     /// Assertion ID, referred to in the signature as ds:Reference
@@ -81,10 +81,10 @@ pub struct Assertion {
     /// Should we sign the assertion?
     pub sign_assertion: bool,
 
-    /// an openssl private key for signing
-    pub signing_key: Option<openssl::pkey::PKey<openssl::pkey::Private>>,
+    /// a private key for signing
+    pub signing_key: Arc<SigningKey>, // TODO find a better way to do this, maybe with a dyn trait
     /// Certificate for signing/digest
-    pub signing_cert: Option<X509>,
+    pub signing_cert: Option<x509_cert::Certificate>,
 }
 
 fn write_assertion_tmpdir(buffer: &[u8]) {
@@ -115,32 +115,31 @@ impl Into<Vec<u8>> for Assertion {
 
 impl Assertion {
     /// This exists so we can return a copy of an [Assertion] without the signature flags so we can trigger [Assertion.Into<Vec<u8>>] for signing
-    pub fn without_signature(self) -> Self {
+    pub fn without_signature(&self) -> Self {
         Self {
-            assertion_id: self.assertion_id,
-            issuer: self.issuer,
+            assertion_id: self.assertion_id.clone(),
+            issuer: self.issuer.clone(),
             signing_algorithm: self.signing_algorithm,
             digest_algorithm: self.digest_algorithm,
             canonicalization_method: self.canonicalization_method,
             issue_instant: self.issue_instant,
-            subject_data: self.subject_data,
+            subject_data: self.subject_data.clone(),
             conditions_not_before: self.conditions_not_before,
             conditions_not_after: self.conditions_not_after,
-            audience: self.audience,
-            attributes: self.attributes,
+            audience: self.audience.clone(),
+            attributes: self.attributes.clone(),
             sign_assertion: false,
-            signing_key: self.signing_key,
-            signing_cert: self.signing_cert,
+            signing_key: self.signing_key.clone(),
+            signing_cert: self.signing_cert.clone(),
         }
     }
 
     /// Build an assertion based on the Assertion, returns a String of XML.
     ///
     /// If you set sign, it'll sign the data.. eventually.
-    pub fn build_assertion(&self, sign: bool) -> String {
-        let mut assertion = self.clone();
-        assertion.sign_assertion = sign;
-        let assertion_bytes = match assertion.try_to_xml_bytes() {
+    pub fn build_assertion(&mut self, sign: bool) -> String {
+        self.sign_assertion = sign;
+        let assertion_bytes = match self.try_to_xml_bytes() {
             Ok(value) => value,
             Err(error) => {
                 error!("Failed to render assertion XML: {}", error);
@@ -256,14 +255,18 @@ impl Assertion {
         if self.sign_assertion {
             debug!("Signing assertion");
             let signing_key = match self.signing_key.as_ref() {
-                Some(key) => key,
-                None => return Err("Cannot sign assertion without signing key".to_string()),
+                SigningKey::Rsa(key) => SigningKey::Rsa(key.clone()),
+                #[allow(clippy::unimplemented)]
+                SigningKey::EcDsa192(_) => unimplemented!("ECDSA signing not implemented yet"),
+                SigningKey::None => {
+                    return Err("Cannot sign assertion without signing key".to_string());
+                }
             };
             if self.signing_cert.is_none() {
                 return Err("Cannot sign assertion without signing certificate".to_string());
             }
 
-            let unsigned_assertion = self.clone().without_signature();
+            let unsigned_assertion = &self.without_signature();
             let unsigned_xml = String::from_utf8(unsigned_assertion.try_to_xml_bytes()?)
                 .map_err(|error| format!("Unsigned assertion was not utf8: {:?}", error))?;
 
@@ -302,9 +305,9 @@ impl Assertion {
 
             let signed_result = crate::sign::sign_data(
                 self.signing_algorithm,
-                signing_key,
+                signing_key.into(),
                 canonical_signedinfo.as_bytes(),
-            );
+            )?;
             if signed_result.is_empty() {
                 return Err("Failed to generate signature bytes".to_string());
             }

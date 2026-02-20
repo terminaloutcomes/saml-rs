@@ -77,9 +77,9 @@ pub mod assertion;
 pub mod cert;
 pub mod constants;
 pub mod content_encryption;
-pub mod encrypted_assertion_parser;
-
 pub mod encrypted_assertion;
+pub mod encrypted_assertion_parser;
+pub mod encryption_config;
 pub mod metadata;
 pub mod response;
 pub mod security;
@@ -571,59 +571,3 @@ pub fn parse_authn_request(request_data: &str) -> Result<AuthnRequest, AuthnDeco
 
     AuthnRequest::try_from(saml_request)
 }
-
-// TODO: This has some interesting code for parsing and handling assertions etc
-// https://docs.rs/crate/saml2aws-auto/1.10.1/source/src/saml/mod.rs
-// use crate::prelude::*;
-
-fn _get_private_key() {
-    println!("Generating private key");
-    // let rsa = Rsa::generate(2048).unwrap()
-    // println!("Dumping RSA Cert {:?}", rsa.private_key_to_der());
-    // let data = b"foobar";
-    // let mut buf = vec![0; rsa.size() as usize];
-    // let encrypted_result = rsa.public_encrypt(data, &mut buf, Padding::PKCS1);
-    // println!("Dumping encrypted thing: {:?}", &encrypted_result);
-    // let encrypted_len = &encrypted_result.unwrap();
-
-    // println!("Length of encrypted thing: {:?}", encrypted_len);
-}
-
-// fn get_public_cert_base64(cert_path: std::string::String) -> Result<Certificate, ()> {
-//     let mut buf = Vec::new();
-//     let file = match File::open("certpath") {
-//         Ok(file) => file,
-//         Err(_) => Err
-//     }
-//     .read_to_end(&mut buf)?;
-//     let cert = Certificate::from_der(&buf)?;
-//     // cert.to_string()?
-//     // .read_to_end(&mut buf)?;
-
-//     // let mut encoded_cert = String::from("hello world");
-//     // encoded_cert.push_str(&cert_path);
-//     // return encoded_cert
-
-// }
-
-// fn encode_cert_as_base64_der() -> std::string::String{
-
-//     use std::io::Write;
-//     let mut buf = String::new();
-
-//     let mut base64_encoder = base64::write::EncoderStringWriter::from(&mut buf, base64::STANDARD);
-
-//     // enc.write_all(b"asdf").unwrap();
-//     base64_encoder.write_all(generate_cert("www.example.com")).unwrap();
-
-//     // release the &mut reference on buf
-//     let _ = base64_encoder.into_inner();
-//     buf
-//     // assert_eq!("base64: YXNkZg==", &buf);
-//     /*
-//     pub fn Rsa.private_key_to_der(&self) -> Result<Vec<u8>, ErrorStack>
-// Serializes the private key to a DER-encoded PKCS#1 RSAPrivateKey structure.
-
-// This corresponds to i2d_RSAPrivateKey.
-// */
-// }

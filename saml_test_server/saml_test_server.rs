@@ -19,7 +19,7 @@ use saml_rs::SamlQuery;
 use saml_rs::assertion::AssertionAttribute;
 use saml_rs::metadata::{SamlMetadata, generate_metadata_xml};
 use saml_rs::response::{AuthNStatement, ResponseElements};
-use saml_rs::sign::SigningAlgorithm;
+use saml_rs::sign::{DigestAlgorithm, SigningAlgorithm};
 use saml_rs::sp::{BindingMethod, ServiceProvider};
 
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
@@ -204,7 +204,7 @@ async fn main() -> tide::Result<()> {
                 }
             }
             info!("Starting up HTTPS server on {:?}", bind_target);
-            debug!("Server config: {:?}", server_config);
+            // debug!("Server config: {:?}", server_config);
             app.listen(
                 TlsListener::build()
                     .addrs(bind_target)
@@ -215,7 +215,7 @@ async fn main() -> tide::Result<()> {
         }
         "http" => {
             info!("Starting up HTTP server on {:?}", bind_target);
-            debug!("Server config: {:?}", server_config);
+            // debug!("Server config: {:?}", server_config);
             app.listen(bind_target).await?;
         }
         unknown_scheme => {
@@ -232,7 +232,7 @@ async fn main() -> tide::Result<()> {
 // use saml_rs::cert::strip_cert_headers;
 /// Provides a GET response for the metadata URL
 async fn saml_metadata_get(req: Request<AppState>) -> tide::Result {
-    let certificate = req.state().saml_signing_cert.to_owned();
+    let certificate = req.state().saml_signing_cert.clone();
 
     let entity_id = req.state().issuer.to_string();
 
@@ -243,9 +243,15 @@ async fn saml_metadata_get(req: Request<AppState>) -> tide::Result {
         None,
         None,
         None,
-        Some(certificate),
+        certificate,
     );
-    Ok(generate_metadata_xml(&metadata).into())
+    match generate_metadata_xml(&metadata) {
+        Ok(value) => Ok(tide::Response::try_from(value)?),
+        Err(err) => Err(tide::Error::from_str(
+            tide::StatusCode::InternalServerError,
+            format!("Failed to generate metadata XML: {}", err),
+        )),
+    }
 }
 
 /// Handles a POST binding
@@ -258,7 +264,7 @@ async fn saml_metadata_get(req: Request<AppState>) -> tide::Result {
 pub async fn saml_post_binding(req: tide::Request<AppState>) -> tide::Result {
     Ok(tide::Response::builder(203)
         .body(format!("SAMLRequest: {:?}", req))
-        .content_type(Mime::from_str("text/html;charset=utf-8").unwrap())
+        .content_type(Mime::from_str("text/html;charset=utf-8")?)
         // .header("custom-header", "value")
         .build())
 }
@@ -309,7 +315,10 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         r#"<!DOCTYPE html>
         <html lang="en"><head><title>saml_redirect_get</title></head><body>"#,
     );
-    let samlrequest = query.SAMLRequest.unwrap();
+    let samlrequest = query.SAMLRequest.ok_or(tide::Error::from_str(
+        tide::StatusCode::BadRequest,
+        "Missing SAMLRequest query parameter",
+    ))?;
 
     let base64_decoded_samlrequest =
         match saml_rs::decode_authn_request_base64_encoded(samlrequest.to_string()) {
@@ -343,7 +352,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         .service_providers
         .get(&parsed_saml_request.issuer)
     {
-        Some(value) => value.to_owned(),
+        Some(value) => value.clone(),
         None => {
             if req.state().allow_unknown_sp
                 && saml_rs::security::unknown_service_providers_allowed()
@@ -535,7 +544,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     ]
     .to_vec();
 
-    let signing_key = req.state().saml_signing_key.to_owned();
+    let signing_key = req.state().saml_signing_key.clone();
     let response = ResponseElements {
         issuer: req.state().hostname.to_string(),
         response_id: ResponseElements::new_response_id(),
@@ -555,10 +564,10 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         status: saml_rs::constants::StatusCode::Success,
         sign_assertion: req.state().sign_assertion,
         sign_message: req.state().sign_message,
-        signing_key,
-        signing_cert: Some(req.state().saml_signing_cert.to_owned()),
-        signing_algorithm: saml_rs::sign::SigningAlgorithm::Sha256,
-        digest_algorithm: saml_rs::sign::DigestAlgorithm::Sha256,
+        signing_key: signing_key,
+        signing_cert: req.state().saml_signing_cert.clone(),
+        signing_algorithm: SigningAlgorithm::RsaSha256,
+        digest_algorithm: DigestAlgorithm::Sha256,
         canonicalization_method: req.state().canonicalization_method,
     };
 
@@ -568,8 +577,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     response_body.push_str("</html>");
     Ok(tide::Response::builder(203)
         .body(response_body)
-        .content_type(Mime::from_str("text/html;charset=utf-8").unwrap())
-        // .header("custom-header", "value")
+        .content_type(Mime::from_str("text/html;charset=utf-8")?)
         .build())
 }
 
@@ -589,7 +597,9 @@ pub fn generate_login_form(response: ResponseElements, relay_state: String) -> S
             );
         }
     };
-    let saml_response = from_utf8(&response_data).unwrap().to_string();
+    let saml_response = from_utf8(&response_data)
+        .expect("Failed to convert SAML response to UTF-8 string")
+        .to_string();
     context.insert("SAMLResponse", &saml_response);
     context.insert("RelayState", &relay_state);
 

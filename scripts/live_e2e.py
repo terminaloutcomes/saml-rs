@@ -123,8 +123,12 @@ def _env_int(name: str, default: str) -> int:
 
 
 WAIT_INTERVAL_SECONDS = _env_float("LIVE_E2E_WAIT_INTERVAL_SECONDS", "1")
-KEYCLOAK_WAIT_TIMEOUT_SECONDS = _env_int("LIVE_E2E_KEYCLOAK_WAIT_TIMEOUT_SECONDS", "180")
-SAML_SERVER_WAIT_TIMEOUT_SECONDS = _env_int("LIVE_E2E_SAML_SERVER_WAIT_TIMEOUT_SECONDS", "120")
+KEYCLOAK_WAIT_TIMEOUT_SECONDS = _env_int(
+    "LIVE_E2E_KEYCLOAK_WAIT_TIMEOUT_SECONDS", "180"
+)
+SAML_SERVER_WAIT_TIMEOUT_SECONDS = _env_int(
+    "LIVE_E2E_SAML_SERVER_WAIT_TIMEOUT_SECONDS", "120"
+)
 
 
 def _bool_string(value: bool) -> str:
@@ -135,7 +139,9 @@ def _validate_case(case: LiveE2ECase) -> None:
     if case.mode == "strict" and case.danger.unlock:
         raise ConfigError(f"Case {case.name}: strict mode cannot unlock danger mode")
     if case.mode == "danger" and not case.danger.unlock:
-        raise ConfigError(f"Case {case.name}: danger mode cases must unlock danger mode")
+        raise ConfigError(
+            f"Case {case.name}: danger mode cases must unlock danger mode"
+        )
     if case.expectation.result == "error" and not case.expectation.error_class:
         raise ConfigError(
             f"Case {case.name}: error expectation requires expectation.error_class"
@@ -154,14 +160,18 @@ def run_command(args: list[str], env: dict[str, str] | None = None) -> None:
     except FileNotFoundError as error:
         raise CommandError(f"Missing required executable {args[0]!r}") from error
     except subprocess.CalledProcessError as error:
-        raise CommandError(f"Command failed with exit code {error.returncode}: {args}") from error
+        raise CommandError(
+            f"Command failed with exit code {error.returncode}: {args}"
+        ) from error
 
 
 def docker_client() -> docker.DockerClient:
     try:
         return docker.from_env()
     except DockerException as error:
-        raise DockerControlError(f"Failed to initialize Docker client: {error}") from error
+        raise DockerControlError(
+            f"Failed to initialize Docker client: {error}"
+        ) from error
 
 
 def ensure_keycloak_image(client: docker.DockerClient) -> None:
@@ -208,7 +218,9 @@ def render_keycloak_realm(rp_behavior: RpBehavior) -> None:
         )
 
     idp_config["validateSignature"] = _bool_string(rp_behavior.validate_signature)
-    idp_config["wantAssertionsSigned"] = _bool_string(rp_behavior.want_assertions_signed)
+    idp_config["wantAssertionsSigned"] = _bool_string(
+        rp_behavior.want_assertions_signed
+    )
     idp_config["wantAuthnRequestsSigned"] = _bool_string(
         rp_behavior.want_authn_requests_signed
     )
@@ -220,7 +232,9 @@ def render_keycloak_realm(rp_behavior: RpBehavior) -> None:
     try:
         signing_cert_pem = CERT_PATH.read_text(encoding="utf-8")
     except OSError as error:
-        raise HarnessError(f"Failed reading signing certificate {CERT_PATH}: {error}") from error
+        raise HarnessError(
+            f"Failed reading signing certificate {CERT_PATH}: {error}"
+        ) from error
 
     signing_cert = "".join(
         line.strip()
@@ -345,7 +359,12 @@ def wait_for_url(url: str, label: str, timeout_seconds: int) -> None:
             with urllib.request.urlopen(url, timeout=5):
                 print(f"{label} is ready: {url}")
                 return
-        except (urllib.error.URLError, TimeoutError, http.client.HTTPException, OSError):
+        except (
+            urllib.error.URLError,
+            TimeoutError,
+            http.client.HTTPException,
+            OSError,
+        ):
             time.sleep(WAIT_INTERVAL_SECONDS)
     raise WaitTimeoutError(
         f"Timed out waiting for {label}: {url} after {timeout_seconds}s ({attempts} attempts)"
@@ -423,7 +442,12 @@ def wait_for_saml_server_ready(label: str, timeout_seconds: int) -> None:
             with urllib.request.urlopen(url, timeout=5):
                 print(f"{label} is ready: {url}")
                 return
-        except (urllib.error.URLError, TimeoutError, http.client.HTTPException, OSError):
+        except (
+            urllib.error.URLError,
+            TimeoutError,
+            http.client.HTTPException,
+            OSError,
+        ):
             pid = _saml_server_pid()
             if pid is not None and not is_pid_running(pid):
                 raise HarnessError(
@@ -453,7 +477,9 @@ def prepare_signing_material() -> None:
     try:
         WORK_DIR.mkdir(parents=True, exist_ok=True)
     except OSError as error:
-        raise HarnessError(f"Failed to create work directory {WORK_DIR}: {error}") from error
+        raise HarnessError(
+            f"Failed to create work directory {WORK_DIR}: {error}"
+        ) from error
     if CERT_PATH.exists() and KEY_PATH.exists():
         return
 
@@ -493,7 +519,9 @@ def start_saml_server(case: LiveE2ECase) -> None:
     try:
         WORK_DIR.mkdir(parents=True, exist_ok=True)
     except OSError as error:
-        raise HarnessError(f"Failed to create work directory {WORK_DIR}: {error}") from error
+        raise HarnessError(
+            f"Failed to create work directory {WORK_DIR}: {error}"
+        ) from error
 
     if SAML_SERVER_PID_FILE.exists():
         try:
@@ -691,7 +719,9 @@ def verify_case(case: LiveE2ECase) -> None:
     if case.expectation.error_class:
         env["LIVE_E2E_EXPECTED_ERROR_CLASS"] = case.expectation.error_class
 
-    run_command([sys.executable, str(ROOT_DIR / "scripts" / "live_e2e_verify.py")], env=env)
+    run_command(
+        [sys.executable, str(ROOT_DIR / "scripts" / "live_e2e_verify.py")], env=env
+    )
 
 
 def run_case(case: LiveE2ECase) -> None:
@@ -901,12 +931,21 @@ def run_matrix() -> None:
     for case in build_matrix():
         try:
             run_case(case)
-        except (HarnessError, CommandError, DockerControlError, WaitTimeoutError, ConfigError) as error:
+        except (
+            HarnessError,
+            CommandError,
+            DockerControlError,
+            WaitTimeoutError,
+            ConfigError,
+        ) as error:
             failures.append((case.name, str(error)))
             print(f"Case failed: {case.name}: {error}", file=sys.stderr)
         except Exception as error:  # noqa: BLE001
             failures.append((case.name, f"unexpected exception: {error}"))
-            print(f"Case failed with unexpected exception: {case.name}: {error}", file=sys.stderr)
+            print(
+                f"Case failed with unexpected exception: {case.name}: {error}",
+                file=sys.stderr,
+            )
         finally:
             try:
                 stop_saml_server()
@@ -918,12 +957,8 @@ def run_matrix() -> None:
                 )
 
     if failures:
-        summary = "\n".join(
-            f"- {name}: {message}" for name, message in failures
-        )
-        raise HarnessError(
-            "live-e2e matrix reported unexpected failures:\n" + summary
-        )
+        summary = "\n".join(f"- {name}: {message}" for name, message in failures)
+        raise HarnessError("live-e2e matrix reported unexpected failures:\n" + summary)
 
 
 def up() -> None:
@@ -969,7 +1004,9 @@ def run_all() -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(usage="%(prog)s [run|up|down]")
-    parser.add_argument("command", nargs="?", default="run", choices=["run", "up", "down"])
+    parser.add_argument(
+        "command", nargs="?", default="run", choices=["run", "up", "down"]
+    )
     args = parser.parse_args()
 
     if args.command == "run":

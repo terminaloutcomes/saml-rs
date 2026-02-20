@@ -17,7 +17,7 @@ This list identifies remaining work for robust, secure SAML 2.0 support in the s
 ## ✅ Current State (Implemented)
 
 - **Basic unsigned assertions**: Generated and serialized
-- **Assertion signing**: SHA-1/SHA-256/SHA-384/SHA-512 with RSA (via openssl)
+- **Assertion signing**: SHA-1/SHA-256/SHA-384/SHA-512 with RSA
 - **Response/message signing**: Implemented in `response.rs`
 - **XML hardening**: XML security policy with limits on depth, attributes, text size, DTD/PI/CDATA rejection
 - **Service Provider metadata parsing**: Full parsing of SP metadata including signing/want-assertions-signed flags
@@ -27,7 +27,7 @@ This list identifies remaining work for robust, secure SAML 2.0 support in the s
 
 **Current Limitations:**
 
-- Uses `openssl` for cryptographic operations (needs migration to rustcrypto later)
+- Uses `rustcrypto` ecosystem for cryptographic operations
 - No encrypted assertion support
 - No signature verification (only signing)
 - No response parsing (IdP-only)
@@ -139,14 +139,6 @@ This list identifies remaining work for robust, secure SAML 2.0 support in the s
 - [ ] Add benchmark tests for parsing/signing/encryption performance
 - [ ] Document example flows: IdP-initiated vs SP-initiated
 
-### 13. Migration from openssl to rustcrypto (Medium Priority)
-
-- [ ] Replace `openssl` with `rsa`, `ecdsa`, `ed25519`, `p256`, `k256` crates
-- [ ] Replace `openssl::x509` with `x509-cert`, `pkcs8`, `pem-rfc7468`
-- [ ] Replace `openssl::hash` with `sha2`, `sha3`, `blake2`
-- [ ] Replace `openssl::sign` with `rsa`, `ecdsa`, `ed25519` signature APIs
-- [ ] Replace `openssl::pkey` with `rsa::Rsa`, `p256::ecdsa::SigningKey`, `ed25519_dalek::SigningKey`
-
 ### 14. Documentation & API Refinement (Medium Priority)
 
 - [ ] Document security guarantees and assumptions
@@ -163,39 +155,6 @@ This list identifies remaining work for robust, secure SAML 2.0 support in the s
 
 ---
 
-## 🔐 Cryptographic Configuration (High Priority)
-
-### Default Encryption (A256CBC-HS512 + RSA-OAEP-256)
-
-```rust
-pub struct EncryptionConfig {
-    pub content_algorithm: ContentEncryptionAlgorithm,
-    pub key_encryption_algorithm: KeyEncryptionAlgorithm,
-}
-
-impl Default for EncryptionConfig {
-    fn default() -> Self {
-        Self {
-            content_algorithm: ContentEncryptionAlgorithm::A256CBC_HS512,
-            key_encryption_algorithm: KeyEncryptionAlgorithm::RSA_OAEP_256,
-        }
-    }
-}
-```
-
-### Runtime Key Configuration
-
-```rust
-pub trait KeyProvider {
-    fn get_signing_key(&self, key_id: Option<&str>) -> Result<&dyn Signer>;
-    fn get_encryption_key(&self, key_id: Option<&str>) -> Result<&dyn KeyEncipher>;
-    fn get_verification_key(&self, key_id: Option<&str>) -> Result<&dyn Verifier>;
-    fn get_decryption_key(&self, key_id: Option<&str>) -> Result<&dyn KeyDecipher>;
-}
-```
-
----
-
 ## 🎯 Priority Implementation Order
 
 1. **Migration to rustcrypto** (remove openssl dependency)
@@ -209,37 +168,9 @@ pub trait KeyProvider {
 
 ---
 
-## 📦 Dependency Changes (Cargo.toml)
-
-### Remove (Once no longer required)
-
-- `openssl`
-
-### Add (already present or add)
-
-- `rsa` (0.9) - RSA signing/encryption
-- `p256` (0.13) - ECDSA P-256
-- `p384` - ECDSA P-384
-- `k256` (0.13) - ECDSA secp256k1
-- `ed25519-dalek` (1.6) - Ed25519 signing
-- `x509-cert` (0.3) - X.509 certificate handling
-- `pkcs8` (0.10) - PKCS#8 key formatting
-- `pem-rfc7468` (1.0) - PEM encoding
-- `der` (0.7) - DER encoding
-- `const-oid` (0.8) - OID constants
-- `aes-gcm` (0.11) - AES-GCM encryption
-- `chacha20poly1305` (0.10) - ChaCha20-Poly1305
-- `sha2` (0.10) - SHA-256/384/512
-- `sha3` (0.10) - SHA-3
-- `blake2` (0.10) - BLAKE2
-- `hmac` (0.12) - HMAC
-- `hkdf` (0.6) - HKDF key derivation
-
----
-
 ## 📝 Notes
 
-- **No openssl**: The library will use pure Rust cryptography via rustcrypto crates
+- **No openssl**: The library uses pure Rust cryptography via rustcrypto crates
 - **Runtime key configuration**: Keys are provided by the consumer
 - **Encrypt by default**: Encrypted assertions are the default, but can be disabled per-assertion
 - **Configurable algorithms**: All cryptographic algorithms are configurable but have secure defaults

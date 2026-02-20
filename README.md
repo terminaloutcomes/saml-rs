@@ -47,7 +47,7 @@ You can run a fully local SAML round-trip with:
 ### Prerequisites
 
 - Docker (daemon running)
-- `openssl`
+- `openssl` for some minor features
 - `uv` (for running Python harness dependencies)
 
 ### Run

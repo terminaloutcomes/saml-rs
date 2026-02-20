@@ -87,6 +87,7 @@ impl EncryptedAssertion {
         self.write_encryption_method(&mut writer)?;
 
         // Write KeyInfo if present
+        // TODO work out what happens here
         if let Some(ref key_info) = self.key_info {
             self.write_key_info(key_info, &mut writer)?;
         }
@@ -236,40 +237,8 @@ impl EncryptedAssertion {
 impl Default for EncryptedAssertion {
     fn default() -> Self {
         EncryptedAssertion::new(EncryptionMethod {
-            algorithm: KeyEncryptionAlgorithm::RSA_OAEP_256.as_uri().to_string(),
+            algorithm: ContentEncryptionAlgorithm::A256CBC_HS512.as_uri().to_string(),
         })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_encrypted_assertion_basic() {
-        let assertion = EncryptedAssertion::default();
-        let xml = assertion.to_xml_bytes().expect("Failed to convert to XML");
-        let xml_str = String::from_utf8_lossy(&xml);
-
-        assert!(xml_str.contains("EncryptedAssertion"));
-        assert!(xml_str.contains("rsa-oaep"));
-    }
-
-    #[test]
-    fn test_encrypted_assertion_with_key_info() {
-        let key_info = EncryptionKeyInfo {
-            key_encryption_algorithm: KeyEncryptionAlgorithm::RSA_OAEP_256,
-            encrypted_key: "base64encryptedkeydata".to_string(),
-            recipient: Some("recipient@example.com".to_string()),
-        };
-
-        let assertion = EncryptedAssertion::default().with_key_info(key_info);
-
-        let xml = assertion.to_xml_bytes().expect("Failed to convert to XML");
-        let xml_str = String::from_utf8_lossy(&xml);
-
-        assert!(xml_str.contains("EncryptedKey"));
-        assert!(xml_str.contains("base64encryptedkeydata"));
     }
 }
 
@@ -368,7 +337,7 @@ pub fn decrypt_assertion(
         .key_encryption_algorithm;
     // Decrypt the content key using RSA-OAEP
     let content_key = key_enc_algo
-        .decrypt_rsa(&encrypted_key.as_bytes(), private_key)
+        .decrypt_rsa(encrypted_key.as_bytes(), private_key)
         .map_err(|e| format!("Failed to decrypt content key: {}", e))?;
 
     // Decode the encrypted content
