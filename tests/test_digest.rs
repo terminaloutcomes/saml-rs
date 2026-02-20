@@ -46,6 +46,10 @@ fn legacy_digest_cases() -> Vec<LegacyDigestCase> {
 fn strict_mode_rejects_legacy_sha1_vectors_and_sha1_signatures() {
     // use saml_rs::utils::generate_keypair;
 
+    use std::sync::Arc;
+
+    use saml_rs::{sign::SigningAlgorithm, utils::generate_keypair};
+
     for case in legacy_digest_cases() {
         // Attack: legacy SHA-1 digest value smuggled into a modern SAML profile.
         // Intent: downgrade cryptographic policy to weak digest primitives.
@@ -62,39 +66,39 @@ fn strict_mode_rejects_legacy_sha1_vectors_and_sha1_signatures() {
         assert!(!case.expected_sha1_base64.is_empty());
     }
 
-    // let (signing_key, verify_key) = generate_keypair();
+    let (signing_key, verify_key) = generate_keypair().expect("failed to generate keypair");
 
     // Attack: signature downgrade to RSA-SHA1.
     // Intent: force acceptance of a weak signature algorithm.
     // Expected strict response: signature generation and verification are blocked.
-    // let test = signing_key.try_sign(b"sha");
-    // assert!(
-    //     saml_rs::sign::sign_data(
-    //         SigningAlgorithm::RsaSha1,
-    //         Box::new(signing_key),
-    //         b"sha1-blocked",
-    //     )
-    //     .is_err(),
-    //     "strict mode should block SHA-1 signing API"
-    // );
-    // saml_rs::sign::verify_data(
-    //     SigningAlgorithm::RsaSha1,
-    //     &verify_key,
-    //     b"sha1-blocked",
-    //     b"bogus",
-    // )
-    // .expect_err("strict mode should block SHA-1 verification API");
-    // assert!(
-    //     saml_rs::sign::verify_data(
-    //         SigningAlgorithm::RsaSha1,
-    //         &SubjectPublicKeyInfo::from_pem(pem_str.as_str())
-    //             .expect("failed to extract public key info"),
-    //         b"sha1-blocked",
-    //         b"bogus",
-    //     )
-    //     .is_err(),
-    //     "strict mode should block SHA-1 verification API"
-    // )
+    let test = signing_key.try_sign(b"sha");
+    assert!(
+        saml_rs::sign::sign_data(
+            SigningAlgorithm::RsaSha1,
+            Arc::new(signing_key.into()),
+            b"sha1-blocked",
+        )
+        .is_err(),
+        "strict mode should block SHA-1 signing API"
+    );
+    saml_rs::sign::verify_data(
+        SigningAlgorithm::RsaSha1,
+        &verify_key,
+        b"sha1-blocked",
+        b"bogus",
+    )
+    .expect_err("strict mode should block SHA-1 verification API");
+    assert!(
+        saml_rs::sign::verify_data(
+            SigningAlgorithm::RsaSha1,
+            &SubjectPublicKeyInfo::from_pem(pem_str.as_str())
+                .expect("failed to extract public key info"),
+            b"sha1-blocked",
+            b"bogus",
+        )
+        .is_err(),
+        "strict mode should block SHA-1 verification API"
+    )
 }
 
 #[cfg(feature = "danger_i_want_to_risk_it_all")]

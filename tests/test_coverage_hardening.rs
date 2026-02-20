@@ -292,6 +292,8 @@ fn response_builder_rejects_bad_inputs_and_builds_unsigned_responses() {
 
 #[test]
 fn signing_roundtrip_sha256_detects_tamper_and_conversion_fallbacks() {
+    // TODO reimplement this
+
     // let rsa = match Rsa::generate(2048) {
     //     Ok(value) => value,
     //     Err(error) => panic!("failed to generate rsa: {:?}", error),

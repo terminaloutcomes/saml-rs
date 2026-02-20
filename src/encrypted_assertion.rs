@@ -237,7 +237,16 @@ impl EncryptedAssertion {
 impl Default for EncryptedAssertion {
     fn default() -> Self {
         EncryptedAssertion::new(EncryptionMethod {
-            algorithm: ContentEncryptionAlgorithm::A256CBC_HS512.as_uri().to_string(),
+            algorithm: KeyEncryptionAlgorithm::RSA_OAEP_256.as_uri().to_string(),
+        })
+        .with_key_info(EncryptionKeyInfo {
+            key_encryption_algorithm: KeyEncryptionAlgorithm::RSA_OAEP_256,
+            encrypted_key: "placeholder".to_string(),
+            recipient: None,
+        })
+        .with_encrypted_data(EncryptedData {
+            content_algorithm: ContentEncryptionAlgorithm::A256CBC_HS512,
+            cipher_value: "placeholder".to_string(),
         })
     }
 }
@@ -256,8 +265,8 @@ pub fn encrypt_assertion(
     key_enc_algo: KeyEncryptionAlgorithm,
     content_enc_algo: ContentEncryptionAlgorithm,
 ) -> Result<EncryptedAssertion, String> {
-    // Generate random content encryption key (32 bytes for AES-256)
-    let mut key = [0u8; 32];
+    // Generate random content encryption key (64 bytes for A256CBC-HS512)
+    let mut key = [0u8; 64];
     let mut rng = rand::rng();
     rng.fill_bytes(&mut key);
 
@@ -335,10 +344,6 @@ pub fn decrypt_assertion(
         .key_info
         .ok_or("No KeyInfo found in assertion")?
         .key_encryption_algorithm;
-    // Decrypt the content key using RSA-OAEP
-    let content_key = key_enc_algo
-        .decrypt_rsa(encrypted_key.as_bytes(), private_key)
-        .map_err(|e| format!("Failed to decrypt content key: {}", e))?;
 
     // Decode the encrypted content
     let encrypted_content_bytes = STANDARD
@@ -353,8 +358,16 @@ pub fn decrypt_assertion(
 
     let iv = &encrypted_content_bytes[..16];
     // let received_hmac = &encrypted_content_bytes[encrypted_content_bytes.len() - 64..];
-    let ciphertext = &encrypted_content_bytes[16..encrypted_content_bytes.len() - 64];
+    let ciphertext = &encrypted_content_bytes[16..];
+
+    let encrypted_key_bytes = STANDARD
+        .decode(encrypted_key)
+        .map_err(|e| format!("Failed to base64 decode encrypted key: {}", e))?;
 
     // Decrypt using AES-256-CBC-HMAC-SHA-512
+    let content_key = key_enc_algo
+        .decrypt_rsa(&encrypted_key_bytes, private_key)
+        .map_err(|e| format!("Failed to decrypt content key: {}", e))?;
+
     content_encryption::decrypt_a256cbs_hs512(ciphertext, &content_key, iv)
 }

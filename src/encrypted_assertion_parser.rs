@@ -24,41 +24,26 @@ pub fn parse_encrypted_assertion(xml_bytes: &[u8]) -> Result<EncryptedAssertion,
                 name, attributes, ..
             } => {
                 match name.local_name.as_str() {
-                    "EncryptedAssertion" => {
-                        // Start of EncryptedAssertion - ensure EncryptionMethod is captured
-                        if state.encryption_method.is_none() {
-                            for attr in attributes {
-                                if attr.name.local_name == "xmlns:xenc"
-                                    && attr.value == "http://www.w3.org/2001/04/xmlenc#"
-                                {
-                                    state.xenc_ns = Some(attr.value.clone());
-                                    break;
-                                }
-                            }
-                        }
-                    }
                     "EncryptionMethod" => {
-                        if state.encryption_method.is_none() {
-                            for attr in attributes {
-                                if attr.name.local_name == "Algorithm" {
-                                    state.encryption_method = Some(attr.value.clone());
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    "KeyInfo" => {
                         for attr in attributes {
-                            if attr.name.local_name == "xmlns:ds"
-                                && attr.value == "http://www.w3.org/2000/09/xmldsig#"
-                            {
-                                state.ds_ns = Some(attr.value.clone());
+                            if attr.name.local_name == "Algorithm" {
+                                let algorithm = attr.value;
+                                if state.in_encrypted_key {
+                                    state.key_enc_algorithm = Some(algorithm);
+                                } else if state.assertion_encryption_method.is_none() {
+                                    state.assertion_encryption_method = Some(algorithm);
+                                } else {
+                                    state.content_encryption_method = Some(algorithm);
+                                }
                                 break;
                             }
                         }
                     }
                     "EncryptedKey" => {
                         state.in_encrypted_key = true;
+                    }
+                    "EncryptedData" => {
+                        state.in_encrypted_data = true;
                     }
                     "CipherValue" => {
                         state.expecting_cipher_value = true;
@@ -73,6 +58,9 @@ pub fn parse_encrypted_assertion(xml_bytes: &[u8]) -> Result<EncryptedAssertion,
                 "EncryptedKey" => {
                     state.in_encrypted_key = false;
                 }
+                "EncryptedData" => {
+                    state.in_encrypted_data = false;
+                }
                 "CipherValue" => {
                     state.expecting_cipher_value = false;
                 }
@@ -80,7 +68,12 @@ pub fn parse_encrypted_assertion(xml_bytes: &[u8]) -> Result<EncryptedAssertion,
             },
             XmlEvent::Characters(text) => {
                 if state.expecting_cipher_value && !text.trim().is_empty() {
-                    state.cipher_value = Some(text.trim().to_string());
+                    let value = text.trim().to_string();
+                    if state.in_encrypted_key {
+                        state.key_cipher_value = Some(value);
+                    } else if state.in_encrypted_data {
+                        state.data_cipher_value = Some(value);
+                    }
                     state.expecting_cipher_value = false;
                 }
             }
@@ -94,12 +87,13 @@ pub fn parse_encrypted_assertion(xml_bytes: &[u8]) -> Result<EncryptedAssertion,
 /// Internal parser state
 #[derive(Debug, Default)]
 struct ParserState {
-    encryption_method: Option<String>,
+    assertion_encryption_method: Option<String>,
+    content_encryption_method: Option<String>,
     key_enc_algorithm: Option<String>,
-    cipher_value: Option<String>,
-    xenc_ns: Option<String>,
-    ds_ns: Option<String>,
+    key_cipher_value: Option<String>,
+    data_cipher_value: Option<String>,
     in_encrypted_key: bool,
+    in_encrypted_data: bool,
     expecting_cipher_value: bool,
 }
 
@@ -107,42 +101,38 @@ struct ParserState {
 fn build_encrypted_assertion(state: ParserState) -> Result<EncryptedAssertion, String> {
     let encryption_method = EncryptionMethod {
         algorithm: state
-            .encryption_method
+            .assertion_encryption_method
             .clone()
             .ok_or("Missing EncryptionMethod algorithm")?,
     };
 
-    let encrypted_data = EncryptedData {
-        content_algorithm: parse_content_encryption_algorithm(
-            state
-                .encryption_method
-                .as_deref()
-                .ok_or("Missing algorithm")?,
-        )?,
-        cipher_value: state.cipher_value.clone().ok_or("Missing CipherValue")?,
+    let encrypted_data = match (state.content_encryption_method, state.data_cipher_value) {
+        (Some(algorithm), Some(cipher_value)) => Some(EncryptedData {
+            content_algorithm: parse_content_encryption_algorithm(&algorithm)?,
+            cipher_value,
+        }),
+        (None, None) => None,
+        _ => return Err("Missing EncryptedData fields".to_string()),
     };
 
-    let key_info = if state.in_encrypted_key {
-        let key_enc = EncryptionKeyInfo {
-            key_encryption_algorithm: parse_key_encryption_algorithm(
-                state
-                    .key_enc_algorithm
-                    .as_deref()
-                    .ok_or("Missing key encryption algorithm")?,
-            )?,
-            encrypted_key: state.cipher_value.ok_or("Missing encrypted key data")?,
+    let key_info = match (state.key_enc_algorithm, state.key_cipher_value) {
+        (Some(algorithm), Some(encrypted_key)) => Some(EncryptionKeyInfo {
+            key_encryption_algorithm: parse_key_encryption_algorithm(&algorithm)?,
+            encrypted_key,
             recipient: None,
-        };
-        Some(key_enc)
-    } else {
-        None
+        }),
+        (None, None) => None,
+        _ => return Err("Missing EncryptedKey fields".to_string()),
     };
 
     let mut assertion = EncryptedAssertion::new(encryption_method);
     if let Some(ki) = key_info {
         assertion = assertion.with_key_info(ki);
     }
-    Ok(assertion.with_encrypted_data(encrypted_data))
+    if let Some(ed) = encrypted_data {
+        assertion = assertion.with_encrypted_data(ed);
+    }
+    Ok(assertion)
 }
 
 /// Parses content encryption algorithm URI to enum

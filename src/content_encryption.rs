@@ -16,8 +16,8 @@ type HmacSha512 = Hmac<Sha512>;
 /// Encrypts data using AES-256-CBC + HMAC-SHA-512
 // loosely based on <https://docs.rs/rust-crypto/latest/src/symmetriccipher/symmetriccipher.rs.html#21-25>
 pub fn encrypt_a256cbs_hs512(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, String> {
-    if key.len() != 32 {
-        return Err("AES-256 key must be 32 bytes".to_string());
+    if key.len() != 64 {
+        return Err("A256CBC-HS512 key must be 64 bytes".to_string());
     }
     if iv.len() != 16 {
         return Err("IV must be 16 bytes".to_string());
@@ -25,13 +25,7 @@ pub fn encrypt_a256cbs_hs512(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u
 
     // Extract HMAC key and encryption key from the master key
     let hmac_key = &key[..32];
-    let enc_key = &key[32..];
-
-    // Create HMAC for integrity
-    let mut mac =
-        HmacSha512::new_from_slice(hmac_key).map_err(|e| format!("HMAC init error: {}", e))?;
-    mac.update(data);
-    let hmac_result = mac.finalize().into_bytes();
+    let enc_key = &key[32..64];
 
     // Encrypt data using AES-256-CBC
     let mut cipher = crypto::aes::cbc_encryptor(
@@ -86,6 +80,13 @@ pub fn encrypt_a256cbs_hs512(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u
             BufferResult::BufferOverflow => {}
         }
     }
+
+    // Create HMAC for integrity
+    let mut mac =
+        HmacSha512::new_from_slice(hmac_key).map_err(|e| format!("HMAC init error: {}", e))?;
+    mac.update(&final_result);
+    let hmac_result = mac.finalize().into_bytes();
+
     // Combine: IV + HMAC + ciphertext
     // TODO validate it against the XML Encryption spec - is this the correct format?
     let mut result = Vec::with_capacity(iv.len() + hmac_result.len() + final_result.len());
@@ -98,24 +99,24 @@ pub fn encrypt_a256cbs_hs512(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u
 
 /// Decrypts data using AES-256-CBC + HMAC-SHA-512
 pub fn decrypt_a256cbs_hs512(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, String> {
-    if key.len() != 32 {
-        return Err("AES-256 key must be 32 bytes".to_string());
+    if key.len() != 64 {
+        return Err("A256CBC-HS512 key must be 64 bytes".to_string());
     }
     if iv.len() != 16 {
         return Err("IV must be 16 bytes".to_string());
     }
-    if data.len() < 16 + 64 {
-        return Err("Data too short to contain IV and HMAC".to_string());
+    if data.len() < 64 {
+        return Err("Data too short to contain HMAC".to_string());
     }
 
     // Extract components
     let hmac_size = 64; // SHA-512 is 64 bytes
-    let ciphertext = &data[16..data.len() - hmac_size];
-    let received_hmac = &data[data.len() - hmac_size..];
+    let received_hmac = &data[..hmac_size];
+    let ciphertext = &data[hmac_size..];
 
     // Extract HMAC key and encryption key from the master key
     let hmac_key = &key[..32];
-    let enc_key = &key[32..];
+    let enc_key = &key[32..64];
 
     // Verify HMAC
     let mut mac = crypto::hmac::Hmac::new(crypto::sha2::Sha512::new(), hmac_key);
