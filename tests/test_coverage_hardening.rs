@@ -17,6 +17,7 @@ use rsa::RsaPrivateKey;
 use rsa::pkcs1v15::Pkcs1v15Sign;
 use rsa::pkcs8::{DecodePrivateKey, EncodePrivateKey};
 use saml_rs::assertion::AssertionAttribute;
+use saml_rs::error::SamlError;
 use saml_rs::response::{AuthNStatement, ResponseElements};
 use saml_rs::security::{SecurityError, XmlSecurityLimits, inspect_xml_payload};
 use saml_rs::sign::{
@@ -479,14 +480,19 @@ fn service_provider_helpers_parse_valid_metadata_and_reject_invalid_inputs() {
     let mismatch_result = mismatched.parse::<saml_rs::sp::ServiceProvider>();
     match mismatch_result {
         Ok(_) => panic!("mismatched XML should fail parsing"),
-        Err(error) => assert!(error.to_ascii_lowercase().contains("mismatched")),
+        Err(error) => assert!(
+            error
+                .to_string()
+                .to_ascii_lowercase()
+                .contains("mismatched")
+        ),
     }
 
     let cdata_payload = "<EntityDescriptor><SPSSODescriptor><NameIDFormat><![CDATA[evil]]></NameIDFormat></SPSSODescriptor></EntityDescriptor>";
     let cdata_result = cdata_payload.parse::<saml_rs::sp::ServiceProvider>();
     match cdata_result {
         Ok(_) => panic!("CDATA content should fail strict metadata parsing"),
-        Err(error) => assert!(error.to_ascii_lowercase().contains("cdata")),
+        Err(error) => assert!(error.to_string().to_ascii_lowercase().contains("cdata")),
     }
 
     let binding = ServiceBinding::default().set_binding("invalid-binding");
@@ -766,21 +772,24 @@ async fn async_load_key_and_certificate_helpers_cover_async_paths() {
 }
 
 /// Async version of [load_key_from_filename] for callers that already run inside a tokio runtime.
-pub async fn load_key_from_filename_async(key_filename: &str) -> Result<Vec<u8>, String> {
-    let pkey_buffer = fs::read_to_string(key_filename)
-        .await
-        .map_err(|error| format!("Error loading file {}: {}", key_filename, error))?;
+pub async fn load_key_from_filename_async(key_filename: &str) -> Result<Vec<u8>, SamlError> {
+    let pkey_buffer = fs::read_to_string(key_filename).await?;
 
     debug!("key:  {}", key_filename);
     let keypair = match RsaPrivateKey::from_pkcs8_pem(&pkey_buffer) {
         Ok(value) => value,
         Err(error) => {
-            return Err(format!("Failed to load pkey from pem bytes: {:?}", error));
+            return Err(SamlError::other(format!(
+                "Failed to load pkey from pem bytes: {:?}",
+                error
+            )));
         }
     };
 
     keypair
         .to_pkcs8_pem(rsa::pkcs8::LineEnding::CRLF)
         .map(|pem| pem.as_bytes().to_vec())
-        .map_err(|error| format!("Failed to convert private key to PEM: {:?}", error))
+        .map_err(|error| {
+            SamlError::other(format!("Failed to convert private key to PEM: {:?}", error))
+        })
 }

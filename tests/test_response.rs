@@ -84,12 +84,13 @@ fn test_full_response_something_something() {
     let test1 = TEST_SAML_UNSIGNED_RESPONSE_UNSIGNED_ASSERTION.replace("\n", "");
     let test2 = response.replace("\n", "");
     let changeset = dissimilar::diff(&test1, &test2);
+    let whitespace_re = regex::Regex::new(r"\s+").expect("Failed to compile whitespace regex");
     println!("{:?}", changeset);
     for item in changeset {
         match item {
             dissimilar::Chunk::Equal(_) => {}
             dissimilar::Chunk::Delete(del) => {
-                if regex::Regex::new(r"\s+").unwrap().is_match(del) {
+                if whitespace_re.is_match(del) {
                     // eprintln!("Deleted whitespace");
                 } else {
                     eprintln!("Deleted: {}", del);

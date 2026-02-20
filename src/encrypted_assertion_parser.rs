@@ -5,19 +5,20 @@
 use crate::encrypted_assertion::{
     EncryptedAssertion, EncryptedData, EncryptionKeyInfo, EncryptionMethod,
 };
+use crate::error::SamlError;
 use crate::sign::{ContentEncryptionAlgorithm, KeyEncryptionAlgorithm};
 use std::io::Cursor;
 use xml::reader::{EventReader, XmlEvent};
 
 /// Parses an EncryptedAssertion from XML bytes
-pub fn parse_encrypted_assertion(xml_bytes: &[u8]) -> Result<EncryptedAssertion, String> {
+pub fn parse_encrypted_assertion(xml_bytes: &[u8]) -> Result<EncryptedAssertion, SamlError> {
     let cursor = Cursor::new(xml_bytes);
     let reader = EventReader::new(cursor);
 
     let mut state = ParserState::default();
 
     for event in reader {
-        let event = event.map_err(|e| format!("XML parse error: {}", e))?;
+        let event = event?;
 
         match event {
             XmlEvent::StartElement {
@@ -79,7 +80,9 @@ pub fn parse_encrypted_assertion(xml_bytes: &[u8]) -> Result<EncryptedAssertion,
         }
     }
 
-    Err("Failed to parse EncryptedAssertion: incomplete XML structure".to_string())
+    Err(SamlError::XmlParsing(
+        "Failed to parse EncryptedAssertion: incomplete XML structure".to_string(),
+    ))
 }
 
 /// Internal parser state
@@ -96,12 +99,11 @@ struct ParserState {
 }
 
 /// Builds EncryptedAssertion from parser state
-fn build_encrypted_assertion(state: ParserState) -> Result<EncryptedAssertion, String> {
+fn build_encrypted_assertion(state: ParserState) -> Result<EncryptedAssertion, SamlError> {
     let encryption_method = EncryptionMethod {
-        algorithm: state
-            .assertion_encryption_method
-            .clone()
-            .ok_or("Missing EncryptionMethod algorithm")?,
+        algorithm: state.assertion_encryption_method.clone().ok_or_else(|| {
+            SamlError::XmlParsing("Missing EncryptionMethod algorithm".to_string())
+        })?,
     };
 
     let encrypted_data = match (state.content_encryption_method, state.data_cipher_value) {
@@ -110,7 +112,11 @@ fn build_encrypted_assertion(state: ParserState) -> Result<EncryptedAssertion, S
             cipher_value,
         }),
         (None, None) => None,
-        _ => return Err("Missing EncryptedData fields".to_string()),
+        _ => {
+            return Err(SamlError::XmlParsing(
+                "Missing EncryptedData fields".to_string(),
+            ));
+        }
     };
 
     let key_info = match (state.key_enc_algorithm, state.key_cipher_value) {
@@ -120,7 +126,11 @@ fn build_encrypted_assertion(state: ParserState) -> Result<EncryptedAssertion, S
             recipient: None,
         }),
         (None, None) => None,
-        _ => return Err("Missing EncryptedKey fields".to_string()),
+        _ => {
+            return Err(SamlError::XmlParsing(
+                "Missing EncryptedKey fields".to_string(),
+            ));
+        }
     };
 
     let mut assertion = EncryptedAssertion::new(encryption_method);
@@ -134,7 +144,7 @@ fn build_encrypted_assertion(state: ParserState) -> Result<EncryptedAssertion, S
 }
 
 /// Parses content encryption algorithm URI to enum
-fn parse_content_encryption_algorithm(uri: &str) -> Result<ContentEncryptionAlgorithm, String> {
+fn parse_content_encryption_algorithm(uri: &str) -> Result<ContentEncryptionAlgorithm, SamlError> {
     match uri {
         "http://www.w3.org/2001/04/xmlenc#aes128-cbc" => {
             Ok(ContentEncryptionAlgorithm::A128CBC_HS256)
@@ -144,12 +154,15 @@ fn parse_content_encryption_algorithm(uri: &str) -> Result<ContentEncryptionAlgo
         }
         "http://www.w3.org/2001/04/xmlenc#aes128-gcm" => Ok(ContentEncryptionAlgorithm::A128GCM),
         "http://www.w3.org/2001/04/xmlenc#aes256-gcm" => Ok(ContentEncryptionAlgorithm::A256GCM),
-        _ => Err(format!("Unsupported content encryption algorithm: {}", uri)),
+        _ => Err(SamlError::UnsupportedAlgorithm(format!(
+            "Unsupported content encryption algorithm: {}",
+            uri
+        ))),
     }
 }
 
 /// Parses key encryption algorithm URI to enum
-fn parse_key_encryption_algorithm(uri: &str) -> Result<KeyEncryptionAlgorithm, String> {
+fn parse_key_encryption_algorithm(uri: &str) -> Result<KeyEncryptionAlgorithm, SamlError> {
     match uri {
         "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p" => Ok(KeyEncryptionAlgorithm::RSA_OAEP),
         "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p#sha256" => {
@@ -161,6 +174,9 @@ fn parse_key_encryption_algorithm(uri: &str) -> Result<KeyEncryptionAlgorithm, S
         "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p#sha512" => {
             Ok(KeyEncryptionAlgorithm::RSA_OAEP_512)
         }
-        _ => Err(format!("Unsupported key encryption algorithm: {}", uri)),
+        _ => Err(SamlError::UnsupportedAlgorithm(format!(
+            "Unsupported key encryption algorithm: {}",
+            uri
+        ))),
     }
 }

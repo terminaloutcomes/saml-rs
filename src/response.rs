@@ -3,6 +3,7 @@
 // #![deny(unsafe_code)]
 
 use crate::assertion::{Assertion, AssertionAttribute, BaseIDAbstractType, SubjectData};
+use crate::error::SamlError;
 use crate::sign::{CanonicalizationMethod, DigestAlgorithm, SigningAlgorithm, SigningKey};
 use crate::sp::*;
 use crate::xml::write_event;
@@ -452,7 +453,7 @@ impl ResponseElements {
     }
 
     /// Returns the base64 encoded version of [ResponseElements] or an error.
-    pub fn try_base64_encoded_response(self) -> Result<Vec<u8>, String> {
+    pub fn try_base64_encoded_response(self) -> Result<Vec<u8>, SamlError> {
         let buffer = self.try_into_xml_bytes()?;
         Ok(BASE64_STANDARD.encode(buffer).into())
     }
@@ -470,7 +471,7 @@ impl ResponseElements {
         &self,
         assertion_data: &Assertion,
         message_signature: Option<(String, String)>,
-    ) -> Result<Vec<u8>, String> {
+    ) -> Result<Vec<u8>, SamlError> {
         let mut buffer = Vec::new();
         let mut writer = EmitterConfig::new()
             .perform_indent(false)
@@ -521,20 +522,16 @@ impl ResponseElements {
     }
 
     /// Render response XML bytes.
-    pub fn try_into_xml_bytes(self) -> Result<Vec<u8>, String> {
+    pub fn try_into_xml_bytes(self) -> Result<Vec<u8>, SamlError> {
         let assertion_data: Assertion = (&self).try_into()?;
         let unsigned_response = self.build_response_xml(&assertion_data, None)?;
         if !self.sign_message {
             return Ok(unsigned_response);
         }
 
-        let unsigned_xml = String::from_utf8(unsigned_response)
-            .map_err(|error| format!("Response XML was not utf8: {:?}", error))?;
+        let unsigned_xml = String::from_utf8(unsigned_response)?;
         let canonical_response = self.canonicalization_method.canonicalize(&unsigned_xml)?;
-        let digest_bytes = self
-            .digest_algorithm
-            .hash(canonical_response.as_bytes())
-            .map_err(|error| format!("Failed to hash canonical response: {:?}", error))?;
+        let digest_bytes = self.digest_algorithm.hash(canonical_response.as_bytes())?;
 
         let mut message_signature = None;
 
@@ -561,8 +558,7 @@ impl ResponseElements {
                 &base64_digest,
                 &mut signedinfo_writer,
             );
-            let signedinfo_xml = String::from_utf8(signedinfo_buffer)
-                .map_err(|error| format!("SignedInfo was not utf8: {:?}", error))?;
+            let signedinfo_xml = String::from_utf8(signedinfo_buffer)?;
             let canonical_signedinfo =
                 self.canonicalization_method.canonicalize(&signedinfo_xml)?;
 
@@ -570,8 +566,7 @@ impl ResponseElements {
                 self.signing_algorithm,
                 &self.signing_key,
                 canonical_signedinfo.as_bytes(),
-            )
-            .map_err(|error| format!("Failed to sign response: {:?}", error))?;
+            )?;
             let base64_signature = BASE64_STANDARD.encode(&signed);
             message_signature = Some((base64_digest, base64_signature));
         }
@@ -581,21 +576,19 @@ impl ResponseElements {
 }
 
 impl TryInto<Assertion> for &ResponseElements {
-    type Error = String;
+    type Error = SamlError;
 
     fn try_into(self) -> Result<Assertion, Self::Error> {
         let conditions_not_before = self.issue_instant;
         let session_time = chrono::Duration::seconds(i64::from(self.session_length_seconds));
         let conditions_not_after = conditions_not_before
             .checked_add_signed(session_time)
-            .ok_or_else(|| "Failed to compute assertion expiry timestamp".to_string())?;
+            .ok_or_else(|| SamlError::other("Failed to compute assertion expiry timestamp"))?;
         let acs = match self.assertion_consumer_service.clone() {
-            None => match self.service_provider.find_first_acs() {
-                Ok(value) => value.location,
-                Err(_) => {
-                    return Err("Failed to find ACS URL from service provider metadata".to_string());
-                }
-            },
+            None => self
+                .service_provider
+                .find_first_acs()
+                .map(|value| value.location)?,
             Some(value) => value,
         };
 

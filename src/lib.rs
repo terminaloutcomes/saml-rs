@@ -80,6 +80,8 @@ pub mod content_encryption;
 pub mod encrypted_assertion;
 pub mod encrypted_assertion_parser;
 pub mod encryption_config;
+pub mod error;
+pub mod key_provider;
 pub mod metadata;
 pub mod response;
 pub mod security;

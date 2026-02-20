@@ -75,6 +75,7 @@ x509-cert = "0.2.5"
 signature = { version = "2.2.0", features = ["digest"] }
 p192 = "0.13.0"
 certkit = "0.1.0"
+thiserror = "2.0.18"
 
 [dev-dependencies]
 reqwest = { workspace = true, features = ["blocking", "native-tls"] }

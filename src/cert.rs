@@ -8,6 +8,8 @@ use std::fmt;
 use x509_cert::Certificate;
 use x509_cert::der::Decode;
 
+use crate::error::SamlError;
+
 #[derive(Debug)]
 /// Error type for when parsing certificates from input
 pub struct CertParseError(String);
@@ -43,8 +45,9 @@ pub fn strip_cert_headers(cert_string: &str) -> String {
 }
 
 /// generates a really terrible self-signed certificate for testing purposes
-pub fn gen_self_signed_certificate(hostname: &str) -> Result<x509_cert::Certificate, String> {
-    let key_pair = certkit::key::KeyPair::generate_rsa(2048).map_err(|err| err.to_string())?;
+pub fn gen_self_signed_certificate(hostname: &str) -> Result<x509_cert::Certificate, SamlError> {
+    let key_pair = certkit::key::KeyPair::generate_rsa(2048)
+        .map_err(|err| SamlError::other(err.to_string()))?;
 
     let subject = DistinguishedName::builder()
         .common_name(hostname.to_string())

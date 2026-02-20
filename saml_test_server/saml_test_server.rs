@@ -17,6 +17,7 @@
 use log::*;
 use saml_rs::SamlQuery;
 use saml_rs::assertion::AssertionAttribute;
+use saml_rs::error::SamlError;
 use saml_rs::metadata::{SamlMetadata, generate_metadata_xml};
 use saml_rs::response::{AuthNStatement, ResponseElements};
 use saml_rs::sign::{DigestAlgorithm, SigningAlgorithm};
@@ -282,11 +283,11 @@ fn raw_query_value<'a>(query: &'a str, key: &str) -> Option<&'a str> {
     None
 }
 
-fn build_redirect_signed_payload(raw_query: &str) -> Result<String, String> {
+fn build_redirect_signed_payload(raw_query: &str) -> Result<String, SamlError> {
     let saml_request = raw_query_value(raw_query, "SAMLRequest")
-        .ok_or_else(|| "Missing SAMLRequest in redirect query".to_string())?;
+        .ok_or_else(|| SamlError::other("Missing SAMLRequest in redirect query"))?;
     let sig_alg = raw_query_value(raw_query, "SigAlg")
-        .ok_or_else(|| "Missing SigAlg in redirect query".to_string())?;
+        .ok_or_else(|| SamlError::other("Missing SigAlg in redirect query"))?;
     let relay_state = raw_query_value(raw_query, "RelayState");
 
     Ok(match relay_state {

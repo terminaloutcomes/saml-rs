@@ -26,6 +26,7 @@
 use log::{debug, error};
 use serde::Serialize;
 
+use crate::error::SamlError;
 use crate::sign::SigningKey;
 use crate::utils::*;
 use crate::xml::write_event;
@@ -156,7 +157,7 @@ impl Assertion {
     }
 
     /// Render the assertion as XML bytes.
-    pub fn try_to_xml_bytes(&self) -> Result<Vec<u8>, String> {
+    pub fn try_to_xml_bytes(&self) -> Result<Vec<u8>, SamlError> {
         let mut buffer = Vec::new();
         let mut writer = EmitterConfig::new()
             .perform_indent(false)
@@ -227,7 +228,7 @@ impl Assertion {
     pub fn add_assertion_to_xml<W: Write>(
         &self,
         writer: &mut EventWriter<W>,
-    ) -> Result<(), String> {
+    ) -> Result<(), SamlError> {
         // start the assertion
         debug!("sign_assertion: {}", self.sign_assertion);
 
@@ -255,21 +256,21 @@ impl Assertion {
         if self.sign_assertion {
             debug!("Signing assertion");
             if self.signing_key.is_none() {
-                return Err("Cannot sign assertion without signing key".to_string());
+                return Err(SamlError::NoKeyAvailable);
             }
             if self.signing_cert.is_none() {
-                return Err("Cannot sign assertion without signing certificate".to_string());
+                return Err(SamlError::NoCertAvailable);
             }
 
             let unsigned_assertion = &self.without_signature();
             let unsigned_xml = String::from_utf8(unsigned_assertion.try_to_xml_bytes()?)
-                .map_err(|error| format!("Unsigned assertion was not utf8: {:?}", error))?;
+                .inspect_err(|error| error!("Unsigned assertion was not utf8: {:?}", error))?;
 
             let canonical_assertion = self.canonicalization_method.canonicalize(&unsigned_xml)?;
             let digest_bytes = self
                 .digest_algorithm
                 .hash(canonical_assertion.as_bytes())
-                .map_err(|error| format!("Failed to hash canonical assertion: {:?}", error))?;
+                .inspect_err(|error| error!("Failed to hash canonical assertion: {:?}", error))?;
             let base64_encoded_digest = BASE64_STANDARD.encode(digest_bytes);
 
             let signature_config = crate::xml::SignatureConfig {
@@ -294,7 +295,7 @@ impl Assertion {
                 &mut signedinfo_writer,
             );
             let signedinfo_xml = String::from_utf8(signedinfo_buffer)
-                .map_err(|error| format!("SignedInfo was not utf8: {:?}", error))?;
+                .inspect_err(|error| error!("SignedInfo was not utf8: {:?}", error))?;
             let canonical_signedinfo =
                 self.canonicalization_method.canonicalize(&signedinfo_xml)?;
 
@@ -304,7 +305,9 @@ impl Assertion {
                 canonical_signedinfo.as_bytes(),
             )?;
             if signed_result.is_empty() {
-                return Err("Failed to generate signature bytes".to_string());
+                return Err(SamlError::Encoding(
+                    "Failed to generate signature bytes, this is probably a bug!".to_string(),
+                ));
             }
             let base64_encoded_signature = BASE64_STANDARD.encode(&signed_result);
             crate::xml::add_signature(

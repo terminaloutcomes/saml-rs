@@ -1,6 +1,7 @@
 //! Handy for the XML metadata part of SAML
 
-use crate::xml::write_event;
+use crate::{error::SamlError, xml::write_event};
+use log::error;
 use std::io::Write;
 use std::str::from_utf8;
 use x509_cert::Certificate;
@@ -59,7 +60,7 @@ impl SamlMetadata {
     }
 
     /// really simple version with a self-signed certificate based on just the hostname. Mainly for testing.
-    pub fn from_hostname(hostname: &str) -> Result<SamlMetadata, String> {
+    pub fn from_hostname(hostname: &str) -> Result<SamlMetadata, SamlError> {
         let cert = crate::cert::gen_self_signed_certificate(hostname)?;
         Ok(SamlMetadata::new(
             hostname,
@@ -127,7 +128,7 @@ pub fn xml_add_certificate<W: Write>(
 /// Generates the XML For a metadata file
 ///
 /// Current response data is based on the data returned from  <https://samltest.id/saml/idp>
-pub fn generate_metadata_xml(metadata: &SamlMetadata) -> Result<String, String> {
+pub fn generate_metadata_xml(metadata: &SamlMetadata) -> Result<String, SamlError> {
     let mut buffer = Vec::new();
     let mut writer = EmitterConfig::new()
         .perform_indent(true)
@@ -156,7 +157,7 @@ pub fn generate_metadata_xml(metadata: &SamlMetadata) -> Result<String, String> 
     if let Some(value) = &metadata.x509_certificate {
         let base64_encoded_certificate = value
             .to_pem(rsa::pkcs8::LineEnding::CRLF)
-            .map_err(|e| format!("Failed to encode certificate to PEM: {}", e))?;
+            .inspect_err(|e| error!("Failed to encode certificate to PEM: {}", e))?;
         xml_add_certificate("signing", &base64_encoded_certificate, &mut writer);
         // xml_add_certificate("encryption", &base64_encoded_certificate, &mut writer);
     };
@@ -238,8 +239,5 @@ pub fn generate_metadata_xml(metadata: &SamlMetadata) -> Result<String, String> 
     write_event(XmlEvent::end_element().into(), &mut writer);
 
     // TODO: figure out if we really need that prepended silliness '<?xml version=\"1.0\"?>'
-    match from_utf8(&buffer) {
-        Ok(value) => Ok(format!("<?xml version=\"1.0\"?>\n{}", value)),
-        Err(error) => Err(format!("Failed to render metadata as utf8: {:?}", error)),
-    }
+    from_utf8(&buffer).map(|f| Ok(format!("<?xml version=\"1.0\"?>\n{}", f)))?
 }

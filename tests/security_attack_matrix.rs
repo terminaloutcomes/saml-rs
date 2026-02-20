@@ -12,7 +12,10 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use saml_rs::sign::{SigningAlgorithm, SigningKey};
+use saml_rs::{
+    error::SamlError,
+    sign::{SigningAlgorithm, SigningKey},
+};
 
 #[derive(Clone, Copy, Debug)]
 enum AttackTarget {
@@ -273,16 +276,15 @@ fn attack_cases() -> Vec<AttackCase> {
     ]
 }
 
-async fn run_attack_case(case: AttackCase) -> Result<(), String> {
+async fn run_attack_case(case: AttackCase) -> Result<(), SamlError> {
     let payload = load_fixture(case.filename).await;
     match case.target {
         AttackTarget::AuthnRequest => saml_rs::parse_authn_request(&payload)
             .map(|_| ())
-            .map_err(|error| error.message),
-        AttackTarget::ServiceProviderMetadata => payload
-            .parse::<saml_rs::sp::ServiceProvider>()
-            .map(|_| ())
-            .map_err(|error| error.to_string()),
+            .map_err(|error| SamlError::XmlParsing(error.message)),
+        AttackTarget::ServiceProviderMetadata => {
+            payload.parse::<saml_rs::sp::ServiceProvider>().map(|_| ())
+        }
     }
 }
 
@@ -306,7 +308,7 @@ async fn assert_attack_is_rejected(case: AttackCase, mode_label: &str) {
 
     if let Some(hint) = case.expected_rejection_hint {
         let hint_lower = hint.to_ascii_lowercase();
-        let err_lower = err.to_ascii_lowercase();
+        let err_lower = err.to_string().to_ascii_lowercase();
         assert!(
             err_lower.contains(&hint_lower),
             "[{}:{} {}] rejection reason did not include expected hint.\nexpected_hint={}\nactual_error={}\nattack_intent={}\nattacker_goal={}\nsafe_expectation={}\ndanger_expectation={}",

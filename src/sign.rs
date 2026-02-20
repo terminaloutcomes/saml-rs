@@ -41,6 +41,8 @@ use x509_cert::Certificate;
 use x509_cert::der::{DecodePem, Encode};
 use xml_c14n::{CanonicalizationMode, CanonicalizationOptions, canonicalize_xml};
 
+use crate::error::SamlError;
+
 /// Options of Signing Algorithms for things
 ///
 /// <https://www.w3.org/TR/xmldsig-core/#sec-PKCS1>
@@ -108,7 +110,7 @@ impl ContentEncryptionAlgorithm {
 }
 
 /// Key encryption algorithms for SAML assertion encryption
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub enum KeyEncryptionAlgorithm {
     /// RSAES-OAEP with SHA-1 (deprecated but sometimes required)
@@ -199,7 +201,7 @@ pub enum CanonicalizationMethod {
 
 impl CanonicalizationMethod {
     /// Canonicalize XML bytes according to this method.
-    pub fn canonicalize(self, input_xml: &str) -> Result<String, String> {
+    pub fn canonicalize(self, input_xml: &str) -> Result<String, SamlError> {
         let mode = match self {
             Self::ExclusiveCanonical10 => CanonicalizationMode::ExclusiveCanonical1_0,
             Self::InclusiveCanonical10 => CanonicalizationMode::Canonical1_0,
@@ -212,7 +214,7 @@ impl CanonicalizationMethod {
                 inclusive_ns_prefixes: vec![],
             },
         )
-        .map_err(|error| format!("Failed to canonicalize XML: {:?}", error))
+        .map_err(SamlError::from)
     }
 }
 
@@ -354,25 +356,21 @@ impl From<DigestAlgorithm> for String {
 }
 
 /// Loads a public cert from a PEM file into a Certificate
-pub async fn load_public_cert_from_filename(cert_filename: &str) -> Result<Certificate, String> {
+pub async fn load_public_cert_from_filename(cert_filename: &str) -> Result<Certificate, SamlError> {
     debug!("loading cert:  {}", cert_filename);
 
-    let cert_buffer = fs::read(cert_filename).await.map_err(|error| {
-        format!(
-            "Error loading certificate file {}: {}",
-            cert_filename, error
-        )
-    })?;
+    let cert_buffer = fs::read(cert_filename).await?;
 
-    Certificate::from_pem(&cert_buffer)
-        .map_err(|error| format!("Failed to load certificate from pem bytes: {:?}", error))
+    Certificate::from_pem(&cert_buffer).map_err(SamlError::from)
 }
 
 impl DigestAlgorithm {
     /// Hash a set of bytes
-    pub fn hash(self, bytes_to_hash: &[u8]) -> Result<Vec<u8>, String> {
+    pub fn hash(self, bytes_to_hash: &[u8]) -> Result<Vec<u8>, SamlError> {
         if matches!(self, DigestAlgorithm::Sha1) && !crate::security::weak_algorithms_allowed() {
-            return Err("SHA-1 digest is disabled by security policy".to_string());
+            return Err(SamlError::WeakAlgorithm(
+                "SHA-1 digest is disabled by security policy".to_string(),
+            ));
         }
 
         match self {
@@ -381,38 +379,40 @@ impl DigestAlgorithm {
             DigestAlgorithm::Sha256 => Ok(sha2::Sha256::digest(bytes_to_hash).to_vec()),
             DigestAlgorithm::Sha384 => Ok(sha2::Sha384::digest(bytes_to_hash).to_vec()),
             DigestAlgorithm::Sha512 => Ok(sha2::Sha512::digest(bytes_to_hash).to_vec()),
-            DigestAlgorithm::InvalidAlgorithm => Err(
+            DigestAlgorithm::InvalidAlgorithm => Err(SamlError::UnsupportedAlgorithm(
                 "Invalid digest algorithm requested and strict policy forbids fallback".to_string(),
-            ),
+            )),
         }
     }
 }
 
-fn rsa_digest_for_signing(signing_algorithm: SigningAlgorithm) -> Result<DigestAlgorithm, String> {
+fn rsa_digest_for_signing(
+    signing_algorithm: SigningAlgorithm,
+) -> Result<DigestAlgorithm, SamlError> {
     match signing_algorithm {
         SigningAlgorithm::RsaSha1 => Ok(DigestAlgorithm::Sha1),
         SigningAlgorithm::RsaSha224 => Ok(DigestAlgorithm::Sha224),
         SigningAlgorithm::RsaSha256 => Ok(DigestAlgorithm::Sha256),
         SigningAlgorithm::RsaSha384 => Ok(DigestAlgorithm::Sha384),
         SigningAlgorithm::RsaSha512 => Ok(DigestAlgorithm::Sha512),
-        _ => Err(format!(
+        _ => Err(SamlError::UnsupportedAlgorithm(format!(
             "Unsupported RSA signing algorithm: {:?}",
             signing_algorithm
-        )),
+        ))),
     }
 }
 
-fn rsa_pkcs1v15_padding(signing_algorithm: SigningAlgorithm) -> Result<Pkcs1v15Sign, String> {
+fn rsa_pkcs1v15_padding(signing_algorithm: SigningAlgorithm) -> Result<Pkcs1v15Sign, SamlError> {
     match signing_algorithm {
         SigningAlgorithm::RsaSha1 => Ok(Pkcs1v15Sign::new_unprefixed()),
         SigningAlgorithm::RsaSha224 => Ok(Pkcs1v15Sign::new::<sha2::Sha224>()),
         SigningAlgorithm::RsaSha256 => Ok(Pkcs1v15Sign::new::<sha2::Sha256>()),
         SigningAlgorithm::RsaSha384 => Ok(Pkcs1v15Sign::new::<sha2::Sha384>()),
         SigningAlgorithm::RsaSha512 => Ok(Pkcs1v15Sign::new::<sha2::Sha512>()),
-        _ => Err(format!(
+        _ => Err(SamlError::UnsupportedAlgorithm(format!(
             "Unsupported RSA signing algorithm: {:?}",
             signing_algorithm
-        )),
+        ))),
     }
 }
 
@@ -432,9 +432,9 @@ pub fn sign_data(
     signing_algorithm: crate::sign::SigningAlgorithm,
     signing_key: &Arc<SigningKey>,
     bytes_to_sign: &[u8],
-) -> Result<Vec<u8>, String> {
+) -> Result<Vec<u8>, SamlError> {
     if signing_key.is_none() {
-        return Err("No signing key configured".to_string());
+        return Err(SamlError::NoKeyAvailable);
     }
 
     if matches!(
@@ -442,7 +442,9 @@ pub fn sign_data(
         SigningAlgorithm::RsaSha1 | SigningAlgorithm::DsaSha1 | SigningAlgorithm::EcDsaSha1
     ) && !crate::security::weak_algorithms_allowed()
     {
-        return Err("SHA-1 signing is disabled by security policy".to_string());
+        return Err(SamlError::WeakAlgorithm(
+            "SHA-1 signing is disabled by security policy".to_string(),
+        ));
     }
 
     debug!("Signing data with algorithm: {:?}", signing_algorithm);
@@ -452,51 +454,22 @@ pub fn sign_data(
         SigningKey::Rsa(key) => key,
         SigningKey::EcDsa256(key) => {
             if signing_algorithm != SigningAlgorithm::EcDsaSha256 {
-                return Err(format!(
+                return Err(SamlError::UnsupportedAlgorithm(format!(
                     "Unsupported ECDSA signing algorithm for P-256 key: {:?}",
                     signing_algorithm
-                ));
+                )));
             }
             let signature: K256Signature = key.sign(bytes_to_sign);
             return Ok(signature.to_der().as_bytes().to_vec());
         }
-        SigningKey::None => return Err("No signing key configured".to_string()),
+        SigningKey::None => return Err(SamlError::NoKeyAvailable),
     };
 
     let digest_algorithm = rsa_digest_for_signing(signing_algorithm)?;
     let digest = digest_algorithm.hash(bytes_to_sign)?;
     let padding = rsa_pkcs1v15_padding(signing_algorithm)?;
 
-    private_key
-        .sign(padding, &digest)
-        .map_err(|error| format!("Failed to sign data: {}", error))
-
-    // let signing_algorithm = match signing_algorithm.message_digest() {
-    //     Ok(value) => value,
-    //     Err(error) => {
-    //         error!("{}", error);
-    //         return Vec::new();
-    //     }
-    // };
-    // let mut signer = match Signer::new(signing_algorithm, signing_key) {
-    //     Ok(value) => value,
-    //     Err(error) => {
-    //         error!("Failed to create signer: {:?}", error);
-    //         return Vec::new();
-    //     }
-    // };
-    // if let Err(error) = signer.update(bytes_to_sign) {
-    //     error!("Failed to update signer: {:?}", error);
-    //     return Vec::new();
-    // }
-
-    // match signer.sign_to_vec() {
-    //     Ok(value) => value,
-    //     Err(error) => {
-    //         error!("Failed to sign data: {:?}", error);
-    //         Vec::new()
-    //     }
-    // }
+    private_key.sign(padding, &digest).map_err(SamlError::from)
 }
 
 /// Verify a signature over bytes with a public key.
@@ -505,27 +478,26 @@ pub fn verify_data(
     verification_key: &Arc<SigningKey>,
     bytes_to_verify: &[u8],
     signature: &[u8],
-) -> Result<bool, String> {
-    if verification_key.is_none() {
-        return Err("No verification key configured".to_string());
-    }
-
+) -> Result<bool, SamlError> {
     if matches!(
         signing_algorithm,
         SigningAlgorithm::RsaSha1 | SigningAlgorithm::DsaSha1 | SigningAlgorithm::EcDsaSha1
     ) && !crate::security::weak_algorithms_allowed()
     {
-        return Err("SHA-1 verification is disabled by security policy".to_string());
+        return Err(SamlError::WeakAlgorithm(
+            "SHA-1 verification is disabled by security policy".to_string(),
+        ));
     }
 
     let private_key = match verification_key.as_ref() {
+        SigningKey::None => return Err(SamlError::NoKeyAvailable),
         SigningKey::Rsa(key) => key,
         SigningKey::EcDsa256(key) => {
             if signing_algorithm != SigningAlgorithm::EcDsaSha256 {
-                return Err(format!(
+                return Err(SamlError::UnsupportedAlgorithm(format!(
                     "Unsupported ECDSA verification algorithm for P-256 key: {:?}",
                     signing_algorithm
-                ));
+                )));
             }
             let signature = match K256Signature::from_der(signature) {
                 Ok(value) => value,
@@ -534,7 +506,6 @@ pub fn verify_data(
             let verifying_key = key.verifying_key();
             return Ok(verifying_key.verify(bytes_to_verify, &signature).is_ok());
         }
-        SigningKey::None => return Err("No verification key configured".to_string()),
     };
 
     let public_key = RsaPublicKey::from(private_key);
@@ -545,24 +516,8 @@ pub fn verify_data(
     match public_key.verify(padding, &digest, signature) {
         Ok(_) => Ok(true),
         Err(rsa::Error::Verification) => Ok(false),
-        Err(error) => Err(format!("Failed to verify signature: {}", error)),
+        Err(err) => Err(SamlError::from(err)),
     }
-
-    // signing_algorithm.verify_data(
-    //     signing_algorithm,
-    //     verification_key,
-    //     bytes_to_verify,
-    //     signature,
-    // )
-    // let signing_algorithm = signing_algorithm.message_digest()?;
-    // let mut verifier = Verifier::new(signing_algorithm, verification_key)
-    //     .map_err(|error| format!("Failed to create verifier: {:?}", error))?;
-    // verifier
-    //     .update(bytes_to_verify)
-    //     .map_err(|error| format!("Failed to update verifier: {:?}", error))?;
-    // verifier
-    //     .verify(signature)
-    //     .map_err(|error| format!("Failed to verify signature: {:?}", error))
 }
 
 /// Verify a signature over bytes with an X509 certificate.
@@ -571,13 +526,15 @@ pub fn verify_data_with_cert(
     certificate: &Certificate,
     bytes_to_verify: &[u8],
     signature: &[u8],
-) -> Result<bool, String> {
+) -> Result<bool, SamlError> {
     if matches!(
         signing_algorithm,
         SigningAlgorithm::RsaSha1 | SigningAlgorithm::DsaSha1 | SigningAlgorithm::EcDsaSha1
     ) && !crate::security::weak_algorithms_allowed()
     {
-        return Err("SHA-1 verification is disabled by security policy".to_string());
+        return Err(SamlError::WeakAlgorithm(
+            "SHA-1 verification is disabled by security policy".to_string(),
+        ));
     }
 
     let spki_der = certificate
@@ -585,24 +542,24 @@ pub fn verify_data_with_cert(
         .subject_public_key_info
         .to_der()
         .map_err(|error| {
-            format!(
+            SamlError::Certificate(format!(
                 "Failed to serialize certificate SubjectPublicKeyInfo: {:?}",
                 error
-            )
+            ))
         })?;
     if is_ecdsa_algorithm(signing_algorithm) {
         if signing_algorithm != SigningAlgorithm::EcDsaSha256 {
-            return Err(format!(
+            return Err(SamlError::UnsupportedAlgorithm(format!(
                 "Unsupported certificate verification algorithm: {:?}",
                 signing_algorithm
-            ));
+            )));
         }
         let verifying_key =
             k256::ecdsa::VerifyingKey::from_public_key_der(&spki_der).map_err(|error| {
-                format!(
+                SamlError::Certificate(format!(
                     "Failed to decode ECDSA public key from certificate: {:?}",
                     error
-                )
+                ))
             })?;
         let parsed_signature = match K256Signature::from_der(signature) {
             Ok(value) => value,
@@ -613,34 +570,16 @@ pub fn verify_data_with_cert(
             .is_ok());
     }
 
-    let digest_algorithm = rsa_digest_for_signing(signing_algorithm).map_err(|_| {
-        format!(
-            "Unsupported certificate verification algorithm: {:?}",
-            signing_algorithm
-        )
-    })?;
-    let padding = rsa_pkcs1v15_padding(signing_algorithm).map_err(|_| {
-        format!(
-            "Unsupported certificate verification algorithm: {:?}",
-            signing_algorithm
-        )
-    })?;
+    let digest_algorithm = rsa_digest_for_signing(signing_algorithm)?;
+    let padding = rsa_pkcs1v15_padding(signing_algorithm)?;
 
-    let public_key = RsaPublicKey::from_public_key_der(&spki_der).map_err(|error| {
-        format!(
-            "Failed to decode RSA public key from certificate: {:?}",
-            error
-        )
-    })?;
+    let public_key = RsaPublicKey::from_public_key_der(&spki_der)?;
 
     let digest = digest_algorithm.hash(bytes_to_verify)?;
     match public_key.verify(padding, &digest, signature) {
         Ok(_) => Ok(true),
         Err(rsa::Error::Verification) => Ok(false),
-        Err(error) => Err(format!(
-            "Certificate signature verification failed: {}",
-            error
-        )),
+        Err(error) => Err(SamlError::from(error)),
     }
 }
 
@@ -659,22 +598,27 @@ pub enum SigningKey {
 
 impl SigningKey {
     /// Load a PEM-encoded RSA private key file into a SigningKey
-    pub fn rsa_from_pem(pem_data: &str) -> Result<Self, String> {
+    pub fn rsa_from_pem(pem_data: &str) -> Result<Self, SamlError> {
         RsaPrivateKey::from_pkcs1_pem(pem_data)
             .or_else(|_| RsaPrivateKey::from_pkcs8_pem(pem_data))
             .map(SigningKey::Rsa)
-            .map_err(|error| format!("Failed to parse RSA private key from PEM: {:?}", error))
+            .map_err(|error| {
+                SamlError::Key(format!(
+                    "Failed to parse RSA private key from PEM: {:?}",
+                    error
+                ))
+            })
     }
 
     /// Load a PEM-encoded ECDSA P-256 private key file into a SigningKey
-    pub fn ecdsa_from_pem(pem_data: &str) -> Result<Self, String> {
+    pub fn ecdsa_from_pem(pem_data: &str) -> Result<Self, SamlError> {
         K256SigningKey::from_pkcs8_pem(pem_data)
             .map(SigningKey::EcDsa256)
             .map_err(|error| {
-                format!(
+                SamlError::Key(format!(
                     "Failed to parse ECDSA private key from PEM (expected PKCS#8): {:?}",
                     error
-                )
+                ))
             })
     }
 

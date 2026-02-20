@@ -1,6 +1,7 @@
 //! Encrypted Assertion support for SAML
 use crate::content_encryption;
 use crate::encrypted_assertion_parser;
+use crate::error::SamlError;
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 use rand::Rng;
 
@@ -70,7 +71,7 @@ impl EncryptedAssertion {
     }
 
     /// Serialize to XML bytes
-    pub fn to_xml_bytes(&self) -> Result<Vec<u8>, String> {
+    pub fn to_xml_bytes(&self) -> Result<Vec<u8>, SamlError> {
         let mut buf = Vec::new();
         let mut writer: EventWriter<&mut Vec<u8>> = EventWriter::new(&mut buf);
 
@@ -81,7 +82,7 @@ impl EncryptedAssertion {
                     .attr("xmlns:xenc", "http://www.w3.org/2001/04/xmlenc#")
                     .attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance"),
             )
-            .map_err(|_| "Failed to write start element".to_string())?;
+            .map_err(|_| SamlError::XmlParsing("Failed to write start element".to_string()))?;
 
         // Write EncryptionMethod
         self.write_encryption_method(&mut writer)?;
@@ -98,24 +99,29 @@ impl EncryptedAssertion {
         }
 
         // End EncryptedAssertion element
-        writer
-            .write(XmlEvent::end_element())
-            .map_err(|_| "Failed to write end element".to_string())?;
+        writer.write(XmlEvent::end_element()).map_err(|err| {
+            SamlError::XmlEncoding(format!("Failed to write end element: {}", err))
+        })?;
 
         Ok(buf)
     }
 
-    fn write_encryption_method<W: Write>(&self, writer: &mut EventWriter<W>) -> Result<(), String> {
+    fn write_encryption_method<W: Write>(
+        &self,
+        writer: &mut EventWriter<W>,
+    ) -> Result<(), SamlError> {
         writer
             .write(
                 XmlEvent::start_element(("xenc", "EncryptionMethod"))
                     .attr("Algorithm", &self.encryption_method.algorithm),
             )
-            .map_err(|_| "Failed to write EncryptionMethod start".to_string())?;
+            .map_err(|_| {
+                SamlError::XmlEncoding("Failed to write EncryptionMethod start".to_string())
+            })?;
 
-        writer
-            .write(XmlEvent::end_element())
-            .map_err(|_| "Failed to write EncryptionMethod end".to_string())?;
+        writer.write(XmlEvent::end_element()).map_err(|_| {
+            SamlError::XmlEncoding("Failed to write EncryptionMethod end".to_string())
+        })?;
         Ok(())
     }
 
@@ -123,18 +129,20 @@ impl EncryptedAssertion {
         &self,
         key_info: &EncryptionKeyInfo,
         writer: &mut EventWriter<W>,
-    ) -> Result<(), String> {
+    ) -> Result<(), SamlError> {
         writer
             .write(
                 XmlEvent::start_element(("ds", "KeyInfo"))
                     .attr("xmlns:ds", "http://www.w3.org/2000/09/xmldsig#"),
             )
-            .map_err(|_| "Failed to write KeyInfo start".to_string())?;
+            .map_err(|_| SamlError::XmlEncoding("Failed to write KeyInfo start".to_string()))?;
 
         // Write EncryptedKey element
         writer
             .write(XmlEvent::start_element(("xenc", "EncryptedKey")))
-            .map_err(|_| "Failed to write EncryptedKey start".to_string())?;
+            .map_err(|_| {
+                SamlError::XmlEncoding("Failed to write EncryptedKey start".to_string())
+            })?;
 
         // Write EncryptionMethod
         writer
@@ -142,42 +150,46 @@ impl EncryptedAssertion {
                 XmlEvent::start_element(("xenc", "EncryptionMethod"))
                     .attr("Algorithm", key_info.key_encryption_algorithm.as_uri()),
             )
-            .map_err(|_| "Failed to write Key EncryptionMethod start".to_string())?;
+            .map_err(|_| {
+                SamlError::XmlEncoding("Failed to write Key EncryptionMethod start".to_string())
+            })?;
 
-        writer
-            .write(XmlEvent::end_element())
-            .map_err(|_| "Failed to write Key EncryptionMethod end".to_string())?;
+        writer.write(XmlEvent::end_element()).map_err(|_| {
+            SamlError::XmlEncoding("Failed to write Key EncryptionMethod end".to_string())
+        })?;
 
         // Write CipherData
         writer
             .write(XmlEvent::start_element(("xenc", "CipherData")))
-            .map_err(|_| "Failed to write CipherData start".to_string())?;
+            .map_err(|_| SamlError::XmlEncoding("Failed to write CipherData start".to_string()))?;
 
         writer
             .write(XmlEvent::start_element(("xenc", "CipherValue")))
-            .map_err(|_| "Failed to write CipherValue start".to_string())?;
+            .map_err(|_| SamlError::XmlEncoding("Failed to write CipherValue start".to_string()))?;
 
         writer
             .write(XmlEvent::characters(&key_info.encrypted_key))
-            .map_err(|_| "Failed to write CipherValue content".to_string())?;
+            .map_err(|_| {
+                SamlError::XmlEncoding("Failed to write CipherValue content".to_string())
+            })?;
 
         writer
             .write(XmlEvent::end_element())
-            .map_err(|_| "Failed to write CipherValue end".to_string())?;
+            .map_err(|_| SamlError::XmlEncoding("Failed to write CipherValue end".to_string()))?;
 
         writer
             .write(XmlEvent::end_element())
-            .map_err(|_| "Failed to write CipherData end".to_string())?;
+            .map_err(|_| SamlError::XmlEncoding("Failed to write CipherData end".to_string()))?;
 
         // End EncryptedKey
         writer
             .write(XmlEvent::end_element())
-            .map_err(|_| "Failed to write EncryptedKey end".to_string())?;
+            .map_err(|_| SamlError::XmlEncoding("Failed to write EncryptedKey end".to_string()))?;
 
         // End KeyInfo
         writer
             .write(XmlEvent::end_element())
-            .map_err(|_| "Failed to write KeyInfo end".to_string())?;
+            .map_err(|_| SamlError::XmlEncoding("Failed to write KeyInfo end".to_string()))?;
         Ok(())
     }
 
@@ -185,13 +197,15 @@ impl EncryptedAssertion {
         &self,
         encrypted_data: &EncryptedData,
         writer: &mut EventWriter<W>,
-    ) -> Result<(), String> {
+    ) -> Result<(), SamlError> {
         writer
             .write(
                 XmlEvent::start_element(("xenc", "EncryptedData"))
                     .attr("xmlns:xenc", "http://www.w3.org/2001/04/xmlenc#"),
             )
-            .map_err(|_| "Failed to write EncryptedData start".to_string())?;
+            .map_err(|_| {
+                SamlError::XmlEncoding("Failed to write EncryptedData start".to_string())
+            })?;
 
         // Write EncryptionMethod
         writer
@@ -199,37 +213,41 @@ impl EncryptedAssertion {
                 XmlEvent::start_element(("xenc", "EncryptionMethod"))
                     .attr("Algorithm", encrypted_data.content_algorithm.as_uri()),
             )
-            .map_err(|_| "Failed to write Data EncryptionMethod start".to_string())?;
+            .map_err(|_| {
+                SamlError::XmlEncoding("Failed to write Data EncryptionMethod start".to_string())
+            })?;
 
-        writer
-            .write(XmlEvent::end_element())
-            .map_err(|_| "Failed to write Data EncryptionMethod end".to_string())?;
+        writer.write(XmlEvent::end_element()).map_err(|_| {
+            SamlError::XmlEncoding("Failed to write Data EncryptionMethod end".to_string())
+        })?;
 
         // Write CipherData
         writer
             .write(XmlEvent::start_element(("xenc", "CipherData")))
-            .map_err(|_| "Failed to write CipherData start".to_string())?;
+            .map_err(|_| SamlError::XmlEncoding("Failed to write CipherData start".to_string()))?;
 
         writer
             .write(XmlEvent::start_element(("xenc", "CipherValue")))
-            .map_err(|_| "Failed to write CipherValue start".to_string())?;
+            .map_err(|_| SamlError::XmlEncoding("Failed to write CipherValue start".to_string()))?;
 
         writer
             .write(XmlEvent::characters(&encrypted_data.cipher_value))
-            .map_err(|_| "Failed to write CipherValue content".to_string())?;
+            .map_err(|_| {
+                SamlError::XmlEncoding("Failed to write CipherValue content".to_string())
+            })?;
 
         writer
             .write(XmlEvent::end_element())
-            .map_err(|_| "Failed to write CipherValue end".to_string())?;
+            .map_err(|_| SamlError::XmlEncoding("Failed to write CipherValue end".to_string()))?;
 
         writer
             .write(XmlEvent::end_element())
-            .map_err(|_| "Failed to write CipherData end".to_string())?;
+            .map_err(|_| SamlError::XmlEncoding("Failed to write CipherData end".to_string()))?;
 
         // End EncryptedData
         writer
             .write(XmlEvent::end_element())
-            .map_err(|_| "Failed to write EncryptedData end".to_string())?;
+            .map_err(|_| SamlError::XmlEncoding("Failed to write EncryptedData end".to_string()))?;
         Ok(())
     }
 }
@@ -264,25 +282,55 @@ pub fn encrypt_assertion(
     public_key: &rsa::RsaPublicKey,
     key_enc_algo: KeyEncryptionAlgorithm,
     content_enc_algo: ContentEncryptionAlgorithm,
-) -> Result<EncryptedAssertion, String> {
-    // Generate random content encryption key (64 bytes for A256CBC-HS512)
-    let mut key = [0u8; 64];
-    let mut rng = rand::rng();
-    rng.fill_bytes(&mut key);
+) -> Result<EncryptedAssertion, SamlError> {
+    if key_enc_algo == KeyEncryptionAlgorithm::RSA_OAEP
+        && !crate::security::weak_algorithms_allowed()
+    {
+        return Err(SamlError::WeakAlgorithm(
+            "RSA-OAEP with SHA-1 is disabled by security policy".to_string(),
+        ));
+    }
 
-    // Generate random IV (16 bytes)
-    let iv = content_encryption::generate_iv();
-
-    // Encrypt the assertion content
-    let encrypted_content = content_encryption::encrypt_a256cbs_hs512(assertion_bytes, &key, &iv)?;
+    let (key, encrypted_content): (Vec<u8>, Vec<u8>) = match content_enc_algo {
+        ContentEncryptionAlgorithm::A128CBC_HS256 => {
+            let mut key = vec![0u8; 32];
+            let mut rng = rand::rng();
+            rng.fill_bytes(&mut key);
+            let iv = content_encryption::generate_iv();
+            let encrypted = content_encryption::encrypt_a128cbs_hs256(assertion_bytes, &key, &iv)?;
+            (key, encrypted)
+        }
+        ContentEncryptionAlgorithm::A256CBC_HS512 => {
+            let mut key = vec![0u8; 64];
+            let mut rng = rand::rng();
+            rng.fill_bytes(&mut key);
+            let iv = content_encryption::generate_iv();
+            let encrypted = content_encryption::encrypt_a256cbs_hs512(assertion_bytes, &key, &iv)?;
+            (key, encrypted)
+        }
+        ContentEncryptionAlgorithm::A128GCM => {
+            let mut key = vec![0u8; 16];
+            let mut rng = rand::rng();
+            rng.fill_bytes(&mut key);
+            let nonce = content_encryption::generate_gcm_nonce();
+            let encrypted = content_encryption::encrypt_a128gcm(assertion_bytes, &key, &nonce)?;
+            (key, encrypted)
+        }
+        ContentEncryptionAlgorithm::A256GCM => {
+            let mut key = vec![0u8; 32];
+            let mut rng = rand::rng();
+            rng.fill_bytes(&mut key);
+            let nonce = content_encryption::generate_gcm_nonce();
+            let encrypted = content_encryption::encrypt_a256gcm(assertion_bytes, &key, &nonce)?;
+            (key, encrypted)
+        }
+    };
 
     // Base64 encode the encrypted content
     let cipher_value = STANDARD.encode(&encrypted_content);
 
     // Encrypt the content key using RSA-OAEP
-    let encrypted_key = key_enc_algo
-        .encrypt_rsa(&key, public_key)
-        .map_err(|e| format!("Failed to encrypt content key: {}", e))?;
+    let encrypted_key = key_enc_algo.encrypt_rsa(key.as_slice(), public_key)?;
 
     // Base64 encode the encrypted key
     let encrypted_key_b64 = STANDARD.encode(&encrypted_key);
@@ -323,51 +371,74 @@ pub fn encrypt_assertion(
 pub fn decrypt_assertion(
     encrypted_assertion_xml: &[u8],
     private_key: &rsa::RsaPrivateKey,
-) -> Result<Vec<u8>, String> {
+) -> Result<Vec<u8>, SamlError> {
     // Parse the EncryptedAssertion
     let encrypted_assertion =
         encrypted_assertion_parser::parse_encrypted_assertion(encrypted_assertion_xml)?;
 
     // Get the encrypted data
-    let encrypted_data = encrypted_assertion
-        .encrypted_data
-        .ok_or("No EncryptedData found in assertion")?;
+    let encrypted_data = encrypted_assertion.encrypted_data.ok_or(SamlError::Other(
+        "No EncryptedData found in assertion".to_string(),
+    ))?;
 
     let encrypted_key = encrypted_assertion
         .key_info
         .as_ref()
-        .ok_or("No KeyInfo found in assertion")?
+        .ok_or(SamlError::Key("No KeyInfo found in assertion".to_string()))?
         .encrypted_key
         .clone();
 
     let key_enc_algo = encrypted_assertion
         .key_info
-        .ok_or("No KeyInfo found in assertion")?
+        .ok_or(SamlError::other("No KeyInfo found in assertion"))?
         .key_encryption_algorithm;
 
     // Decode the encrypted content
-    let encrypted_content_bytes = STANDARD
-        .decode(&encrypted_data.cipher_value)
-        .map_err(|e| format!("Failed to base64 decode encrypted content: {}", e))?;
+    let encrypted_content_bytes = STANDARD.decode(&encrypted_data.cipher_value)?;
 
-    // Extract IV and ciphertext
-    // Format: IV (16 bytes) + HMAC (64 bytes) + ciphertext
-    if encrypted_content_bytes.len() < 16 + 64 {
-        return Err("Encrypted content too short to contain IV and HMAC".to_string());
+    let encrypted_key_bytes = STANDARD.decode(encrypted_key)?;
+    let content_key = key_enc_algo.decrypt_rsa(&encrypted_key_bytes, private_key)?;
+
+    match encrypted_data.content_algorithm {
+        ContentEncryptionAlgorithm::A128CBC_HS256 => {
+            if encrypted_content_bytes.len() < 16 + 32 {
+                return Err(SamlError::InvalidInputLength(
+                    "Encrypted content too short to contain IV and HMAC".to_string(),
+                ));
+            }
+            let iv = &encrypted_content_bytes[..16];
+            let payload = &encrypted_content_bytes[16..];
+            content_encryption::decrypt_a128cbs_hs256(payload, &content_key, iv)
+        }
+        ContentEncryptionAlgorithm::A256CBC_HS512 => {
+            if encrypted_content_bytes.len() < 16 + 64 {
+                return Err(SamlError::InvalidInputLength(
+                    "Encrypted content too short to contain IV and HMAC".to_string(),
+                ));
+            }
+            let iv = &encrypted_content_bytes[..16];
+            let payload = &encrypted_content_bytes[16..];
+            content_encryption::decrypt_a256cbs_hs512(payload, &content_key, iv)
+        }
+        ContentEncryptionAlgorithm::A128GCM => {
+            if encrypted_content_bytes.len() < 12 + 16 {
+                return Err(SamlError::InvalidInputLength(
+                    "Encrypted content too short to contain GCM nonce+tag".to_string(),
+                ));
+            }
+            let nonce = &encrypted_content_bytes[..12];
+            let payload = &encrypted_content_bytes[12..];
+            content_encryption::decrypt_a128gcm(payload, &content_key, nonce)
+        }
+        ContentEncryptionAlgorithm::A256GCM => {
+            if encrypted_content_bytes.len() < 12 + 16 {
+                return Err(SamlError::InvalidInputLength(
+                    "Encrypted content too short to contain GCM nonce+tag".to_string(),
+                ));
+            }
+            let nonce = &encrypted_content_bytes[..12];
+            let payload = &encrypted_content_bytes[12..];
+            content_encryption::decrypt_a256gcm(payload, &content_key, nonce)
+        }
     }
-
-    let iv = &encrypted_content_bytes[..16];
-    // let received_hmac = &encrypted_content_bytes[encrypted_content_bytes.len() - 64..];
-    let ciphertext = &encrypted_content_bytes[16..];
-
-    let encrypted_key_bytes = STANDARD
-        .decode(encrypted_key)
-        .map_err(|e| format!("Failed to base64 decode encrypted key: {}", e))?;
-
-    // Decrypt using AES-256-CBC-HMAC-SHA-512
-    let content_key = key_enc_algo
-        .decrypt_rsa(&encrypted_key_bytes, private_key)
-        .map_err(|e| format!("Failed to decrypt content key: {}", e))?;
-
-    content_encryption::decrypt_a256cbs_hs512(ciphertext, &content_key, iv)
 }

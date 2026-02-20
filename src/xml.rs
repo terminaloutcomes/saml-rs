@@ -4,6 +4,8 @@ use std::io::Write;
 use x509_cert::der::EncodePem;
 use xml::writer::{EventWriter, XmlEvent};
 
+use crate::error::SamlError;
+
 /// Used by the XML Event writer to append events to the response
 pub fn write_event<W: Write>(event: XmlEvent, writer: &mut EventWriter<W>) -> String {
     match writer.write(event) {
@@ -141,7 +143,7 @@ pub fn add_signature<W: Write>(
     digest: &str,
     base64_encoded_signature: &str,
     writer: &mut EventWriter<W>,
-) -> Result<(), String> {
+) -> Result<(), SamlError> {
     write_event(
         XmlEvent::start_element(("ds", "Signature"))
             .attr("xmlns:ds", "http://www.w3.org/2000/09/xmldsig#")
@@ -173,11 +175,11 @@ pub fn add_signature<W: Write>(
     );
 
     let mut stripped_cert = match config.signing_cert.as_ref() {
-        Some(cert) => cert
-            .to_pem(rsa::pkcs8::LineEnding::CRLF)
-            .map_err(|err| format!("Failed to convert cert to PEM: {:?}", err))?,
+        Some(cert) => cert.to_pem(rsa::pkcs8::LineEnding::CRLF).map_err(|err| {
+            SamlError::Encoding(format!("Failed to convert cert to PEM: {:?}", err))
+        })?,
         None => {
-            return Err("Missing signing certificate while generating signature".to_string());
+            return Err(SamlError::NoCertAvailable);
         }
     };
     // TODO: is this terrible, or is this terrible? It's terrible, find a better way of cleaning this up.
