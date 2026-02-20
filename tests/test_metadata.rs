@@ -142,6 +142,7 @@ fn test_parse_test_parse_saml_base64_authn_request() {
 }
 
 #[test]
+#[ignore = "network-dependent external validator"]
 fn test_validate_metadata_samltool() {
     let metadata_input = SamlMetadata::new(
         "example.com",

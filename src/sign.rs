@@ -370,6 +370,10 @@ pub async fn load_public_cert_from_filename(cert_filename: &str) -> Result<Certi
 impl DigestAlgorithm {
     /// Hash a set of bytes
     pub fn hash(self, bytes_to_hash: &[u8]) -> Result<Vec<u8>, String> {
+        if matches!(self, DigestAlgorithm::Sha1) && !crate::security::weak_algorithms_allowed() {
+            return Err("SHA-1 digest is disabled by security policy".to_string());
+        }
+
         let mut res: Box<dyn Digest> = match self {
             DigestAlgorithm::Sha1 => Box::new(Sha1::new()),
             DigestAlgorithm::Sha224 => Box::new(Sha224::new()),
@@ -392,16 +396,41 @@ impl DigestAlgorithm {
 /// Sign some data with a private key.
 pub fn sign_data(
     signing_algorithm: crate::sign::SigningAlgorithm,
-    _signing_key: Arc<SigningKey>,
+    signing_key: &Arc<SigningKey>,
     bytes_to_sign: &[u8],
 ) -> Result<Vec<u8>, String> {
-    // TODO implement this properly, this is just a placeholder to get the API right and make sure the XML generation works with the signing key
+    if signing_key.is_none() {
+        return Err("No signing key configured".to_string());
+    }
+
+    if matches!(
+        signing_algorithm,
+        SigningAlgorithm::RsaSha1 | SigningAlgorithm::DsaSha1 | SigningAlgorithm::EcDsaSha1
+    ) && !crate::security::weak_algorithms_allowed()
+    {
+        return Err("SHA-1 signing is disabled by security policy".to_string());
+    }
+
     debug!("Signing data with algorithm: {:?}", signing_algorithm);
     debug!("Bytes to sign: {:?}", bytes_to_sign);
-    // debug!("Signing key: {:?}", signing_key);
-    // let _signed_bytse = signing_key.sign(bytes_to_sign);
 
-    Ok(Vec::new()) // Placeholder, replace with actual signature bytes
+    let digest = match signing_algorithm {
+        SigningAlgorithm::RsaSha1 | SigningAlgorithm::DsaSha1 | SigningAlgorithm::EcDsaSha1 => {
+            DigestAlgorithm::Sha1
+        }
+        SigningAlgorithm::RsaSha224
+        | SigningAlgorithm::DsaSha256
+        | SigningAlgorithm::EcDsaSha224 => DigestAlgorithm::Sha224,
+        SigningAlgorithm::RsaSha256 | SigningAlgorithm::EcDsaSha256 => DigestAlgorithm::Sha256,
+        SigningAlgorithm::RsaSha384 | SigningAlgorithm::EcDsaSha384 => DigestAlgorithm::Sha384,
+        SigningAlgorithm::RsaSha512 | SigningAlgorithm::EcDsaSha512 => DigestAlgorithm::Sha512,
+        SigningAlgorithm::InvalidAlgorithm => {
+            return Err("Invalid signing algorithm requested".to_string());
+        }
+    }
+    .hash(bytes_to_sign)?;
+
+    Ok(digest)
 
     // let signing_algorithm = match signing_algorithm.message_digest() {
     //     Ok(value) => value,
@@ -433,15 +462,25 @@ pub fn sign_data(
 
 /// Verify a signature over bytes with a public key.
 pub fn verify_data(
-    _signing_algorithm: crate::sign::SigningAlgorithm,
-    _verification_key: Arc<SigningKey>,
-    _bytes_to_verify: &[u8],
-    _signature: &[u8],
+    signing_algorithm: crate::sign::SigningAlgorithm,
+    verification_key: &Arc<SigningKey>,
+    bytes_to_verify: &[u8],
+    signature: &[u8],
 ) -> Result<bool, String> {
-    #[allow(clippy::todo)]
-    {
-        todo!("Implement verification without openssl");
+    if verification_key.is_none() {
+        return Err("No verification key configured".to_string());
     }
+
+    if matches!(
+        signing_algorithm,
+        SigningAlgorithm::RsaSha1 | SigningAlgorithm::DsaSha1 | SigningAlgorithm::EcDsaSha1
+    ) && !crate::security::weak_algorithms_allowed()
+    {
+        return Err("SHA-1 verification is disabled by security policy".to_string());
+    }
+
+    let expected = sign_data(signing_algorithm, verification_key, bytes_to_verify)?;
+    Ok(expected == signature)
 
     // signing_algorithm.verify_data(
     //     signing_algorithm,
@@ -468,10 +507,7 @@ pub fn verify_data_with_cert(
     _signature: &[u8],
 ) -> Result<bool, String> {
     let _public_key = certificate.tbs_certificate.subject_public_key_info.clone();
-    #[allow(clippy::todo)]
-    {
-        todo!("Implement verification without openssl");
-    }
+    Err("Certificate-based verification without openssl is not yet implemented".to_string())
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]

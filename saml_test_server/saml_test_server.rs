@@ -246,7 +246,7 @@ async fn saml_metadata_get(req: Request<AppState>) -> tide::Result {
         certificate,
     );
     match generate_metadata_xml(&metadata) {
-        Ok(value) => Ok(tide::Response::try_from(value)?),
+        Ok(value) => Ok(tide::Response::from(value)),
         Err(err) => Err(tide::Error::from_str(
             tide::StatusCode::InternalServerError,
             format!("Failed to generate metadata XML: {}", err),
@@ -564,7 +564,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         status: saml_rs::constants::StatusCode::Success,
         sign_assertion: req.state().sign_assertion,
         sign_message: req.state().sign_message,
-        signing_key: signing_key,
+        signing_key,
         signing_cert: req.state().saml_signing_cert.clone(),
         signing_algorithm: SigningAlgorithm::RsaSha256,
         digest_algorithm: DigestAlgorithm::Sha256,

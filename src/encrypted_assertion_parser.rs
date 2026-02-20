@@ -22,35 +22,33 @@ pub fn parse_encrypted_assertion(xml_bytes: &[u8]) -> Result<EncryptedAssertion,
         match event {
             XmlEvent::StartElement {
                 name, attributes, ..
-            } => {
-                match name.local_name.as_str() {
-                    "EncryptionMethod" => {
-                        for attr in attributes {
-                            if attr.name.local_name == "Algorithm" {
-                                let algorithm = attr.value;
-                                if state.in_encrypted_key {
-                                    state.key_enc_algorithm = Some(algorithm);
-                                } else if state.assertion_encryption_method.is_none() {
-                                    state.assertion_encryption_method = Some(algorithm);
-                                } else {
-                                    state.content_encryption_method = Some(algorithm);
-                                }
-                                break;
+            } => match name.local_name.as_str() {
+                "EncryptionMethod" => {
+                    for attr in attributes {
+                        if attr.name.local_name == "Algorithm" {
+                            let algorithm = attr.value;
+                            if state.in_encrypted_key {
+                                state.key_enc_algorithm = Some(algorithm);
+                            } else if state.assertion_encryption_method.is_none() {
+                                state.assertion_encryption_method = Some(algorithm);
+                            } else {
+                                state.content_encryption_method = Some(algorithm);
                             }
+                            break;
                         }
                     }
-                    "EncryptedKey" => {
-                        state.in_encrypted_key = true;
-                    }
-                    "EncryptedData" => {
-                        state.in_encrypted_data = true;
-                    }
-                    "CipherValue" => {
-                        state.expecting_cipher_value = true;
-                    }
-                    _ => {}
                 }
-            }
+                "EncryptedKey" => {
+                    state.in_encrypted_key = true;
+                }
+                "EncryptedData" => {
+                    state.in_encrypted_data = true;
+                }
+                "CipherValue" => {
+                    state.expecting_cipher_value = true;
+                }
+                _ => {}
+            },
             XmlEvent::EndElement { name, .. } => match name.local_name.as_str() {
                 "EncryptedAssertion" => {
                     return build_encrypted_assertion(state);

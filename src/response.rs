@@ -568,7 +568,7 @@ impl ResponseElements {
 
             let signed = crate::sign::sign_data(
                 self.signing_algorithm,
-                self.signing_key.clone(),
+                &self.signing_key,
                 canonical_signedinfo.as_bytes(),
             )
             .map_err(|error| format!("Failed to sign response: {:?}", error))?;

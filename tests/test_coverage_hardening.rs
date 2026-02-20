@@ -6,6 +6,7 @@
 //! - Expected response: exact strict-mode rejection category.
 
 use std::str::FromStr;
+use std::sync::Arc;
 
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use certkit::cert::params::{CertificationRequestInfo, DistinguishedName};
@@ -16,7 +17,9 @@ use rsa::pkcs8::{DecodePrivateKey, EncodePrivateKey};
 use saml_rs::assertion::AssertionAttribute;
 use saml_rs::response::{AuthNStatement, ResponseElements};
 use saml_rs::security::{SecurityError, XmlSecurityLimits, inspect_xml_payload};
-use saml_rs::sign::{CanonicalizationMethod, DigestAlgorithm, SigningAlgorithm, SigningKey};
+use saml_rs::sign::{
+    CanonicalizationMethod, DigestAlgorithm, SigningAlgorithm, SigningKey, generate_private_key,
+};
 use saml_rs::sp::{BindingMethod, NameIdFormat, SamlBindingType, ServiceBinding};
 use saml_rs::utils::{DateTimeUtils, generate_keypair, to_hex_string};
 use tokio::fs;
@@ -292,91 +295,70 @@ fn response_builder_rejects_bad_inputs_and_builds_unsigned_responses() {
 
 #[test]
 fn signing_roundtrip_sha256_detects_tamper_and_conversion_fallbacks() {
-    // TODO reimplement this
+    let signing_key: Arc<SigningKey> = Arc::new(generate_private_key().into());
 
-    // let rsa = match Rsa::generate(2048) {
-    //     Ok(value) => value,
-    //     Err(error) => panic!("failed to generate rsa: {:?}", error),
-    // };
-    // let signing_key = match PKey::from_rsa(rsa) {
-    //     Ok(value) => value,
-    //     Err(error) => panic!("failed to create private key: {:?}", error),
-    // };
-    // let private_key = signing_key
-    //     .private_key_to_der()
-    //     .expect("private key should render to DER");
+    let signed = saml_rs::sign::sign_data(SigningAlgorithm::RsaSha256, &signing_key, b"integrity")
+        .expect("signing should succeed with valid key and algorithm");
+    assert!(!signed.is_empty(), "SHA-256 signing should produce bytes");
 
-    // let public_pem = match signing_key.public_key_to_pem() {
-    //     Ok(value) => value,
-    //     Err(error) => panic!("failed to export public key: {:?}", error),
-    // };
-    // let verify_key = match PKey::public_key_from_pem(&public_pem) {
-    //     Ok(value) => value,
-    //     Err(error) => panic!("failed to parse public key: {:?}", error),
-    // };
+    let ok = saml_rs::sign::verify_data(
+        SigningAlgorithm::RsaSha256,
+        &signing_key,
+        b"integrity",
+        &signed,
+    );
+    match ok {
+        Ok(value) => assert!(value, "signature must verify over original payload"),
+        Err(error) => panic!("verification should not error: {}", error),
+    }
 
-    // let signed = saml_rs::sign::sign_data(SigningAlgorithm::RsaSha256, &private_key, b"integrity")
-    //     .expect("signing should succeed with valid key and algorithm");
-    // assert!(!signed.is_empty(), "SHA-256 signing should produce bytes");
+    let tampered = saml_rs::sign::verify_data(
+        SigningAlgorithm::RsaSha256,
+        &signing_key,
+        b"integrity-tampered",
+        &signed,
+    );
+    match tampered {
+        Ok(value) => assert!(
+            !value,
+            "signature verification must fail for tampered payload"
+        ),
+        Err(error) => panic!("tampered verify should return false, not error: {}", error),
+    }
 
-    // let ok = saml_rs::sign::verify_data(
-    //     SigningAlgorithm::RsaSha256,
-    //     &verify_key,
-    //     b"integrity",
-    //     &signed,
-    // );
-    // match ok {
-    //     Ok(value) => assert!(value, "signature must verify over original payload"),
-    //     Err(error) => panic!("verification should not error: {}", error),
-    // }
+    let invalid_signing = SigningAlgorithm::from("urn:invalid".to_string());
+    assert!(matches!(
+        invalid_signing,
+        SigningAlgorithm::InvalidAlgorithm
+    ));
 
-    // let tampered = saml_rs::sign::verify_data(
-    //     SigningAlgorithm::RsaSha256,
-    //     &verify_key,
-    //     b"integrity-tampered",
-    //     &signed,
-    // );
-    // match tampered {
-    //     Ok(value) => assert!(
-    //         !value,
-    //         "signature verification must fail for tampered payload"
-    //     ),
-    //     Err(error) => panic!("tampered verify should return false, not error: {}", error),
-    // }
+    let invalid_digest = DigestAlgorithm::from("urn:invalid".to_string());
+    assert!(matches!(invalid_digest, DigestAlgorithm::InvalidAlgorithm));
 
-    // let invalid_signing = SigningAlgorithm::from("urn:invalid".to_string());
-    // assert!(matches!(
-    //     invalid_signing,
-    //     SigningAlgorithm::InvalidAlgorithm
-    // ));
+    let invalid_signing_uri = String::from(SigningAlgorithm::InvalidAlgorithm);
+    assert!(invalid_signing_uri.contains("Invalid Algorithm specified"));
 
-    // let invalid_digest = DigestAlgorithm::from("urn:invalid".to_string());
-    // assert!(matches!(invalid_digest, DigestAlgorithm::InvalidAlgorithm));
+    let invalid_digest_uri = String::from(DigestAlgorithm::InvalidAlgorithm);
+    assert!(invalid_digest_uri.contains("Invalid Algorithm specified"));
 
-    // let invalid_signing_uri = String::from(SigningAlgorithm::InvalidAlgorithm);
-    // assert!(invalid_signing_uri.contains("Invalid Algorithm specified"));
+    let inclusive =
+        CanonicalizationMethod::from("http://www.w3.org/TR/2001/REC-xml-c14n-20010315".to_string());
+    assert!(matches!(
+        inclusive,
+        CanonicalizationMethod::InclusiveCanonical10
+    ));
 
-    // let invalid_digest_uri = String::from(DigestAlgorithm::InvalidAlgorithm);
-    // assert!(invalid_digest_uri.contains("Invalid Algorithm specified"));
+    let fallback = CanonicalizationMethod::from("unknown-c14n-mode".to_string());
+    assert!(matches!(
+        fallback,
+        CanonicalizationMethod::ExclusiveCanonical10
+    ));
 
-    // let inclusive =
-    //     CanonicalizationMethod::from("http://www.w3.org/TR/2001/REC-xml-c14n-20010315".to_string());
-    // assert!(matches!(
-    //     inclusive,
-    //     CanonicalizationMethod::InclusiveCanonical10
-    // ));
-
-    // let fallback = CanonicalizationMethod::from("unknown-c14n-mode".to_string());
-    // assert!(matches!(
-    //     fallback,
-    //     CanonicalizationMethod::ExclusiveCanonical10
-    // ));
-
-    // let c14n_error = CanonicalizationMethod::ExclusiveCanonical10.canonicalize("<broken>");
-    // assert!(
-    //     c14n_error.is_err(),
-    //     "invalid xml should fail canonicalization"
-    // );
+    let c14n_error = CanonicalizationMethod::ExclusiveCanonical10.canonicalize("<broken>");
+    assert!(
+        c14n_error.is_err(),
+        "invalid xml should fail canonicalization"
+    );
 }
 
 #[test]
@@ -693,7 +675,7 @@ async fn async_load_key_and_certificate_helpers_cover_async_paths() {
         .await
         .expect("async load of private key file should succeed");
 
-    load_key_from_filename_async(cert_path.path().to_string_lossy().as_ref())
+    saml_rs::sign::load_public_cert_from_filename(cert_path.path().to_string_lossy().as_ref())
         .await
         .expect("async load of certificate file should succeed");
 

@@ -10,6 +10,9 @@
 //! Detailed prose for each case lives in `tests/fixtures/attacks/ATTACK_EXPECTATIONS.md`.
 
 use std::path::PathBuf;
+use std::sync::Arc;
+
+use saml_rs::sign::{SigningAlgorithm, SigningKey};
 
 #[derive(Clone, Copy, Debug)]
 enum AttackTarget {
@@ -331,24 +334,18 @@ async fn rejects_attack_matrix_in_safe_mode() {
     assert!(!saml_rs::security::unsigned_authn_requests_allowed());
     assert!(!saml_rs::security::unknown_service_providers_allowed());
 
-    let rsa = Rsa::generate(2048).expect("rsa generation should succeed");
-    let signing_key = rsa.private_key_to_der().expect("private key should render");
+    let signing_key: Arc<SigningKey> = Arc::new(saml_rs::sign::generate_private_key().into());
 
-    let signed = saml_rs::sign::sign_data(
-        saml_rs::sign::SigningAlgorithm::RsaSha1,
-        &signing_key,
-        b"downgrade-check",
-    )
-    .expect("signing call should succeed");
+    let signed =
+        saml_rs::sign::sign_data(SigningAlgorithm::RsaSha1, &signing_key, b"downgrade-check");
     assert!(
-        signed.is_empty(),
+        signed.is_err(),
         "SHA-1 signing should be blocked in safe mode"
     );
 
-    // TODO: verification
     let verify_result = saml_rs::sign::verify_data(
-        saml_rs::sign::SigningAlgorithm::RsaSha1,
-        &verify_ke,
+        SigningAlgorithm::RsaSha1,
+        &signing_key,
         b"downgrade-check",
         b"bogus",
     );
@@ -378,26 +375,19 @@ async fn danger_mode_requires_explicit_unlock_and_only_relaxes_selected_controls
     assert!(saml_rs::security::unsigned_authn_requests_allowed());
     assert!(saml_rs::security::unknown_service_providers_allowed());
 
-    let rsa = Rsa::generate(2048).expect("rsa generation should succeed");
-    let signing_key = PKey::from_rsa(rsa).expect("private key should be constructible");
-    let public_pem = signing_key
-        .public_key_to_pem()
-        .expect("public key pem should render");
-    let verify_key = PKey::public_key_from_pem(&public_pem).expect("public key should parse");
+    let signing_key: Arc<SigningKey> = Arc::new(saml_rs::sign::generate_private_key().into());
 
-    let signed = saml_rs::sign::sign_data(
-        saml_rs::sign::SigningAlgorithm::RsaSha1,
-        &signing_key,
-        b"downgrade-check",
-    );
+    let signed =
+        saml_rs::sign::sign_data(SigningAlgorithm::RsaSha1, &signing_key, b"downgrade-check")
+            .expect("signing call should succeed after danger unlock");
     assert!(
         !signed.is_empty(),
         "SHA-1 signing should only be possible after explicit danger unlock"
     );
 
     let verified = saml_rs::sign::verify_data(
-        saml_rs::sign::SigningAlgorithm::RsaSha1,
-        &verify_key,
+        SigningAlgorithm::RsaSha1,
+        &signing_key,
         b"downgrade-check",
         &signed,
     )

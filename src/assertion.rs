@@ -305,7 +305,7 @@ impl Assertion {
 
             let signed_result = crate::sign::sign_data(
                 self.signing_algorithm,
-                signing_key.into(),
+                &Arc::new(signing_key),
                 canonical_signedinfo.as_bytes(),
             )?;
             if signed_result.is_empty() {
