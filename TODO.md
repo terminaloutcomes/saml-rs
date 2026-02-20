@@ -38,9 +38,9 @@ This list identifies remaining work for robust, secure SAML 2.0 support in the s
 
 ### 1. Assertion Encryption (High Priority)
 
-- [ ] Implement `EncryptedAssertion` XML structure parsing and generation
-- [ ] Implement A256CBC-HS512 (AES-256-CBC + HMAC-SHA-512) for content encryption
-- [ ] Implement RSA-OAEP-256 for key encryption (default)
+- [x] Implement `EncryptedAssertion` XML structure parsing and generation
+- [x] Implement A256CBC-HS512 (AES-256-CBC + HMAC-SHA-512) for content encryption
+- [x] Implement RSA-OAEP-256 for key encryption (default)
 - [ ] Add `EncryptionAlgorithm` enum with support for:
   - [ ] A128CBC-HS256, A256CBC-HS512 (AES-CBC + HMAC)
   - [ ] A128GCM, A256GCM (AES-GCM)
