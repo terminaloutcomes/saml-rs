@@ -76,9 +76,12 @@ use xmlparser::{ElementEnd, StrSpan, Token};
 pub mod assertion;
 pub mod cert;
 pub mod constants;
-pub mod metadata;
+pub mod content_encryption;
+pub mod encrypted_assertion_parser;
+
 pub mod encrypted_assertion;
-pub mod content_encryption;pub mod response;
+pub mod metadata;
+pub mod response;
 pub mod security;
 pub mod sign;
 pub mod sp;
@@ -624,5 +627,3 @@ fn _get_private_key() {
 // This corresponds to i2d_RSAPrivateKey.
 // */
 // }
-
-pub mod encrypted_assertion_parser;

@@ -72,6 +72,8 @@ hmac = "0.12"
 sha2 = "0.10"
 typenum = "1.17"
 rust-crypto = "0.2.36"
+elliptic-curve = { version = "0.13.8", features = ["serde", "ecdh", "sec1"] }
+k256 = { version = "0.13.4", features = ["ecdh", "serde"] }
 
 [dev-dependencies]
 reqwest = { workspace = true, features = ["blocking", "native-tls"] }

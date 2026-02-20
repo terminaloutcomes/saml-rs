@@ -105,6 +105,39 @@ pub enum KeyEncryptionAlgorithm {
 }
 
 impl KeyEncryptionAlgorithm {
+    /// Gets the padding scheme for a given key encryption algorithm
+    pub fn as_rsa_padding(&self) -> Option<Box<rsa::Oaep>> {
+        match self {
+            Self::RSA_OAEP_512 => Some(Box::new(rsa::Oaep::new::<sha2::Sha512>())),
+            Self::RSA_OAEP_384 => Some(Box::new(rsa::Oaep::new::<sha2::Sha384>())),
+            Self::RSA_OAEP_256 => Some(Box::new(rsa::Oaep::new::<sha2::Sha256>())),
+            _ => None, // For unsupported algorithms, return None
+        }
+    }
+
+    /// Encrypts data using this key encryption algorithm and the provided public key.
+    pub fn encrypt_rsa(
+        self,
+        data: &[u8],
+        public_key: &rsa::RsaPublicKey,
+    ) -> Result<Vec<u8>, rsa::Error> {
+        let mut rng = aes_gcm::aead::OsRng;
+        let padding = *self.as_rsa_padding().ok_or(rsa::Error::InvalidArguments)?;
+        let encrypted_data = public_key.encrypt(&mut rng, padding, data)?;
+
+        Ok(encrypted_data)
+    }
+
+    /// Decrypts data
+    pub fn decrypt_rsa(
+        &self,
+        encrypted_data: &[u8],
+        private_key: &rsa::RsaPrivateKey,
+    ) -> Result<Vec<u8>, rsa::Error> {
+        let oaep = *self.as_rsa_padding().ok_or(rsa::Error::InvalidArguments)?;
+        private_key.decrypt(oaep, encrypted_data)
+    }
+
     /// Returns the URI for this algorithm
     pub fn as_uri(&self) -> &'static str {
         match self {
