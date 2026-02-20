@@ -11,8 +11,10 @@ use std::sync::Arc;
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use certkit::cert::params::{CertificationRequestInfo, DistinguishedName};
 use chrono::{DateTime, NaiveDate, Utc};
+use k256::ecdsa::SigningKey as K256SigningKey;
 use log::debug;
 use rsa::RsaPrivateKey;
+use rsa::pkcs1v15::Pkcs1v15Sign;
 use rsa::pkcs8::{DecodePrivateKey, EncodePrivateKey};
 use saml_rs::assertion::AssertionAttribute;
 use saml_rs::response::{AuthNStatement, ResponseElements};
@@ -359,6 +361,75 @@ fn signing_roundtrip_sha256_detects_tamper_and_conversion_fallbacks() {
         c14n_error.is_err(),
         "invalid xml should fail canonicalization"
     );
+}
+
+#[test]
+fn verify_data_with_cert_rsa_sha256_roundtrip_and_tamper() {
+    let (private_key, cert) = generate_valid_signing_material("cert-verify.example.com");
+    let payload = b"signed-info-payload";
+    let digest = saml_rs::sign::DigestAlgorithm::Sha256
+        .hash(payload)
+        .expect("failed to hash payload with SHA-256");
+
+    let signature = private_key
+        .sign(Pkcs1v15Sign::new::<sha2::Sha256>(), &digest)
+        .expect("failed to sign digest using RSA key");
+
+    let verified = saml_rs::sign::verify_data_with_cert(
+        SigningAlgorithm::RsaSha256,
+        &cert,
+        payload,
+        &signature,
+    )
+    .expect("certificate verification should succeed");
+    assert!(
+        verified,
+        "signature must verify against certificate public key"
+    );
+
+    let tampered = saml_rs::sign::verify_data_with_cert(
+        SigningAlgorithm::RsaSha256,
+        &cert,
+        b"signed-info-payload-tampered",
+        &signature,
+    )
+    .expect("tampered verification should return false, not error");
+    assert!(
+        !tampered,
+        "tampered payload must fail certificate verification"
+    );
+}
+
+#[test]
+fn signing_roundtrip_ecdsa_sha256_detects_tamper() {
+    let signing_key = SigningKey::EcDsa256(K256SigningKey::random(&mut rsa::rand_core::OsRng));
+    let signing_key: Arc<SigningKey> = Arc::new(signing_key);
+
+    let signed = saml_rs::sign::sign_data(
+        SigningAlgorithm::EcDsaSha256,
+        &signing_key,
+        b"ecdsa-integrity",
+    )
+    .expect("ECDSA signing should succeed with valid key and algorithm");
+    assert!(!signed.is_empty(), "ECDSA signing should produce bytes");
+
+    let ok = saml_rs::sign::verify_data(
+        SigningAlgorithm::EcDsaSha256,
+        &signing_key,
+        b"ecdsa-integrity",
+        &signed,
+    )
+    .expect("ECDSA verification should not error");
+    assert!(ok, "ECDSA signature must verify over original payload");
+
+    let tampered = saml_rs::sign::verify_data(
+        SigningAlgorithm::EcDsaSha256,
+        &signing_key,
+        b"ecdsa-integrity-tampered",
+        &signed,
+    )
+    .expect("tampered ECDSA verification should return false");
+    assert!(!tampered, "ECDSA signature must fail for tampered payload");
 }
 
 #[test]

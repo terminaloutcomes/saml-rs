@@ -1,5 +1,3 @@
-use difference::Changeset;
-
 use chrono::{DateTime, Duration, NaiveDate, Utc};
 use saml_rs::assertion::AssertionAttribute;
 use saml_rs::response::{AuthNStatement, ResponseElements};
@@ -83,16 +81,21 @@ fn test_full_response_something_something() {
 
     let response = from_utf8(&response_vec).expect("Failed to convert response to UTF-8 string");
 
-    let changeset = Changeset::new(
-        &TEST_SAML_UNSIGNED_RESPONSE_UNSIGNED_ASSERTION.replace("\n", ""),
-        &response.replace("\n", ""),
-        " ",
-    );
-    println!("{}", changeset);
-    // assert_eq!(changeset.diffSec![
-    //     Difference::Same("<samlp:Response".to_string()),
-    //     // Difference::Rem("s".to_string()),
-    //     // Difference::Add("n".to_string()),
-    //     // Difference::Same("t".to_string())
-    // ]);
+    let test1 = TEST_SAML_UNSIGNED_RESPONSE_UNSIGNED_ASSERTION.replace("\n", "");
+    let test2 = response.replace("\n", "");
+    let changeset = dissimilar::diff(&test1, &test2);
+    println!("{:?}", changeset);
+    for item in changeset {
+        match item {
+            dissimilar::Chunk::Equal(_) => {}
+            dissimilar::Chunk::Delete(del) => {
+                if regex::Regex::new(r"\s+").unwrap().is_match(del) {
+                    // eprintln!("Deleted whitespace");
+                } else {
+                    eprintln!("Deleted: {}", del);
+                }
+            }
+            dissimilar::Chunk::Insert(ins) => eprintln!("Inserted: {}", ins),
+        }
+    }
 }

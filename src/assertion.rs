@@ -254,14 +254,9 @@ impl Assertion {
         // if the assertion needs to be signed, we need to generate the whole assertion as a string, sign that, then add it to this assertion.
         if self.sign_assertion {
             debug!("Signing assertion");
-            let signing_key = match self.signing_key.as_ref() {
-                SigningKey::Rsa(key) => SigningKey::Rsa(key.clone()),
-                #[allow(clippy::unimplemented)]
-                SigningKey::EcDsa192(_) => unimplemented!("ECDSA signing not implemented yet"),
-                SigningKey::None => {
-                    return Err("Cannot sign assertion without signing key".to_string());
-                }
-            };
+            if self.signing_key.is_none() {
+                return Err("Cannot sign assertion without signing key".to_string());
+            }
             if self.signing_cert.is_none() {
                 return Err("Cannot sign assertion without signing certificate".to_string());
             }
@@ -305,7 +300,7 @@ impl Assertion {
 
             let signed_result = crate::sign::sign_data(
                 self.signing_algorithm,
-                &Arc::new(signing_key),
+                &self.signing_key,
                 canonical_signedinfo.as_bytes(),
             )?;
             if signed_result.is_empty() {

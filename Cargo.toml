@@ -12,14 +12,13 @@ tokio = { version = "1.49.0", features = ["rt", "macros"] }
 base64 = "0.22.1"
 chrono = "0.4.43"
 config = "0.15.19"
-difference = "2.0.0"
 driftwood = "0.0.7"
 hex = "0.4.3"
 http-types = "2.11.1"
 inflate = "0.4.5"
 log = "0.4.29"
 regex = "1.12.3"
-reqwest = "0.11"
+reqwest = "0.12.28"
 serde = "1.0.228"
 serde-xml-rs = "0.8.2"
 serde_derive = "1.0"
@@ -51,7 +50,6 @@ xmlparser = { workspace = true }
 serde = { workspace = true }
 serde-xml-rs = { workspace = true }
 serde_derive = { workspace = true }
-difference = { workspace = true }
 chrono = { workspace = true }
 log = { workspace = true }
 inflate = { workspace = true }
@@ -66,12 +64,13 @@ aes-gcm = "0.10"
 rsa = "0.9"
 rand = "0.10"
 aes = "0.8"
+cbc = "0.1"
 hmac = "0.12"
+sha1 = { package = "sha-1", version = "0.10" }
 sha2 = "0.10"
 typenum = "1.17"
-rust-crypto = "0.2.36"
 elliptic-curve = { version = "0.13.8", features = ["serde", "ecdh", "sec1"] }
-k256 = { version = "0.13.4", features = ["ecdh", "serde"] }
+k256 = { version = "0.13.4", features = ["ecdh", "ecdsa", "pkcs8", "serde"] }
 x509-cert = "0.2.5"
 signature = { version = "2.2.0", features = ["digest"] }
 p192 = "0.13.0"
@@ -83,3 +82,4 @@ regex = { workspace = true }
 hex = { workspace = true }
 tokio = { workspace = true, features = ["fs", "rt", "macros"] }
 tempfile = "3.25.0"
+dissimilar = "1.0.10"

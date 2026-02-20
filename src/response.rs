@@ -345,7 +345,7 @@ impl ResponseElementsBuilder {
         }
 
         if self.sign_assertion || self.sign_message {
-            if self.signing_key.eq(&SigningKey::None.into()) {
+            if self.signing_key.is_none() {
                 return Err("signing_key must be set when signing is enabled");
             }
             if self.signing_cert.is_none() {

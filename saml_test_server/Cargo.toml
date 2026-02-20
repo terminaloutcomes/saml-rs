@@ -28,7 +28,6 @@ serde-xml-rs = { workspace = true }
 serde_derive = { workspace = true }
 serde_json = { workspace = true }
 reqwest = { workspace = true }
-difference = { workspace = true }
 chrono = { workspace = true }
 http-types = { workspace = true }
 tide = { workspace = true }
