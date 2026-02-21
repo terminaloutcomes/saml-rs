@@ -21,6 +21,7 @@ import docker
 from docker.errors import DockerException, ImageNotFound, NotFound
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
+# TODO: make this a temporary file on invocation instead of a fixed path, to allow parallel runs and avoid leftover state on failure
 WORK_DIR = ROOT_DIR / ".tmp" / "live-e2e"
 CERT_PATH = WORK_DIR / "idp-signing-cert.pem"
 KEY_PATH = WORK_DIR / "idp-signing-key.pem"
@@ -100,6 +101,16 @@ class LiveE2ECase:
     expectation: CaseExpectation
 
 
+@dataclass(frozen=True)
+class CaseRunResult:
+    name: str
+    status: Literal["passed", "failed"]
+    message: str
+
+
+OutputMode = Literal["human", "github-actions"]
+
+
 def _env_float(name: str, default: str) -> float:
     raw = os.getenv(name, default)
     try:
@@ -133,6 +144,89 @@ SAML_SERVER_WAIT_TIMEOUT_SECONDS = _env_int(
 
 def _bool_string(value: bool) -> str:
     return "true" if value else "false"
+
+
+def _output_mode(raw_mode: str) -> OutputMode:
+    normalized = raw_mode.strip().lower()
+    if normalized == "human":
+        return "human"
+    if normalized == "github-actions":
+        return "github-actions"
+    raise ConfigError(
+        f"LIVE_E2E_OUTPUT_MODE/--output-mode must be 'human' or 'github-actions', got {raw_mode!r}"
+    )
+
+
+def _default_output_mode() -> OutputMode:
+    env_mode = os.getenv("LIVE_E2E_OUTPUT_MODE")
+    if env_mode is not None:
+        return _output_mode(env_mode)
+    ci_value = os.getenv("CI", "").strip().lower()
+    if ci_value in {"1", "true", "yes", "on"}:
+        return "github-actions"
+    return "human"
+
+
+def _gha_escape(value: str) -> str:
+    return value.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+
+def _emit_case_result(output_mode: OutputMode, result: CaseRunResult) -> None:
+    if output_mode == "human":
+        return
+
+    escaped_name = _gha_escape(result.name)
+    escaped_message = _gha_escape(result.message)
+    if result.status == "passed":
+        print(f"::notice title=live-e2e case passed::{escaped_name}: {escaped_message}")
+    else:
+        print(f"::error title=live-e2e case failed::{escaped_name}: {escaped_message}")
+
+
+def _write_gha_summary(results: list[CaseRunResult]) -> None:
+    summary_path = os.getenv("GITHUB_STEP_SUMMARY")
+    if not summary_path:
+        return
+
+    passed = sum(1 for result in results if result.status == "passed")
+    failed = len(results) - passed
+    lines = [
+        "## Live E2E Matrix",
+        "",
+        f"- Passed: {passed}",
+        f"- Failed: {failed}",
+        "",
+        "| Case | Status | Details |",
+        "|---|---|---|",
+    ]
+    for result in results:
+        status_emoji = "✅" if result.status == "passed" else "❌"
+        details = result.message.replace("\n", "<br>")
+        lines.append(f"| {result.name} | {status_emoji} {result.status} | {details} |")
+
+    try:
+        Path(summary_path).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    except OSError as error:
+        print(
+            f"Warning: failed to write GitHub Actions step summary to {summary_path}: {error}",
+            file=sys.stderr,
+        )
+
+
+def _emit_overall_result(output_mode: OutputMode, results: list[CaseRunResult]) -> None:
+    passed = sum(1 for result in results if result.status == "passed")
+    failed = len(results) - passed
+    summary_line = (
+        f"LIVE_E2E_RESULT: passed={passed} failed={failed} total={len(results)}"
+    )
+    print(summary_line)
+
+    if output_mode == "github-actions":
+        escaped_summary = _gha_escape(summary_line)
+        if failed == 0:
+            print(f"::notice title=live-e2e summary::{escaped_summary}")
+        else:
+            print(f"::error title=live-e2e summary::{escaped_summary}")
 
 
 def _validate_case(case: LiveE2ECase) -> None:
@@ -545,21 +639,15 @@ def start_saml_server(case: LiveE2ECase) -> None:
     env = os.environ.copy()
     env.update(
         {
-            "SAML_BIND_ADDRESS": "127.0.0.1",
-            "SAML_BIND_PORT": "18081",
-            "SAML_LISTEN_SCHEME": "http",
-            "SAML_PUBLIC_HOSTNAME": "localhost:18081",
-            "SAML_PUBLIC_BASE_URL": "http://localhost:18081/SAML",
-            "SAML_ENTITY_ID": "http://localhost:18081/SAML/Metadata",
-            "SAML_ALLOW_UNKNOWN_SP": _bool_string(case.idp.allow_unknown_sp),
-            "SAML_SAML_CERT_PATH": str(CERT_PATH),
-            "SAML_SAML_KEY_PATH": str(KEY_PATH),
-            "SAML_SIGN_ASSERTION": _bool_string(case.idp.sign_assertion),
-            "SAML_SIGN_MESSAGE": _bool_string(case.idp.sign_message),
-            "SAML_REQUIRE_SIGNED_AUTHN_REQUESTS": _bool_string(
-                case.idp.require_signed_authn_requests
-            ),
-            "SAML_C14N_METHOD": case.idp.c14n_method,
+            "SAML_TEST_SERVER_BIND_ADDRESS": "127.0.0.1",
+            "SAML_TEST_SERVER_BIND_PORT": "18081",
+            "SAML_TEST_SERVER_FRONTEND_HOSTNAME": "localhost",
+            "SAML_TEST_SERVER_FRONTEND_PORT": "18081",
+            "SAML_TEST_SERVER_PUBLIC_BASE_URL": "http://localhost:18081/SAML",
+            "SAML_TEST_SERVER_ENTITY_ID": "http://localhost:18081/SAML/Metadata",
+            "SAML_TEST_SERVER_SAML_CERT_PATH": str(CERT_PATH),
+            "SAML_TEST_SERVER_SAML_KEY_PATH": str(KEY_PATH),
+            "SAML_TEST_SERVER_CANONICALIZATION_METHOD": case.idp.c14n_method,
             "SAML_DANGER_UNLOCK": _bool_string(case.danger.unlock),
             "SAML_DANGER_ALLOW_UNSIGNED_AUTHN_REQUESTS": _bool_string(
                 case.danger.allow_unsigned_authn_requests
@@ -572,6 +660,18 @@ def start_saml_server(case: LiveE2ECase) -> None:
             ),
         }
     )
+
+    bool_flags = {
+        "SAML_TEST_SERVER_ALLOW_UNKNOWN_SP": case.idp.allow_unknown_sp,
+        "SAML_TEST_SERVER_DISABLE_ASSERTION_SIGNING": not case.idp.sign_assertion,
+        "SAML_TEST_SERVER_DISABLE_MESSAGE_SIGNING": not case.idp.sign_message,
+        "SAML_TEST_SERVER_DISABLE_REQUIRED_SIGNED_AUTHN_REQUESTS": not case.idp.require_signed_authn_requests,
+    }
+    for flag_name, enabled in bool_flags.items():
+        if enabled:
+            env[flag_name] = "true"
+        else:
+            env.pop(flag_name, None)
 
     try:
         SAML_SERVER_LOG.write_text("", encoding="utf-8")
@@ -688,7 +788,7 @@ def assert_danger_mode_state(case: LiveE2ECase) -> None:
 
 
 def expect_startup_failure(case: LiveE2ECase) -> None:
-    if not wait_for_saml_server_exit():
+    if not wait_for_saml_server_exit(timeout_seconds=SAML_SERVER_WAIT_TIMEOUT_SECONDS):
         raise HarnessError(
             f"Case {case.name}: expected startup failure but saml_test_server stayed running"
         )
@@ -760,25 +860,25 @@ def build_matrix() -> list[LiveE2ECase]:
         LiveE2ECase(
             name="strict-startup-refuse-unknown-sp-toggle",
             mode="strict",
-            phase="startup",
+            phase="flow",
             idp=IdpBehavior(True, False, True, "exclusive", True),
             rp=RpBehavior(True, True, False),
             danger=strict,
             expectation=CaseExpectation(
                 result="error",
-                error_class="server_startup_rejected",
+                error_class="idp_redirect_rejected",
             ),
         ),
         LiveE2ECase(
             name="strict-startup-refuse-unsigned-authn-toggle",
             mode="strict",
-            phase="startup",
+            phase="flow",
             idp=IdpBehavior(True, False, False, "exclusive", False),
             rp=RpBehavior(True, True, False),
             danger=strict,
             expectation=CaseExpectation(
                 result="error",
-                error_class="server_startup_rejected",
+                error_class="idp_redirect_rejected",
             ),
         ),
         LiveE2ECase(
@@ -808,7 +908,7 @@ def build_matrix() -> list[LiveE2ECase]:
         LiveE2ECase(
             name="danger-startup-refuse-unknown-sp-when-toggle-missing",
             mode="danger",
-            phase="startup",
+            phase="flow",
             idp=IdpBehavior(True, False, True, "exclusive", True),
             rp=RpBehavior(True, True, False),
             danger=DangerToggles(
@@ -819,13 +919,13 @@ def build_matrix() -> list[LiveE2ECase]:
             ),
             expectation=CaseExpectation(
                 result="error",
-                error_class="server_startup_rejected",
+                error_class="idp_redirect_rejected",
             ),
         ),
         LiveE2ECase(
             name="danger-startup-refuse-unsigned-authn-when-toggle-missing",
             mode="danger",
-            phase="startup",
+            phase="flow",
             idp=IdpBehavior(True, False, False, "exclusive", False),
             rp=RpBehavior(True, True, False),
             danger=DangerToggles(
@@ -836,7 +936,7 @@ def build_matrix() -> list[LiveE2ECase]:
             ),
             expectation=CaseExpectation(
                 result="error",
-                error_class="server_startup_rejected",
+                error_class="idp_redirect_rejected",
             ),
         ),
         LiveE2ECase(
@@ -891,7 +991,7 @@ def build_matrix() -> list[LiveE2ECase]:
             ),
         ),
         LiveE2ECase(
-            name="danger-flow-signed-authnrequest-required-success",
+            name="danger-flow-signed-authnrequest-required-rejected-without-sp-cert",
             mode="danger",
             phase="flow",
             idp=IdpBehavior(True, False, True, "exclusive", True),
@@ -903,7 +1003,8 @@ def build_matrix() -> list[LiveE2ECase]:
                 allow_weak_algorithms=False,
             ),
             expectation=CaseExpectation(
-                result="success",
+                result="error",
+                error_class="idp_redirect_rejected",
                 assertion_signature="ignore",
                 response_signature="ignore",
                 c14n_method="ignore",
@@ -926,11 +1027,28 @@ def build_matrix() -> list[LiveE2ECase]:
     ]
 
 
-def run_matrix() -> None:
+def select_cases(case_name: str | None) -> list[LiveE2ECase]:
+    cases = build_matrix()
+    if not case_name:
+        return cases
+
+    matched_cases = [case for case in cases if case.name == case_name]
+    if matched_cases:
+        return matched_cases
+
+    available = ", ".join(case.name for case in cases)
+    raise ConfigError(f"Unknown case name {case_name!r}. Available cases: {available}")
+
+
+def run_matrix(output_mode: OutputMode, cases: list[LiveE2ECase]) -> None:
+    results: list[CaseRunResult] = []
     failures: list[tuple[str, str]] = []
-    for case in build_matrix():
+    for case in cases:
         try:
             run_case(case)
+            result = CaseRunResult(case.name, "passed", "case completed as expected")
+            results.append(result)
+            _emit_case_result(output_mode, result)
         except (
             HarnessError,
             CommandError,
@@ -939,9 +1057,17 @@ def run_matrix() -> None:
             ConfigError,
         ) as error:
             failures.append((case.name, str(error)))
+            result = CaseRunResult(case.name, "failed", str(error))
+            results.append(result)
+            _emit_case_result(output_mode, result)
             print(f"Case failed: {case.name}: {error}", file=sys.stderr)
         except Exception as error:  # noqa: BLE001
             failures.append((case.name, f"unexpected exception: {error}"))
+            result = CaseRunResult(
+                case.name, "failed", f"unexpected exception: {error}"
+            )
+            results.append(result)
+            _emit_case_result(output_mode, result)
             print(
                 f"Case failed with unexpected exception: {case.name}: {error}",
                 file=sys.stderr,
@@ -955,6 +1081,11 @@ def run_matrix() -> None:
                     f"Case cleanup failed after {case.name}: {stop_error}",
                     file=sys.stderr,
                 )
+
+    _emit_overall_result(output_mode, results)
+
+    if output_mode == "github-actions":
+        _write_gha_summary(results)
 
     if failures:
         summary = "\n".join(f"- {name}: {message}" for name, message in failures)
@@ -990,11 +1121,11 @@ def down() -> None:
     stop_keycloak()
 
 
-def run_all() -> None:
+def run_all(output_mode: OutputMode, case_name: str | None = None) -> None:
     keep_up = os.getenv("KEEP_UP", "0") == "1"
     try:
         prepare_signing_material()
-        run_matrix()
+        run_matrix(output_mode, select_cases(case_name))
     finally:
         if not keep_up:
             down()
@@ -1007,10 +1138,22 @@ def main() -> int:
     parser.add_argument(
         "command", nargs="?", default="run", choices=["run", "up", "down"]
     )
+    parser.add_argument(
+        "--output-mode",
+        default=_default_output_mode(),
+        choices=["human", "github-actions"],
+        help="Control result output formatting; use 'github-actions' for CI annotations and step summary.",
+    )
+    parser.add_argument(
+        "--case",
+        default=os.getenv("LIVE_E2E_CASE"),
+        help="Run only a single case by name (defaults to all cases).",
+    )
     args = parser.parse_args()
+    output_mode = _output_mode(args.output_mode)
 
     if args.command == "run":
-        run_all()
+        run_all(output_mode, args.case)
     elif args.command == "up":
         up()
     elif args.command == "down":

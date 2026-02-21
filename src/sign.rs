@@ -35,6 +35,7 @@ use rsa::pkcs1v15::Pkcs1v15Sign;
 use rsa::rand_core;
 use sha1::Digest as _;
 use std::fmt;
+use std::path::Path;
 use std::sync::Arc;
 use tokio::fs;
 use x509_cert::Certificate;
@@ -380,8 +381,10 @@ impl From<DigestAlgorithm> for String {
 }
 
 /// Loads a public cert from a PEM file into a Certificate
-pub async fn load_public_cert_from_filename(cert_filename: &str) -> Result<Certificate, SamlError> {
-    debug!("loading cert:  {}", cert_filename);
+pub async fn load_public_cert_from_filename(
+    cert_filename: &impl AsRef<Path>,
+) -> Result<Certificate, SamlError> {
+    debug!("loading cert:  {}", cert_filename.as_ref().display());
 
     let cert_buffer = fs::read(cert_filename).await?;
 

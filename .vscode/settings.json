@@ -1,4 +1,6 @@
 {
-    "python.linting.enabled": true
+    "python-envs.pythonProjects": [],
+    "chat.tools.terminal.autoApprove": {
+        "uv": true
+    }
 }
-

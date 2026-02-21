@@ -1,12 +1,13 @@
 //! Handy for the XML metadata part of SAML
 
 use crate::{error::SamlError, xml::write_event};
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use log::error;
 use serde::Serialize;
 use std::io::Write;
 use std::str::from_utf8;
 use x509_cert::Certificate;
-use x509_cert::der::EncodePem;
+use x509_cert::der::Encode;
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
 /// Stores the required data for generating a SAML metadata XML file
@@ -180,8 +181,9 @@ pub fn generate_metadata_xml(metadata: &SamlMetadata) -> Result<String, SamlErro
 
     if let Some(value) = &metadata.x509_certificate {
         let base64_encoded_certificate = value
-            .to_pem(rsa::pkcs8::LineEnding::CRLF)
-            .inspect_err(|e| error!("Failed to encode certificate to PEM: {}", e))?;
+            .to_der()
+            .map(|der| BASE64_STANDARD.encode(der))
+            .inspect_err(|e| error!("Failed to encode certificate to DER: {}", e))?;
         xml_add_certificate(KeyUse::Signing, &base64_encoded_certificate, &mut writer);
     };
 

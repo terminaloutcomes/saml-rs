@@ -14,6 +14,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_debug_implementations)]
 
+use clap::Parser;
 use log::*;
 use saml_rs::SamlQuery;
 use saml_rs::assertion::AssertionAttribute;
@@ -26,6 +27,7 @@ use saml_rs::sp::{BindingMethod, ServiceProvider};
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use chrono::Utc;
 
+use saml_test_server::cli::CliOpts;
 use tide::log;
 use tide::utils::After;
 use tide::{Request, Response};
@@ -33,7 +35,6 @@ use tide_openssl::TlsListener;
 
 use std::io::ErrorKind;
 use std::str::{FromStr, from_utf8};
-use tokio::fs::File;
 
 use http_types::Mime;
 
@@ -120,114 +121,6 @@ fn configure_danger_mode_from_env() {
         );
         std::process::exit(1);
     }
-}
-
-#[tokio::main]
-/// Spins up a test server
-///
-/// This uses HTTPS if you specify `TIDE_CERT_PATH` and `TIDE_KEY_PATH` environment variables.
-async fn main() -> tide::Result<()> {
-    configure_danger_mode_from_env();
-    let config_path = match std::env::var("SAML_CONFIG_PATH") {
-        Ok(path) => path,
-        Err(_) => shellexpand::tilde("~/.config/saml_test_server").into_owned(),
-    };
-
-    let server_config = util::ServerConfig::from_filename_and_env(config_path).await;
-
-    let app_state: AppState = server_config.clone().into();
-
-    let mut app = tide::with_state(app_state);
-
-    tide::log::with_level(tide::log::LevelFilter::Debug);
-
-    // driftwood adds simple Apache-Style logs
-    app.with(driftwood::ApacheCombinedLogger);
-
-    app.with(After(|mut res: Response| async {
-        if let Some(err) = res.downcast_error::<std::io::Error>() {
-            debug!("asdfadsfadsf {:?}", err);
-            let msg = match err.kind() {
-                ErrorKind::NotFound => {
-                    format!("Error, Not Found: {:?}", err)
-                }
-                _ => "Unknown Error".to_string(),
-            };
-            res.set_body(msg);
-        }
-
-        Ok(res)
-    }));
-
-    let mut saml_process = app.at("/SAML");
-    // TODO implement support for SAML Artifact
-    // saml_process.at("/Artifact").get(do_nothing);
-    saml_process.at("/Metadata").get(saml_metadata_get);
-    // saml_process.at("/sign").get(test_sign);
-    // TODO implement SAML Logout
-    // saml_process.at("/Logout").get(do_nothing);
-    // TODO implement SAML idp, used the entityID
-    // saml_process.at("/idp").post(do_nothing);
-    // TODO implement SAML POST endpoint
-    // saml_process.at("/POST").post(saml_post_binding);
-
-    saml_process.at("/Redirect").get(saml_redirect_get);
-
-    let bind_target = format!(
-        "{}:{}",
-        &server_config.bind_address, server_config.bind_port
-    );
-
-    match server_config.listen_scheme.as_str() {
-        "https" => {
-            let tls_cert: String =
-                shellexpand::tilde(&server_config.tls_cert_path.as_str()).into_owned();
-            let tls_key: String =
-                shellexpand::tilde(&server_config.tls_key_path.as_str()).into_owned();
-            match File::open(&tls_cert).await {
-                Ok(_) => info!("Successfully loaded cert from {:?}", tls_cert),
-                Err(error) => {
-                    error!(
-                        "Failed to load cert from {:?}, bailing: {:?}",
-                        tls_cert, error
-                    );
-                    std::process::exit(1);
-                }
-            }
-            match File::open(&tls_key).await {
-                Ok(_) => info!("Successfully loaded key from {:?}", tls_key),
-                Err(error) => {
-                    error!(
-                        "Failed to load key from {:?}, bailing: {:?}",
-                        tls_key, error
-                    );
-                    std::process::exit(1);
-                }
-            }
-            info!("Starting up HTTPS server on {:?}", bind_target);
-            // debug!("Server config: {:?}", server_config);
-            app.listen(
-                TlsListener::build()
-                    .addrs(bind_target)
-                    .cert(tls_cert)
-                    .key(tls_key),
-            )
-            .await?;
-        }
-        "http" => {
-            info!("Starting up HTTP server on {:?}", bind_target);
-            // debug!("Server config: {:?}", server_config);
-            app.listen(bind_target).await?;
-        }
-        unknown_scheme => {
-            error!(
-                "Unknown listen scheme {:?}, expected http or https",
-                unknown_scheme
-            );
-            std::process::exit(1);
-        }
-    };
-    Ok(())
 }
 
 // use saml_rs::cert::strip_cert_headers;
@@ -624,16 +517,83 @@ pub fn generate_login_form(response: ResponseElements, relay_state: String) -> S
         .unwrap_or_else(|_| String::from("Couldn't generate login form"))
 }
 
-// TODO reimplement test_sign
-// pub async fn test_sign(req: Request<AppState>) -> tide::Result {
-//     saml_rs::sign::sign_data(
-//         req.state().tls_cert_path.to_string(),
-//         req.state().tls_key_path.to_string(),
-//         "hello world".as_bytes(),
-//     );
-//     Ok(tide::Response::builder(200)
-//         .body("Signing things")
-//         .content_type(Mime::from_str("text/html;charset=utf-8").unwrap())
-//         // .header("custom-header", "value")
-//         .build())
-// }
+#[tokio::main]
+/// Spins up a test server
+///
+/// This uses HTTPS if you specify `TIDE_CERT_PATH` and `TIDE_KEY_PATH` environment variables.
+async fn main() -> tide::Result<()> {
+    configure_danger_mode_from_env();
+
+    let cli = CliOpts::parse();
+
+    let server_config = ServerConfig::try_from_opts(cli)
+        .await
+        .expect("Failed to parse CLI options into server configuration");
+
+    let app_state: AppState = server_config.clone().into();
+
+    let mut app = tide::with_state(app_state);
+
+    tide::log::with_level(tide::log::LevelFilter::Debug);
+
+    // driftwood adds simple Apache-Style logs
+    app.with(driftwood::ApacheCombinedLogger);
+
+    app.with(After(|mut res: Response| async {
+        if let Some(err) = res.downcast_error::<std::io::Error>() {
+            debug!("asdfadsfadsf {:?}", err);
+            let msg = match err.kind() {
+                ErrorKind::NotFound => {
+                    format!("Error, Not Found: {:?}", err)
+                }
+                _ => "Unknown Error".to_string(),
+            };
+            res.set_body(msg);
+        }
+
+        Ok(res)
+    }));
+
+    let mut saml_process = app.at("/SAML");
+    // TODO implement support for SAML Artifact
+    // saml_process.at("/Artifact").get(do_nothing);
+    saml_process.at("/Metadata").get(saml_metadata_get);
+
+    saml_process.at("/Redirect").get(saml_redirect_get);
+
+    let bind_target = format!(
+        "{}:{}",
+        &server_config.bind_address, server_config.bind_port
+    );
+
+    if let (Some(tls_cert), Some(tls_key)) =
+        (&server_config.tls_cert_path, &server_config.tls_key_path)
+    {
+        if tls_cert.exists() && tls_key.exists() {
+            info!(
+                "Found TLS cert and key at {:?} and {:?}, starting in HTTPS mode.",
+                tls_cert, tls_key
+            );
+        } else {
+            error!(
+                "TLS cert or key not found at specified paths: {:?}, {:?}",
+                tls_cert, tls_key
+            );
+            std::process::exit(1);
+        }
+        info!("Starting up HTTPS server on {:?}", bind_target);
+        // debug!("Server config: {:?}", server_config);
+        app.listen(
+            TlsListener::build()
+                .addrs(bind_target)
+                .cert(tls_cert)
+                .key(tls_key),
+        )
+        .await?;
+    } else {
+        info!("Starting up HTTP server on {:?}", bind_target);
+        // debug!("Server config: {:?}", server_config);
+        app.listen(bind_target).await?;
+    }
+    Ok(())
+}

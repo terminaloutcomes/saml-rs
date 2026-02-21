@@ -94,6 +94,13 @@ LIVE_E2E_SAML_SERVER_WAIT_TIMEOUT_SECONDS=180 \
 just live-e2e
 ```
 
+For CI usage (for example GitHub Actions), emit per-case annotations and a
+step-summary table:
+
+```shell
+LIVE_E2E_OUTPUT_MODE=github-actions just live-e2e
+```
+
 The verifier drives the complete flow without a browser, including Keycloak's first-broker-login profile form.
 
 ## `saml_test_server` runtime config (current)

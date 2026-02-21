@@ -153,12 +153,30 @@ class LocalSchemaResolver(LET.Resolver):
             "http://www.w3.org/TR/2002/REC-xmlenc-core-20021210/xenc-schema.xsd": "xenc-schema.xsd",
         }
 
-    # def resolve(self, url, _pubid, context):
-    #     mapped = self.absolute_map.get(url, os.path.basename(url))
-    #     candidate = os.path.join(self.schema_dir, mapped)
-    #     if os.path.exists(candidate):
-    #         return self.resolve_filename(candidate, context)
-    #     return None
+    def resolve(
+        self,
+        system_url: str,
+        public_id: str,
+        context: object | None = None,
+    ):
+        """Resolve an imported schema URL to a local vendored schema file.
+
+        The resolver first checks ``absolute_map`` for known absolute URLs, then
+        falls back to ``os.path.basename(url)``. If the mapped file exists under
+        ``self.schema_dir``, it returns an lxml filename resolution object.
+        Returning ``None`` allows normal parser resolution behavior.
+        """
+        _ = public_id
+        mapped = self.absolute_map.get(system_url, os.path.basename(system_url))
+        candidate = os.path.join(self.schema_dir, mapped)
+        if os.path.exists(candidate):
+            try:
+                with open(candidate, "rb") as schema_file:
+                    schema_bytes = schema_file.read()
+            except OSError:
+                return None
+            return self.resolve_string(schema_bytes, context, base_url=candidate)
+        return None
 
 
 def _validate_response_schema(decoded_xml: str) -> None:

@@ -1,15 +1,14 @@
 [package]
 name = "saml_test_server"
-default-run = "saml_test_server"
 
 version = { workspace = true }
 authors = { workspace = true }
 edition = { workspace = true }
 publish = { workspace = true }
 
-[[bin]]
-name = "saml_test_server"
-path = "saml_test_server.rs"
+[lib]
+path = "./src/lib.rs"
+
 
 [features]
 default = []
@@ -42,3 +41,4 @@ tokio = { workspace = true, features = ["fs", "rt-multi-thread", "macros"] }
 x509-cert = "0.2.5"
 signature = { version = "2.2.0", features = ["derive", "digest"] }
 rsa = { version = "0.9.10", features = ["sha1", "sha2", "serde"] }
+clap = { version = "4.5.60", features = ["derive", "env"] }
