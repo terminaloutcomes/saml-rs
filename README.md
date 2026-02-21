@@ -12,6 +12,12 @@ This library's in a lot of flux right now, if you're using it from Github then..
 
 The automatically-generated documentation based on the `main` branch is here: <https://terminaloutcomes.github.io/saml-rs/saml_rs/>
 
+Project documentation sources for GitHub Pages live in this repository under `docs/`:
+
+- Book entry: `docs/src/index.md`
+- Getting started: `docs/src/getting-started.md`
+- Publishing/deployment: `docs/src/publishing.md`
+
 ## Current implementation state
 
 - `saml_test_server` currently handles the browser SSO path of:

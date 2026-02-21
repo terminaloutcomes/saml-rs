@@ -13,3 +13,10 @@ run = "cargo fmt --all"
 [tasks.check]
 description = "Run all checks (fmt, clippy, test)"
 depends = ["fmt", "clippy", "test"]
+
+[tasks.docs]
+description = "Build documentation"
+run = '''
+cargo doc --no-deps --workspace
+cd docs && mdbook build
+'''

@@ -1,0 +1,13 @@
+[book]
+title = "saml-rs"
+authors = ["terminaloutcomes"]
+language = "en"
+src = "src"
+
+[build]
+build-dir = "book"
+
+[output.html]
+
+git-repository-url = "https://github.com/terminaloutcomes/saml-rs"
+site-url = "/saml-rs/"
