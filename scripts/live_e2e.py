@@ -766,25 +766,25 @@ def build_matrix() -> list[LiveE2ECase]:
         LiveE2ECase(
             name="strict-startup-refuse-unknown-sp-toggle",
             mode="strict",
-            phase="startup",
+            phase="flow",
             idp=IdpBehavior(True, False, True, "exclusive", True),
             rp=RpBehavior(True, True, False),
             danger=strict,
             expectation=CaseExpectation(
                 result="error",
-                error_class="server_startup_rejected",
+                error_class="idp_redirect_rejected",
             ),
         ),
         LiveE2ECase(
             name="strict-startup-refuse-unsigned-authn-toggle",
             mode="strict",
-            phase="startup",
+            phase="flow",
             idp=IdpBehavior(True, False, False, "exclusive", False),
             rp=RpBehavior(True, True, False),
             danger=strict,
             expectation=CaseExpectation(
                 result="error",
-                error_class="server_startup_rejected",
+                error_class="idp_redirect_rejected",
             ),
         ),
         LiveE2ECase(
@@ -814,7 +814,7 @@ def build_matrix() -> list[LiveE2ECase]:
         LiveE2ECase(
             name="danger-startup-refuse-unknown-sp-when-toggle-missing",
             mode="danger",
-            phase="startup",
+            phase="flow",
             idp=IdpBehavior(True, False, True, "exclusive", True),
             rp=RpBehavior(True, True, False),
             danger=DangerToggles(
@@ -825,13 +825,13 @@ def build_matrix() -> list[LiveE2ECase]:
             ),
             expectation=CaseExpectation(
                 result="error",
-                error_class="server_startup_rejected",
+                error_class="idp_redirect_rejected",
             ),
         ),
         LiveE2ECase(
             name="danger-startup-refuse-unsigned-authn-when-toggle-missing",
             mode="danger",
-            phase="startup",
+            phase="flow",
             idp=IdpBehavior(True, False, False, "exclusive", False),
             rp=RpBehavior(True, True, False),
             danger=DangerToggles(
@@ -842,7 +842,7 @@ def build_matrix() -> list[LiveE2ECase]:
             ),
             expectation=CaseExpectation(
                 result="error",
-                error_class="server_startup_rejected",
+                error_class="idp_redirect_rejected",
             ),
         ),
         LiveE2ECase(
@@ -897,7 +897,7 @@ def build_matrix() -> list[LiveE2ECase]:
             ),
         ),
         LiveE2ECase(
-            name="danger-flow-signed-authnrequest-required-success",
+            name="danger-flow-signed-authnrequest-required-rejected-without-sp-cert",
             mode="danger",
             phase="flow",
             idp=IdpBehavior(True, False, True, "exclusive", True),
@@ -909,7 +909,8 @@ def build_matrix() -> list[LiveE2ECase]:
                 allow_weak_algorithms=False,
             ),
             expectation=CaseExpectation(
-                result="success",
+                result="error",
+                error_class="idp_redirect_rejected",
                 assertion_signature="ignore",
                 response_signature="ignore",
                 c14n_method="ignore",

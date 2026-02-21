@@ -1,7 +1,8 @@
 //! Internal utilities for doing things with XML
 
 use std::io::Write;
-use x509_cert::der::EncodePem;
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
+use x509_cert::der::Encode;
 use xml::writer::{EventWriter, XmlEvent};
 
 use crate::error::SamlError;
@@ -174,19 +175,17 @@ pub fn add_signature<W: Write>(
         writer,
     );
 
-    let mut stripped_cert = match config.signing_cert.as_ref() {
-        Some(cert) => cert.to_pem(rsa::pkcs8::LineEnding::CRLF).map_err(|err| {
-            SamlError::Encoding(format!("Failed to convert cert to PEM: {:?}", err))
-        })?,
+    let stripped_cert = match config.signing_cert.as_ref() {
+        Some(cert) => cert
+            .to_der()
+            .map(|der| BASE64_STANDARD.encode(der))
+            .map_err(|err| {
+                SamlError::Encoding(format!("Failed to convert cert to DER: {:?}", err))
+            })?,
         None => {
             return Err(SamlError::NoCertAvailable);
         }
     };
-    // TODO is this terrible, or is this terrible? It's terrible, find a better way of cleaning this up.
-    stripped_cert = stripped_cert
-        .replace("\r\n", "")
-        .replace("\n", "")
-        .replace(" ", "");
     write_event(XmlEvent::characters(&stripped_cert), writer);
     // end ds:X509Certificate
     write_event(XmlEvent::end_element().into(), writer);
