@@ -1,0 +1,47 @@
+---
+name: live-e2e
+
+"on":
+    push:
+        branches:
+            - main
+    pull_request:
+    workflow_dispatch:
+
+jobs:
+    live-e2e:
+        runs-on: ubuntu-latest
+        timeout-minutes: 90
+        permissions:
+            contents: read
+
+        steps:
+            - uses: actions/checkout@v6.0.2
+
+            - name: Ensure Docker daemon is running
+              run: |
+                  docker --version
+                  if ! docker info > /dev/null 2>&1; then
+                    echo "Docker daemon not reachable, attempting to start service"
+                    sudo systemctl start docker
+                  fi
+                  docker info > /dev/null
+
+            - name: Set up Rust (stable)
+              uses: dtolnay/rust-toolchain@stable
+
+            - name: Set up Python 3.13
+              uses: actions/setup-python@v6
+              with:
+                  python-version: "3.13"
+
+            - name: Install uv
+              run: python -m pip install --quiet --no-cache-dir --upgrade uv
+
+            - name: Sync project dependencies
+              run: uv sync --all-groups
+
+            - name: Run live e2e matrix
+              env:
+                  CI: "1"
+              run: uv run scripts/live_e2e.py run

@@ -100,6 +100,16 @@ class LiveE2ECase:
     expectation: CaseExpectation
 
 
+@dataclass(frozen=True)
+class CaseRunResult:
+    name: str
+    status: Literal["passed", "failed"]
+    message: str
+
+
+OutputMode = Literal["human", "github-actions"]
+
+
 def _env_float(name: str, default: str) -> float:
     raw = os.getenv(name, default)
     try:
@@ -133,6 +143,72 @@ SAML_SERVER_WAIT_TIMEOUT_SECONDS = _env_int(
 
 def _bool_string(value: bool) -> str:
     return "true" if value else "false"
+
+
+def _output_mode(raw_mode: str) -> OutputMode:
+    normalized = raw_mode.strip().lower()
+    if normalized == "human":
+        return "human"
+    if normalized == "github-actions":
+        return "github-actions"
+    raise ConfigError(
+        f"LIVE_E2E_OUTPUT_MODE/--output-mode must be 'human' or 'github-actions', got {raw_mode!r}"
+    )
+
+
+def _default_output_mode() -> OutputMode:
+    env_mode = os.getenv("LIVE_E2E_OUTPUT_MODE")
+    if env_mode is not None:
+        return _output_mode(env_mode)
+    if os.getenv("CI") == "1":
+        return "github-actions"
+    return "human"
+
+
+def _gha_escape(value: str) -> str:
+    return value.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+
+def _emit_case_result(output_mode: OutputMode, result: CaseRunResult) -> None:
+    if output_mode == "human":
+        return
+
+    escaped_name = _gha_escape(result.name)
+    escaped_message = _gha_escape(result.message)
+    if result.status == "passed":
+        print(f"::notice title=live-e2e case passed::{escaped_name}: {escaped_message}")
+    else:
+        print(f"::error title=live-e2e case failed::{escaped_name}: {escaped_message}")
+
+
+def _write_gha_summary(results: list[CaseRunResult]) -> None:
+    summary_path = os.getenv("GITHUB_STEP_SUMMARY")
+    if not summary_path:
+        return
+
+    passed = sum(1 for result in results if result.status == "passed")
+    failed = len(results) - passed
+    lines = [
+        "## Live E2E Matrix",
+        "",
+        f"- Passed: {passed}",
+        f"- Failed: {failed}",
+        "",
+        "| Case | Status | Details |",
+        "|---|---|---|",
+    ]
+    for result in results:
+        status_emoji = "✅" if result.status == "passed" else "❌"
+        details = result.message.replace("\n", "<br>")
+        lines.append(f"| {result.name} | {status_emoji} {result.status} | {details} |")
+
+    try:
+        Path(summary_path).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    except OSError as error:
+        print(
+            f"Warning: failed to write GitHub Actions step summary to {summary_path}: {error}",
+            file=sys.stderr,
+        )
 
 
 def _validate_case(case: LiveE2ECase) -> None:
@@ -933,11 +1009,15 @@ def build_matrix() -> list[LiveE2ECase]:
     ]
 
 
-def run_matrix() -> None:
+def run_matrix(output_mode: OutputMode) -> None:
+    results: list[CaseRunResult] = []
     failures: list[tuple[str, str]] = []
     for case in build_matrix():
         try:
             run_case(case)
+            result = CaseRunResult(case.name, "passed", "case completed as expected")
+            results.append(result)
+            _emit_case_result(output_mode, result)
         except (
             HarnessError,
             CommandError,
@@ -946,9 +1026,17 @@ def run_matrix() -> None:
             ConfigError,
         ) as error:
             failures.append((case.name, str(error)))
+            result = CaseRunResult(case.name, "failed", str(error))
+            results.append(result)
+            _emit_case_result(output_mode, result)
             print(f"Case failed: {case.name}: {error}", file=sys.stderr)
         except Exception as error:  # noqa: BLE001
             failures.append((case.name, f"unexpected exception: {error}"))
+            result = CaseRunResult(
+                case.name, "failed", f"unexpected exception: {error}"
+            )
+            results.append(result)
+            _emit_case_result(output_mode, result)
             print(
                 f"Case failed with unexpected exception: {case.name}: {error}",
                 file=sys.stderr,
@@ -962,6 +1050,9 @@ def run_matrix() -> None:
                     f"Case cleanup failed after {case.name}: {stop_error}",
                     file=sys.stderr,
                 )
+
+    if output_mode == "github-actions":
+        _write_gha_summary(results)
 
     if failures:
         summary = "\n".join(f"- {name}: {message}" for name, message in failures)
@@ -997,11 +1088,11 @@ def down() -> None:
     stop_keycloak()
 
 
-def run_all() -> None:
+def run_all(output_mode: OutputMode) -> None:
     keep_up = os.getenv("KEEP_UP", "0") == "1"
     try:
         prepare_signing_material()
-        run_matrix()
+        run_matrix(output_mode)
     finally:
         if not keep_up:
             down()
@@ -1014,10 +1105,17 @@ def main() -> int:
     parser.add_argument(
         "command", nargs="?", default="run", choices=["run", "up", "down"]
     )
+    parser.add_argument(
+        "--output-mode",
+        default=_default_output_mode(),
+        choices=["human", "github-actions"],
+        help="Control result output formatting; use 'github-actions' for CI annotations and step summary.",
+    )
     args = parser.parse_args()
+    output_mode = _output_mode(args.output_mode)
 
     if args.command == "run":
-        run_all()
+        run_all(output_mode)
     elif args.command == "up":
         up()
     elif args.command == "down":

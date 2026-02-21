@@ -1,7 +1,7 @@
 //! Internal utilities for doing things with XML
 
-use std::io::Write;
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
+use std::io::Write;
 use x509_cert::der::Encode;
 use xml::writer::{EventWriter, XmlEvent};
 
