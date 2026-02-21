@@ -61,12 +61,7 @@ fn strict_mode_rejects_legacy_sha1_vectors_and_sha1_signatures() {
     let signing_key: Arc<SigningKey> = Arc::new(saml_rs::sign::generate_private_key().into());
 
     assert!(
-        saml_rs::sign::sign_data(
-            SigningAlgorithm::RsaSha1,
-            &signing_key,
-            b"sha1-blocked"
-        )
-        .is_err(),
+        saml_rs::sign::sign_data(SigningAlgorithm::RsaSha1, &signing_key, b"sha1-blocked").is_err(),
         "strict mode should block SHA-1 signing API"
     );
 

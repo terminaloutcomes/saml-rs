@@ -1,6 +1,7 @@
 use aes_gcm::aead::OsRng;
 use rsa::{RsaPrivateKey, RsaPublicKey};
 use saml_rs::{
+    content_encryption,
     encrypted_assertion::*,
     encrypted_assertion_parser::parse_encrypted_assertion,
     sign::{ContentEncryptionAlgorithm, KeyEncryptionAlgorithm},
@@ -85,4 +86,34 @@ fn test_encrypted_assertion_canonicalization() {
     // Re-serialize and verify structure is preserved
     let serialized = parsed.to_xml_bytes().expect("Failed to re-serialize");
     assert_eq!(xml.len(), serialized.len());
+}
+
+#[test]
+fn test_parse_encrypted_assertion_rejects_dtd_payloads() {
+    let xml = br#"<?xml version="1.0"?>
+<!DOCTYPE x [ <!ENTITY xxe SYSTEM "file:///etc/passwd"> ]>
+<xenc:EncryptedAssertion xmlns:xenc="http://www.w3.org/2001/04/xmlenc#">
+  <xenc:EncryptionMethod Algorithm="http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p#sha256"/>
+</xenc:EncryptedAssertion>"#;
+
+    let error = parse_encrypted_assertion(xml)
+        .expect_err("expected parser preflight to reject DTD declarations");
+    assert!(error.to_string().to_lowercase().contains("doctype"));
+}
+
+#[test]
+fn test_a256cbc_hs512_rejects_tag_tampering() {
+    let key = [7u8; 64];
+    let iv = [9u8; 16];
+    let plaintext = b"saml-cbc-hmac-payload";
+
+    let mut packed = content_encryption::encrypt_a256cbs_hs512(plaintext, &key, &iv)
+        .expect("encryption should succeed");
+
+    let tag_start = packed.len() - 32;
+    packed[tag_start] ^= 0x01;
+
+    let payload_without_iv = &packed[16..];
+    let result = content_encryption::decrypt_a256cbs_hs512(payload_without_iv, &key, &iv);
+    assert!(result.is_err(), "tampered tag must be rejected");
 }

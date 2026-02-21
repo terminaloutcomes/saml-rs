@@ -9,6 +9,7 @@ use crate::{error::SamlError, sign::SigningKey};
 pub enum EncryptionPublicKey {
     /// RSA public key used for key transport (for example RSA-OAEP variants).
     Rsa(rsa::RsaPublicKey),
+    // TODO - Add support for EC keys (for example ECDH-ES variants).
 }
 
 /// Provides signing and encryption keys at runtime.

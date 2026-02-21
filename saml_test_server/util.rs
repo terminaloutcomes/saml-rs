@@ -269,9 +269,9 @@ impl Default for ServerConfig {
             sp_metadata: HashMap::new(),
             session_lifetime: Duration::from_hours(12), // 12 hours
 
-            // TODO: possibly remove saml_cert_path from [ServerConfig.default]
+            // TODO possibly remove saml_cert_path from [ServerConfig.default]
             saml_cert_path: "Need to set this".to_string(),
-            // TODO: possibly remove saml_key_path from [ServerConfig.default]
+            // TODO possibly remove saml_key_path from [ServerConfig.default]
             saml_key_path: "Need to set this".to_string(),
             sign_assertion: true,
             sign_message: true,

@@ -297,7 +297,7 @@ pub fn encrypt_assertion(
             let mut rng = rand::rng();
             rng.fill_bytes(&mut key);
             let iv = content_encryption::generate_iv();
-            let encrypted = content_encryption::encrypt_a128cbs_hs256(assertion_bytes, &key, &iv)?;
+            let encrypted = content_encryption::encrypt_a128cbc_hs256(assertion_bytes, &key, &iv)?;
             (key, encrypted)
         }
         ContentEncryptionAlgorithm::A256CBC_HS512 => {

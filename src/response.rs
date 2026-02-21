@@ -14,14 +14,15 @@ use std::io::Write;
 use std::sync::Arc;
 use x509_cert::Certificate;
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
+use xmlparser::{ElementEnd, Token};
 
 /// Stores all the required elements of a SAML response... maybe?
 pub struct ResponseElements {
-    // TODO: why do I have a response_id and an assertion_id?
+    // TODO why do I have a response_id and an assertion_id?
 
     // #[serde(rename = "ID")]
     /// ID of the response
-    /// TODO: Figure out the rules for generating this
+    /// TODO Figure out the rules for generating this
     pub response_id: String,
 
     // #[serde(rename = "IssueInstant")]
@@ -39,7 +40,7 @@ pub struct ResponseElements {
 
     // #[serde(rename = "Issuer")]
     /// Issuer of the response?
-    // TODO: Figure out if this is right :P
+    // TODO Figure out if this is right :P
     pub issuer: String,
 
     // #[serde(rename = "Attributes")]
@@ -58,7 +59,7 @@ pub struct ResponseElements {
     /// Value to place in Subject/NameID.
     pub nameid_value: String,
 
-    /// TODO: Decide if we can just pick it from the SP
+    /// TODO Decide if we can just pick it from the SP
     pub assertion_consumer_service: Option<String>,
 
     /// Session length in seconds, 4294967295 should be enough for anyone! The default value is 60.
@@ -73,15 +74,162 @@ pub struct ResponseElements {
     /// Should we sign the message?
     pub sign_message: bool,
     /// a private key for signing
-    pub signing_key: Arc<SigningKey>,
+    signing_key: Arc<SigningKey>,
     /// The signing certificate
-    pub signing_cert: Option<Certificate>,
+    signing_cert: Option<Certificate>,
     /// Signature algorithm for assertion/message signing.
     pub signing_algorithm: SigningAlgorithm,
     /// Digest algorithm for assertion/message signing.
     pub digest_algorithm: DigestAlgorithm,
     /// Canonicalization method for assertion/message signing.
     pub canonicalization_method: CanonicalizationMethod,
+}
+
+/// Parsed core fields from an incoming SAML Response XML document.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParsedResponse {
+    /// `Response/@ID`
+    pub response_id: String,
+    /// `Response/@InResponseTo`
+    pub in_response_to: String,
+    /// `Response/@Destination`
+    pub destination: String,
+    /// `Issuer` text content
+    pub issuer: String,
+    /// `StatusCode/@Value`
+    pub status_code: String,
+}
+
+/// Parses a SAML Response XML payload and extracts core response fields.
+pub fn parse_response_xml(response_xml: &str) -> Result<ParsedResponse, SamlError> {
+    if let Err(error) = crate::security::inspect_xml_payload(
+        response_xml,
+        crate::security::SecurityPolicy::default()
+            .effective()
+            .xml_limits,
+    ) {
+        return Err(SamlError::Security(error));
+    }
+
+    let mut depth = 0usize;
+    let mut current_element = String::new();
+    let mut response_depth: Option<usize> = None;
+
+    let mut response_id: Option<String> = None;
+    let mut in_response_to: Option<String> = None;
+    let mut destination: Option<String> = None;
+    let mut issuer: Option<String> = None;
+    let mut status_code: Option<String> = None;
+
+    for token in xmlparser::Tokenizer::from(response_xml) {
+        match token {
+            Ok(Token::ElementStart { local, .. }) => {
+                depth = depth.saturating_add(1);
+                current_element = local.as_str().to_string();
+                if current_element.eq_ignore_ascii_case("Response") {
+                    if response_depth.is_some() {
+                        return Err(SamlError::XmlParsing(
+                            "Response XML contains duplicate or nested Response roots".to_string(),
+                        ));
+                    }
+                    response_depth = Some(depth);
+                }
+            }
+            Ok(Token::Attribute { local, value, .. }) => {
+                let in_response_root = response_depth == Some(depth)
+                    && current_element.eq_ignore_ascii_case("Response");
+                if in_response_root {
+                    if local.as_str().eq_ignore_ascii_case("ID") {
+                        if response_id.is_some() {
+                            return Err(SamlError::XmlParsing(
+                                "Response XML contains duplicate ID attribute".to_string(),
+                            ));
+                        }
+                        response_id = Some(value.as_str().to_string());
+                    } else if local.as_str().eq_ignore_ascii_case("InResponseTo") {
+                        if in_response_to.is_some() {
+                            return Err(SamlError::XmlParsing(
+                                "Response XML contains duplicate InResponseTo attribute"
+                                    .to_string(),
+                            ));
+                        }
+                        in_response_to = Some(value.as_str().to_string());
+                    } else if local.as_str().eq_ignore_ascii_case("Destination") {
+                        if destination.is_some() {
+                            return Err(SamlError::XmlParsing(
+                                "Response XML contains duplicate Destination attribute".to_string(),
+                            ));
+                        }
+                        destination = Some(value.as_str().to_string());
+                    }
+                }
+
+                if current_element.eq_ignore_ascii_case("StatusCode")
+                    && local.as_str().eq_ignore_ascii_case("Value")
+                {
+                    if status_code.is_some() {
+                        return Err(SamlError::XmlParsing(
+                            "Response XML contains duplicate StatusCode values".to_string(),
+                        ));
+                    }
+                    status_code = Some(value.as_str().to_string());
+                }
+            }
+            Ok(Token::Text { text }) => {
+                let in_response_issuer = response_depth.is_some()
+                    && depth == response_depth.unwrap_or_default() + 1
+                    && current_element.eq_ignore_ascii_case("Issuer");
+                if in_response_issuer {
+                    let trimmed = text.as_str().trim();
+                    if !trimmed.is_empty() {
+                        if issuer.is_some() {
+                            return Err(SamlError::XmlParsing(
+                                "Response XML contains duplicate Issuer values".to_string(),
+                            ));
+                        }
+                        issuer = Some(trimmed.to_string());
+                    }
+                }
+            }
+            Ok(Token::ElementEnd { end, .. }) => {
+                let mut closed_response = false;
+                match end {
+                    ElementEnd::Open => {}
+                    ElementEnd::Empty | ElementEnd::Close(_, _) => {
+                        if response_depth == Some(depth)
+                            && current_element.eq_ignore_ascii_case("Response")
+                        {
+                            closed_response = true;
+                        }
+                        depth = depth.saturating_sub(1);
+                        current_element.clear();
+                    }
+                }
+                if closed_response {
+                    response_depth = None;
+                }
+            }
+            Ok(_) => {}
+            Err(error) => {
+                return Err(SamlError::XmlParsing(format!(
+                    "Failed to parse response XML: {}",
+                    error
+                )));
+            }
+        }
+    }
+
+    Ok(ParsedResponse {
+        response_id: response_id
+            .ok_or_else(|| SamlError::XmlParsing("Response/@ID missing".to_string()))?,
+        in_response_to: in_response_to
+            .ok_or_else(|| SamlError::XmlParsing("Response/@InResponseTo missing".to_string()))?,
+        destination: destination
+            .ok_or_else(|| SamlError::XmlParsing("Response/@Destination missing".to_string()))?,
+        issuer: issuer.ok_or_else(|| SamlError::XmlParsing("Issuer missing".to_string()))?,
+        status_code: status_code
+            .ok_or_else(|| SamlError::XmlParsing("StatusCode/@Value missing".to_string()))?,
+    })
 }
 
 impl std::fmt::Debug for ResponseElements {
@@ -127,7 +275,7 @@ pub struct ResponseElementsBuilder {
     status: crate::constants::StatusCode,
     sign_assertion: bool,
     sign_message: bool,
-    signing_key: Arc<SigningKey>, // TODO find a trait for this that can support ec and RSA keys
+    signing_key: Arc<SigningKey>,
     signing_cert: Option<x509_cert::Certificate>,
     signing_algorithm: SigningAlgorithm,
     digest_algorithm: DigestAlgorithm,
@@ -387,8 +535,8 @@ impl ResponseElementsBuilder {
             status: self.status,
             sign_assertion: self.sign_assertion,
             sign_message: self.sign_message,
-            signing_key: self.signing_key.clone(),
-            signing_cert: self.signing_cert.clone(),
+            signing_key: self.signing_key,
+            signing_cert: self.signing_cert,
             signing_algorithm: self.signing_algorithm,
             digest_algorithm: self.digest_algorithm,
             canonicalization_method: self.canonicalization_method,
@@ -621,7 +769,7 @@ impl TryInto<Assertion> for &ResponseElements {
     }
 }
 
-// TODO: for signing, implement a "return this without signing flagged" fn so we can ... just get an unsigned version
+// TODO for signing, implement a "return this without signing flagged" fn so we can ... just get an unsigned version
 
 /// Creates a String full of XML based on the ResponsElements
 #[allow(clippy::from_over_into)]
@@ -647,10 +795,10 @@ pub struct AuthNStatement {
     pub instant: DateTime<Utc>,
     /// TODO document this
     pub session_index: String,
-    /// TODO: do we need to respond with multiple context class refs?
+    /// TODO do we need to respond with multiple context class refs?
     pub classref: String,
     /// Expiry of the statement,
-    /// TODO: find out if this is optional
+    /// TODO make this non-optional
     pub expiry: Option<DateTime<Utc>>,
 }
 
@@ -732,4 +880,433 @@ fn add_status<W: Write>(status: &str, writer: &mut EventWriter<W>) {
     );
     write_event(XmlEvent::end_element().into(), writer);
     write_event(XmlEvent::end_element().into(), writer);
+}
+
+#[derive(Debug)]
+struct ParsedSignedInfo {
+    canonicalization_method: CanonicalizationMethod,
+    signing_algorithm: SigningAlgorithm,
+    digest_algorithm: DigestAlgorithm,
+    reference_uri: String,
+    transforms: Vec<String>,
+    digest_value: String,
+}
+
+fn signature_block_bounds(xml: &str) -> Option<(usize, usize)> {
+    let start = xml.find("<ds:Signature")?;
+    let end_relative = xml[start..].find("</ds:Signature>")?;
+    let end = start + end_relative + "</ds:Signature>".len();
+    Some((start, end))
+}
+
+fn first_tag_bounds(xml: &str, tag_name: &str) -> Option<(usize, usize)> {
+    let start_marker = format!("<{}", tag_name);
+    let end_marker = format!("</{}>", tag_name);
+    let start = xml.find(&start_marker)?;
+    let start_close_relative = xml[start..].find('>')?;
+    let end_relative = xml[start..].find(&end_marker)?;
+    let end = start + end_relative + end_marker.len();
+    let _ = start_close_relative;
+    Some((start, end))
+}
+
+fn signature_element_count(xml: &str) -> Result<usize, SamlError> {
+    let mut count = 0usize;
+    for token in xmlparser::Tokenizer::from(xml) {
+        match token {
+            Ok(Token::ElementStart { local, .. }) => {
+                if local.as_str().eq_ignore_ascii_case("Signature") {
+                    count += 1;
+                }
+            }
+            Ok(_) => {}
+            Err(error) => {
+                return Err(SamlError::XmlParsing(format!(
+                    "Failed to count Signature elements: {}",
+                    error
+                )));
+            }
+        }
+    }
+    Ok(count)
+}
+
+fn parse_response_id(response_xml: &str) -> Result<String, SamlError> {
+    let mut inside_response = false;
+    let mut response_id: Option<String> = None;
+
+    for token in xmlparser::Tokenizer::from(response_xml) {
+        match token {
+            Ok(Token::ElementStart { local, .. }) => {
+                if local.as_str().eq_ignore_ascii_case("Response") {
+                    inside_response = true;
+                }
+            }
+            Ok(Token::Attribute { local, value, .. }) if inside_response => {
+                if local.as_str().eq_ignore_ascii_case("ID") {
+                    response_id = Some(value.as_str().to_string());
+                }
+            }
+            Ok(Token::ElementEnd {
+                end: ElementEnd::Open,
+                ..
+            }) if inside_response => {
+                break;
+            }
+            Ok(_) => {}
+            Err(err) => {
+                return Err(SamlError::XmlParsing(format!(
+                    "Failed to parse response root element: {}",
+                    err
+                )));
+            }
+        }
+    }
+
+    response_id.ok_or_else(|| SamlError::XmlParsing("Response ID attribute not found".to_string()))
+}
+
+fn parse_signedinfo(signedinfo_xml: &str) -> Result<ParsedSignedInfo, SamlError> {
+    let mut current_element = String::new();
+
+    let mut c14n_uri: Option<String> = None;
+    let mut signing_uri: Option<String> = None;
+    let mut digest_uri: Option<String> = None;
+    let mut reference_uri: Option<String> = None;
+    let mut transforms: Vec<String> = Vec::new();
+    let mut digest_value = String::new();
+    let mut reference_count = 0usize;
+    let mut canonicalization_count = 0usize;
+    let mut signature_method_count = 0usize;
+    let mut digest_method_count = 0usize;
+
+    for token in xmlparser::Tokenizer::from(signedinfo_xml) {
+        match token {
+            Ok(Token::ElementStart { local, .. }) => {
+                current_element = local.as_str().to_string();
+                if current_element.eq_ignore_ascii_case("Reference") {
+                    reference_count += 1;
+                } else if current_element.eq_ignore_ascii_case("CanonicalizationMethod") {
+                    canonicalization_count += 1;
+                } else if current_element.eq_ignore_ascii_case("SignatureMethod") {
+                    signature_method_count += 1;
+                } else if current_element.eq_ignore_ascii_case("DigestMethod") {
+                    digest_method_count += 1;
+                }
+            }
+            Ok(Token::Attribute { local, value, .. }) => {
+                if !local.as_str().eq_ignore_ascii_case("Algorithm")
+                    && !local.as_str().eq_ignore_ascii_case("URI")
+                {
+                    continue;
+                }
+
+                if current_element.eq_ignore_ascii_case("CanonicalizationMethod")
+                    && local.as_str().eq_ignore_ascii_case("Algorithm")
+                {
+                    c14n_uri = Some(value.as_str().to_string());
+                } else if current_element.eq_ignore_ascii_case("SignatureMethod")
+                    && local.as_str().eq_ignore_ascii_case("Algorithm")
+                {
+                    signing_uri = Some(value.as_str().to_string());
+                } else if current_element.eq_ignore_ascii_case("Reference")
+                    && local.as_str().eq_ignore_ascii_case("URI")
+                {
+                    reference_uri = Some(value.as_str().to_string());
+                } else if current_element.eq_ignore_ascii_case("Transform")
+                    && local.as_str().eq_ignore_ascii_case("Algorithm")
+                {
+                    transforms.push(value.as_str().to_string());
+                } else if current_element.eq_ignore_ascii_case("DigestMethod")
+                    && local.as_str().eq_ignore_ascii_case("Algorithm")
+                {
+                    digest_uri = Some(value.as_str().to_string());
+                }
+            }
+            Ok(Token::Text { text }) => {
+                if current_element.eq_ignore_ascii_case("DigestValue") {
+                    let trimmed = text.as_str().trim();
+                    if !trimmed.is_empty() {
+                        digest_value.push_str(trimmed);
+                    }
+                }
+            }
+            Ok(Token::ElementEnd { end, .. }) => match end {
+                ElementEnd::Open => {}
+                ElementEnd::Empty | ElementEnd::Close(_, _) => {
+                    current_element.clear();
+                }
+            },
+            Ok(_) => {}
+            Err(err) => {
+                return Err(SamlError::XmlParsing(format!(
+                    "Failed to parse SignedInfo: {}",
+                    err
+                )));
+            }
+        }
+    }
+
+    if reference_count != 1
+        || canonicalization_count != 1
+        || signature_method_count != 1
+        || digest_method_count != 1
+    {
+        return Err(SamlError::XmlParsing(
+            "SignedInfo contains duplicate or missing critical elements".to_string(),
+        ));
+    }
+
+    let c14n_uri = c14n_uri.ok_or_else(|| {
+        SamlError::XmlParsing("SignedInfo missing CanonicalizationMethod".to_string())
+    })?;
+    let c14n_method = CanonicalizationMethod::from(c14n_uri.clone());
+
+    let signing_algorithm =
+        SigningAlgorithm::from(signing_uri.ok_or_else(|| {
+            SamlError::XmlParsing("SignedInfo missing SignatureMethod".to_string())
+        })?);
+    if matches!(signing_algorithm, SigningAlgorithm::InvalidAlgorithm) {
+        return Err(SamlError::UnsupportedAlgorithm(
+            "SignedInfo contains unsupported SignatureMethod".to_string(),
+        ));
+    }
+
+    let digest_algorithm = DigestAlgorithm::from(
+        digest_uri
+            .ok_or_else(|| SamlError::XmlParsing("SignedInfo missing DigestMethod".to_string()))?,
+    );
+    if matches!(digest_algorithm, DigestAlgorithm::InvalidAlgorithm) {
+        return Err(SamlError::UnsupportedAlgorithm(
+            "SignedInfo contains unsupported DigestMethod".to_string(),
+        ));
+    }
+
+    Ok(ParsedSignedInfo {
+        canonicalization_method: c14n_method,
+        signing_algorithm,
+        digest_algorithm,
+        reference_uri: reference_uri
+            .ok_or_else(|| SamlError::XmlParsing("SignedInfo missing Reference URI".to_string()))?,
+        transforms,
+        digest_value: if digest_value.is_empty() {
+            return Err(SamlError::XmlParsing(
+                "SignedInfo missing DigestValue".to_string(),
+            ));
+        } else {
+            digest_value
+        },
+    })
+}
+
+fn parse_signature_value(signature_xml: &str) -> Result<String, SamlError> {
+    let mut current_element = String::new();
+    let mut signature_value = String::new();
+    let mut signature_value_count = 0usize;
+
+    for token in xmlparser::Tokenizer::from(signature_xml) {
+        match token {
+            Ok(Token::ElementStart { local, .. }) => {
+                current_element = local.as_str().to_string();
+                if current_element.eq_ignore_ascii_case("SignatureValue") {
+                    signature_value_count += 1;
+                }
+            }
+            Ok(Token::Text { text }) => {
+                if current_element.eq_ignore_ascii_case("SignatureValue") {
+                    let trimmed = text.as_str().trim();
+                    if !trimmed.is_empty() {
+                        signature_value.push_str(trimmed);
+                    }
+                }
+            }
+            Ok(Token::ElementEnd { end, .. }) => match end {
+                ElementEnd::Open => {}
+                ElementEnd::Empty | ElementEnd::Close(_, _) => {
+                    current_element.clear();
+                }
+            },
+            Ok(_) => {}
+            Err(err) => {
+                return Err(SamlError::XmlParsing(format!(
+                    "Failed to parse SignatureValue: {}",
+                    err
+                )));
+            }
+        }
+    }
+
+    if signature_value_count != 1 {
+        return Err(SamlError::XmlParsing(
+            "Signature contains duplicate or missing SignatureValue".to_string(),
+        ));
+    }
+
+    if signature_value.is_empty() {
+        return Err(SamlError::XmlParsing(
+            "SignatureValue not found".to_string(),
+        ));
+    }
+    Ok(signature_value)
+}
+
+fn verify_response_signature_and_references_impl(
+    response_xml: &str,
+    mut verify_signedinfo: impl FnMut(SigningAlgorithm, &[u8], &[u8]) -> Result<bool, SamlError>,
+) -> Result<bool, SamlError> {
+    if let Err(error) = crate::security::inspect_xml_payload(
+        response_xml,
+        crate::security::SecurityPolicy::default()
+            .effective()
+            .xml_limits,
+    ) {
+        return Err(SamlError::Security(error));
+    }
+
+    let (signature_start, signature_end) = match signature_block_bounds(response_xml) {
+        Some(bounds) => bounds,
+        None => return Ok(false),
+    };
+    if signature_element_count(response_xml)? != 1 {
+        return Ok(false);
+    }
+
+    let signature_xml = &response_xml[signature_start..signature_end];
+    let (signedinfo_start, signedinfo_end) = match first_tag_bounds(signature_xml, "ds:SignedInfo")
+    {
+        Some(bounds) => bounds,
+        None => return Ok(false),
+    };
+    let signedinfo_xml = &signature_xml[signedinfo_start..signedinfo_end];
+    let signedinfo = match parse_signedinfo(signedinfo_xml) {
+        Ok(value) => value,
+        Err(SamlError::XmlParsing(_)) => return Ok(false),
+        Err(error) => return Err(error),
+    };
+    let signature_value = match parse_signature_value(signature_xml) {
+        Ok(value) => value,
+        Err(SamlError::XmlParsing(_)) => return Ok(false),
+        Err(error) => return Err(error),
+    };
+
+    let response_id = parse_response_id(response_xml)?;
+    let expected_reference_uri = format!("#{}", response_id);
+    if signedinfo.reference_uri != expected_reference_uri {
+        return Ok(false);
+    }
+
+    let has_enveloped_transform = signedinfo
+        .transforms
+        .iter()
+        .any(|value| value == "http://www.w3.org/2000/09/xmldsig#enveloped-signature");
+    if !has_enveloped_transform {
+        return Ok(false);
+    }
+
+    let c14n_uri: String = signedinfo.canonicalization_method.into();
+    let has_c14n_transform = signedinfo.transforms.iter().any(|value| value == &c14n_uri);
+    if !has_c14n_transform {
+        return Ok(false);
+    }
+
+    if signedinfo.transforms.len() != 2 {
+        return Ok(false);
+    }
+    let transforms_are_allowed = signedinfo.transforms.iter().all(|value| {
+        value == "http://www.w3.org/2000/09/xmldsig#enveloped-signature" || value == &c14n_uri
+    });
+    if !transforms_are_allowed {
+        return Ok(false);
+    }
+
+    let mut unsigned_response = String::with_capacity(response_xml.len());
+    unsigned_response.push_str(&response_xml[..signature_start]);
+    unsigned_response.push_str(&response_xml[signature_end..]);
+
+    let canonical_response = signedinfo
+        .canonicalization_method
+        .canonicalize(&unsigned_response)?;
+    let digest_bytes = signedinfo
+        .digest_algorithm
+        .hash(canonical_response.as_bytes())?;
+    let recomputed_digest = BASE64_STANDARD.encode(digest_bytes);
+    if recomputed_digest != signedinfo.digest_value {
+        return Ok(false);
+    }
+
+    let canonical_signedinfo = signedinfo
+        .canonicalization_method
+        .canonicalize(signedinfo_xml)?;
+    let signature_bytes = BASE64_STANDARD.decode(signature_value)?;
+    let canonical_verified = verify_signedinfo(
+        signedinfo.signing_algorithm,
+        canonical_signedinfo.as_bytes(),
+        &signature_bytes,
+    )?;
+    if canonical_verified {
+        return Ok(true);
+    }
+    let raw_verified = verify_signedinfo(
+        signedinfo.signing_algorithm,
+        signedinfo_xml.as_bytes(),
+        &signature_bytes,
+    )?;
+    Ok(raw_verified)
+}
+
+/// Verifies response-level XML signature and SignedInfo reference integrity using an X509 certificate.
+pub fn verify_response_signature_and_references(
+    response_xml: &str,
+    verification_cert: &Certificate,
+) -> Result<bool, SamlError> {
+    verify_response_signature_and_references_impl(response_xml, |algorithm, bytes, signature| {
+        crate::sign::verify_data_with_cert(algorithm, verification_cert, bytes, signature)
+    })
+}
+
+/// Verifies response-level XML signature and SignedInfo reference integrity using a key.
+pub fn verify_response_signature_and_references_with_key(
+    response_xml: &str,
+    verification_key: &Arc<SigningKey>,
+) -> Result<bool, SamlError> {
+    verify_response_signature_and_references_impl(response_xml, |algorithm, bytes, signature| {
+        crate::sign::verify_data(algorithm, verification_key, bytes, signature)
+    })
+}
+
+/// Verifies response-level signature and references using a [`crate::key_provider::KeyProvider`].
+pub fn verify_response_signature_and_references_with_key_provider(
+    response_xml: &str,
+    key_provider: &impl crate::key_provider::KeyProvider,
+    key_id: Option<&str>,
+) -> Result<bool, SamlError> {
+    let signing_key = key_provider.get_signing_key(key_id)?.clone();
+    let signing_key = Arc::new(signing_key);
+    verify_response_signature_and_references_with_key(response_xml, &signing_key)
+}
+
+/// Verifies a signed response XML payload and returns parsed core fields.
+pub fn parse_and_verify_response_xml_with_key(
+    response_xml: &str,
+    verification_key: &Arc<SigningKey>,
+) -> Result<ParsedResponse, SamlError> {
+    let verified =
+        verify_response_signature_and_references_with_key(response_xml, verification_key)?;
+    if !verified {
+        return Err(SamlError::XmlParsing(
+            "Response signature verification failed".to_string(),
+        ));
+    }
+    parse_response_xml(response_xml)
+}
+
+/// Verifies a signed response XML payload with a key provider and returns parsed core fields.
+pub fn parse_and_verify_response_xml_with_key_provider(
+    response_xml: &str,
+    key_provider: &impl crate::key_provider::KeyProvider,
+    key_id: Option<&str>,
+) -> Result<ParsedResponse, SamlError> {
+    let signing_key = key_provider.get_signing_key(key_id)?.clone();
+    let signing_key = Arc::new(signing_key);
+    parse_and_verify_response_xml_with_key(response_xml, &signing_key)
 }

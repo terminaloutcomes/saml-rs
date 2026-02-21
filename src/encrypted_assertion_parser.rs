@@ -12,6 +12,12 @@ use xml::reader::{EventReader, XmlEvent};
 
 /// Parses an EncryptedAssertion from XML bytes
 pub fn parse_encrypted_assertion(xml_bytes: &[u8]) -> Result<EncryptedAssertion, SamlError> {
+    let xml_payload = std::str::from_utf8(xml_bytes).map_err(SamlError::from)?;
+    let limits = crate::security::SecurityPolicy::default()
+        .effective()
+        .xml_limits;
+    crate::security::inspect_xml_payload(xml_payload, limits).map_err(SamlError::from)?;
+
     let cursor = Cursor::new(xml_bytes);
     let reader = EventReader::new(cursor);
 

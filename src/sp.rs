@@ -17,7 +17,7 @@ use crate::error::SamlError;
 pub enum NameIdFormat {
     /// Email Address.
     EmailAddress,
-    /// TODO: entity?
+    /// TODO entity?
     Entity,
     /// Kerberos, the worst-eros.
     Kerberos,

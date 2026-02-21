@@ -19,7 +19,7 @@ use saml_rs::SamlQuery;
 use saml_rs::assertion::AssertionAttribute;
 use saml_rs::error::SamlError;
 use saml_rs::metadata::{SamlMetadata, generate_metadata_xml};
-use saml_rs::response::{AuthNStatement, ResponseElements};
+use saml_rs::response::{AuthNStatement, ResponseElements, ResponseElementsBuilder};
 use saml_rs::sign::{DigestAlgorithm, SigningAlgorithm};
 use saml_rs::sp::{BindingMethod, ServiceProvider};
 
@@ -160,15 +160,15 @@ async fn main() -> tide::Result<()> {
     }));
 
     let mut saml_process = app.at("/SAML");
-    // TODO: implement support for SAML Artifact
+    // TODO implement support for SAML Artifact
     // saml_process.at("/Artifact").get(do_nothing);
     saml_process.at("/Metadata").get(saml_metadata_get);
     // saml_process.at("/sign").get(test_sign);
-    // TODO: implement SAML Logout
+    // TODO implement SAML Logout
     // saml_process.at("/Logout").get(do_nothing);
-    // TODO: implement SAML idp, used the entityID
+    // TODO implement SAML idp, used the entityID
     // saml_process.at("/idp").post(do_nothing);
-    // TODO: implement SAML POST endpoint
+    // TODO implement SAML POST endpoint
     // saml_process.at("/POST").post(saml_post_binding);
 
     saml_process.at("/Redirect").get(saml_redirect_get);
@@ -527,7 +527,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
         .checked_add_signed(chrono::Duration::seconds(30))
         .unwrap_or(authn_instant);
 
-    // TODO: work out where the AuthNStatement goes
+    // TODO work out where the AuthNStatement goes
     let authnstatement = AuthNStatement {
         instant: authn_instant,
         session_index: String::from("_be9967abd904ddcae3c0eb4189adbe3f71e327cf93"),
@@ -546,34 +546,38 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     .to_vec();
 
     let signing_key = req.state().saml_signing_key.clone();
-    let response = ResponseElements {
-        issuer: req.state().hostname.to_string(),
-        response_id: ResponseElements::new_response_id(),
-        issue_instant: Utc::now(),
-        in_response_to: parsed_saml_request.request_id,
-        attributes: responseattributes,
-        // TODO: figure out if this should be the ACS found in _form_target above or the parsed_saml_request.consumer_service_url
+    let response = ResponseElementsBuilder::new()
+        .issuer(&req.state().hostname)
+        .response_id(ResponseElements::new_response_id())
+        .issue_instant(Utc::now())
+        .in_response_to(parsed_saml_request.request_id)
+        .attributes(responseattributes)
+        // TODO figure out if this should be the ACS found in _form_target above or the parsed_saml_request.consumer_service_url
         // destination: form_target,
-        destination: parsed_saml_request.consumer_service_url.to_string(),
-        authnstatement,
-        assertion_id: ResponseElements::new_assertion_id(),
-        service_provider: service_provider.to_owned(),
-        nameid_value: "yaleman".to_string(),
-        assertion_consumer_service: Some(parsed_saml_request.consumer_service_url),
-
-        session_length_seconds: 30,
-        status: saml_rs::constants::StatusCode::Success,
-        sign_assertion: req.state().sign_assertion,
-        sign_message: req.state().sign_message,
-        signing_key,
-        signing_cert: req.state().saml_signing_cert.clone(),
-        signing_algorithm: SigningAlgorithm::RsaSha256,
-        digest_algorithm: DigestAlgorithm::Sha256,
-        canonicalization_method: req.state().canonicalization_method,
-    };
+        .destination(parsed_saml_request.consumer_service_url.to_string())
+        .authnstatement(authnstatement)
+        .assertion_id(ResponseElements::new_assertion_id())
+        .service_provider(service_provider.to_owned())
+        .nameid_value("yaleman".to_string())
+        .assertion_consumer_service(Some(parsed_saml_request.consumer_service_url))
+        .session_length_seconds(30)
+        .status(saml_rs::constants::StatusCode::Success)
+        .sign_assertion(req.state().sign_assertion)
+        .sign_message(req.state().sign_message)
+        .signing_key(signing_key)
+        .signing_cert(req.state().saml_signing_cert.clone())
+        .signing_algorithm(SigningAlgorithm::RsaSha256)
+        .digest_algorithm(DigestAlgorithm::Sha256)
+        .canonicalization_method(req.state().canonicalization_method)
+        .build()
+        .map_err(|err| {
+            tide::Error::from_str(
+                tide::StatusCode::InternalServerError,
+                format!("Failed to build SAML response: {}", err),
+            )
+        })?;
 
     response_body.push_str(&generate_login_form(response, relay_state));
-    // res.set_body(response_body);
 
     response_body.push_str("</html>");
     Ok(tide::Response::builder(203)
@@ -584,7 +588,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
 
 /// Generate a fake login form for the user to interact with
 ///
-/// TODO: These responses have to be signed
+/// TODO These responses have to be signed
 pub fn generate_login_form(response: ResponseElements, relay_state: String) -> String {
     let mut context = tera::Context::new();
 
@@ -620,7 +624,7 @@ pub fn generate_login_form(response: ResponseElements, relay_state: String) -> S
         .unwrap_or_else(|_| String::from("Couldn't generate login form"))
 }
 
-// TODO: reimplement test_sign
+// TODO reimplement test_sign
 // pub async fn test_sign(req: Request<AppState>) -> tide::Result {
 //     saml_rs::sign::sign_data(
 //         req.state().tls_cert_path.to_string(),

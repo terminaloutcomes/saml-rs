@@ -35,7 +35,9 @@ use chrono::{DateTime, SecondsFormat, Utc};
 use std::io::Write;
 use std::str::from_utf8;
 use std::{fmt, sync::Arc};
+use x509_cert::Certificate;
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
+use xmlparser::{ElementEnd, Token};
 
 /// AssertionTypes, from <http://docs.oasis-open.org/security/saml/v2.0/saml-schema-assertion-2.0.xsd> ```<complexType name="AssertionType">```
 #[allow(dead_code)]
@@ -68,7 +70,7 @@ pub struct Assertion {
     pub canonicalization_method: crate::sign::CanonicalizationMethod,
     /// Issue/Generatino time of the Assertion
     pub issue_instant: DateTime<Utc>,
-    /// TODO: work out what is necessary for [SubjectData]
+    /// TODO work out what is necessary for [SubjectData]
     pub subject_data: SubjectData,
     /// Please don't let the user do this until ... now!
     pub conditions_not_before: DateTime<Utc>,
@@ -182,9 +184,9 @@ impl Assertion {
         // start conditions statement
         write_event(
             XmlEvent::start_element(("saml", "Conditions"))
-                // TODO: conditions_not_before
+                // TODO conditions_not_before
                 .attr("NotBefore", &self.conditions_not_before.to_rfc3339())
-                // TODO: conditions_not_after
+                // TODO conditions_not_after
                 .attr("NotOnOrAfter", &self.conditions_not_after.to_rfc3339())
                 .into(),
             writer,
@@ -195,7 +197,7 @@ impl Assertion {
             writer,
         );
         write_event(XmlEvent::start_element(("saml", "Audience")).into(), writer);
-        // TODO: BUG: this is wrong. Assertion contains an unacceptable AudienceRestriction.
+        // TODO BUG: this is wrong. Assertion contains an unacceptable AudienceRestriction.
         write_event(XmlEvent::characters(&self.audience), writer);
         write_event(XmlEvent::end_element().into(), writer);
         write_event(XmlEvent::end_element().into(), writer);
@@ -399,13 +401,13 @@ impl fmt::Display for BaseIDAbstractType {
 #[derive(Clone, Debug)]
 /// Data type for passing subject data in because yeaaaaah, specs
 ///
-/// TODO: Justify the existence of the elements of this struct ... more completely.
+/// TODO Justify the existence of the elements of this struct ... more completely.
 pub struct SubjectData {
     /// AuthnRequest ID used for InResponseTo correlation.
     pub in_response_to: String,
-    /// Qualifier TODO: What's the qualifier again?
+    /// Qualifier TODO What's the qualifier again?
     pub qualifier: Option<BaseIDAbstractType>,
-    /// Qualifier value TODO: I really should know what these are
+    /// Qualifier value TODO I really should know what these are
     pub qualifier_value: Option<String>,
     /// [crate::sp::NameIdFormat], what kind of format you're... going TODO oh no I've done it again
     pub nameid_format: crate::sp::NameIdFormat,
@@ -422,7 +424,7 @@ fn add_subject<W: Write>(subjectdata: &SubjectData, writer: &mut EventWriter<W>)
     // start subject statement
     write_event(XmlEvent::start_element(("saml", "Subject")).into(), writer);
     // start nameid statement
-    // TODO: nameid can be 0 or more of NameQualifier or SPNameQualifier
+    // TODO nameid can be 0 or more of NameQualifier or SPNameQualifier
     let nameid_format = subjectdata.nameid_format.to_string();
     let name_id_start = match (&subjectdata.qualifier, &subjectdata.qualifier_value) {
         (Some(BaseIDAbstractType::NameQualifier), Some(value)) => {
@@ -513,4 +515,417 @@ pub fn add_attribute<W: Write>(attr: &AssertionAttribute, writer: &mut EventWrit
     }
     // write_event(XmlEvent::end_element().into(), writer);
     write_event(XmlEvent::end_element().into(), writer);
+}
+
+#[derive(Debug)]
+struct ParsedSignedInfo {
+    canonicalization_method: crate::sign::CanonicalizationMethod,
+    signing_algorithm: crate::sign::SigningAlgorithm,
+    digest_algorithm: crate::sign::DigestAlgorithm,
+    reference_uri: String,
+    transforms: Vec<String>,
+    digest_value: String,
+}
+
+fn signature_block_bounds(xml: &str) -> Option<(usize, usize)> {
+    let start = xml.find("<ds:Signature")?;
+    let end_relative = xml[start..].find("</ds:Signature>")?;
+    let end = start + end_relative + "</ds:Signature>".len();
+    Some((start, end))
+}
+
+fn first_tag_bounds(xml: &str, tag_name: &str) -> Option<(usize, usize)> {
+    let start_marker = format!("<{}", tag_name);
+    let end_marker = format!("</{}>", tag_name);
+    let start = xml.find(&start_marker)?;
+    let end_relative = xml[start..].find(&end_marker)?;
+    let end = start + end_relative + end_marker.len();
+    Some((start, end))
+}
+
+fn signature_element_count(xml: &str) -> Result<usize, SamlError> {
+    let mut count = 0usize;
+    for token in xmlparser::Tokenizer::from(xml) {
+        match token {
+            Ok(Token::ElementStart { local, .. }) => {
+                if local.as_str().eq_ignore_ascii_case("Signature") {
+                    count += 1;
+                }
+            }
+            Ok(_) => {}
+            Err(error) => {
+                return Err(SamlError::XmlParsing(format!(
+                    "Failed to count Signature elements: {}",
+                    error
+                )));
+            }
+        }
+    }
+    Ok(count)
+}
+
+fn parse_assertion_id(assertion_xml: &str) -> Result<String, SamlError> {
+    let mut inside_assertion = false;
+    let mut assertion_id: Option<String> = None;
+
+    for token in xmlparser::Tokenizer::from(assertion_xml) {
+        match token {
+            Ok(Token::ElementStart { local, .. }) => {
+                if local.as_str().eq_ignore_ascii_case("Assertion") {
+                    inside_assertion = true;
+                }
+            }
+            Ok(Token::Attribute { local, value, .. }) if inside_assertion => {
+                if local.as_str().eq_ignore_ascii_case("ID") {
+                    assertion_id = Some(value.as_str().to_string());
+                }
+            }
+            Ok(Token::ElementEnd {
+                end: ElementEnd::Open,
+                ..
+            }) if inside_assertion => {
+                break;
+            }
+            Ok(_) => {}
+            Err(err) => {
+                return Err(SamlError::XmlParsing(format!(
+                    "Failed to parse assertion root element: {}",
+                    err
+                )));
+            }
+        }
+    }
+
+    assertion_id
+        .ok_or_else(|| SamlError::XmlParsing("Assertion ID attribute not found".to_string()))
+}
+
+fn parse_signedinfo(signedinfo_xml: &str) -> Result<ParsedSignedInfo, SamlError> {
+    let mut current_element = String::new();
+
+    let mut c14n_uri: Option<String> = None;
+    let mut signing_uri: Option<String> = None;
+    let mut digest_uri: Option<String> = None;
+    let mut reference_uri: Option<String> = None;
+    let mut transforms: Vec<String> = Vec::new();
+    let mut digest_value = String::new();
+    let mut reference_count = 0usize;
+    let mut canonicalization_count = 0usize;
+    let mut signature_method_count = 0usize;
+    let mut digest_method_count = 0usize;
+
+    for token in xmlparser::Tokenizer::from(signedinfo_xml) {
+        match token {
+            Ok(Token::ElementStart { local, .. }) => {
+                current_element = local.as_str().to_string();
+                if current_element.eq_ignore_ascii_case("Reference") {
+                    reference_count += 1;
+                } else if current_element.eq_ignore_ascii_case("CanonicalizationMethod") {
+                    canonicalization_count += 1;
+                } else if current_element.eq_ignore_ascii_case("SignatureMethod") {
+                    signature_method_count += 1;
+                } else if current_element.eq_ignore_ascii_case("DigestMethod") {
+                    digest_method_count += 1;
+                }
+            }
+            Ok(Token::Attribute { local, value, .. }) => {
+                if !local.as_str().eq_ignore_ascii_case("Algorithm")
+                    && !local.as_str().eq_ignore_ascii_case("URI")
+                {
+                    continue;
+                }
+
+                if current_element.eq_ignore_ascii_case("CanonicalizationMethod")
+                    && local.as_str().eq_ignore_ascii_case("Algorithm")
+                {
+                    c14n_uri = Some(value.as_str().to_string());
+                } else if current_element.eq_ignore_ascii_case("SignatureMethod")
+                    && local.as_str().eq_ignore_ascii_case("Algorithm")
+                {
+                    signing_uri = Some(value.as_str().to_string());
+                } else if current_element.eq_ignore_ascii_case("Reference")
+                    && local.as_str().eq_ignore_ascii_case("URI")
+                {
+                    reference_uri = Some(value.as_str().to_string());
+                } else if current_element.eq_ignore_ascii_case("Transform")
+                    && local.as_str().eq_ignore_ascii_case("Algorithm")
+                {
+                    transforms.push(value.as_str().to_string());
+                } else if current_element.eq_ignore_ascii_case("DigestMethod")
+                    && local.as_str().eq_ignore_ascii_case("Algorithm")
+                {
+                    digest_uri = Some(value.as_str().to_string());
+                }
+            }
+            Ok(Token::Text { text }) => {
+                if current_element.eq_ignore_ascii_case("DigestValue") {
+                    let trimmed = text.as_str().trim();
+                    if !trimmed.is_empty() {
+                        digest_value.push_str(trimmed);
+                    }
+                }
+            }
+            Ok(Token::ElementEnd { end, .. }) => match end {
+                ElementEnd::Open => {}
+                ElementEnd::Empty | ElementEnd::Close(_, _) => {
+                    current_element.clear();
+                }
+            },
+            Ok(_) => {}
+            Err(err) => {
+                return Err(SamlError::XmlParsing(format!(
+                    "Failed to parse SignedInfo: {}",
+                    err
+                )));
+            }
+        }
+    }
+
+    if reference_count != 1
+        || canonicalization_count != 1
+        || signature_method_count != 1
+        || digest_method_count != 1
+    {
+        return Err(SamlError::XmlParsing(
+            "SignedInfo contains duplicate or missing critical elements".to_string(),
+        ));
+    }
+
+    let c14n_uri = c14n_uri.ok_or_else(|| {
+        SamlError::XmlParsing("SignedInfo missing CanonicalizationMethod".to_string())
+    })?;
+    let c14n_method = crate::sign::CanonicalizationMethod::from(c14n_uri.clone());
+
+    let signing_algorithm =
+        crate::sign::SigningAlgorithm::from(signing_uri.ok_or_else(|| {
+            SamlError::XmlParsing("SignedInfo missing SignatureMethod".to_string())
+        })?);
+    if matches!(
+        signing_algorithm,
+        crate::sign::SigningAlgorithm::InvalidAlgorithm
+    ) {
+        return Err(SamlError::UnsupportedAlgorithm(
+            "SignedInfo contains unsupported SignatureMethod".to_string(),
+        ));
+    }
+
+    let digest_algorithm = crate::sign::DigestAlgorithm::from(
+        digest_uri
+            .ok_or_else(|| SamlError::XmlParsing("SignedInfo missing DigestMethod".to_string()))?,
+    );
+    if matches!(
+        digest_algorithm,
+        crate::sign::DigestAlgorithm::InvalidAlgorithm
+    ) {
+        return Err(SamlError::UnsupportedAlgorithm(
+            "SignedInfo contains unsupported DigestMethod".to_string(),
+        ));
+    }
+
+    Ok(ParsedSignedInfo {
+        canonicalization_method: c14n_method,
+        signing_algorithm,
+        digest_algorithm,
+        reference_uri: reference_uri
+            .ok_or_else(|| SamlError::XmlParsing("SignedInfo missing Reference URI".to_string()))?,
+        transforms,
+        digest_value: if digest_value.is_empty() {
+            return Err(SamlError::XmlParsing(
+                "SignedInfo missing DigestValue".to_string(),
+            ));
+        } else {
+            digest_value
+        },
+    })
+}
+
+fn parse_signature_value(signature_xml: &str) -> Result<String, SamlError> {
+    let mut current_element = String::new();
+    let mut signature_value = String::new();
+    let mut signature_value_count = 0usize;
+
+    for token in xmlparser::Tokenizer::from(signature_xml) {
+        match token {
+            Ok(Token::ElementStart { local, .. }) => {
+                current_element = local.as_str().to_string();
+                if current_element.eq_ignore_ascii_case("SignatureValue") {
+                    signature_value_count += 1;
+                }
+            }
+            Ok(Token::Text { text }) => {
+                if current_element.eq_ignore_ascii_case("SignatureValue") {
+                    let trimmed = text.as_str().trim();
+                    if !trimmed.is_empty() {
+                        signature_value.push_str(trimmed);
+                    }
+                }
+            }
+            Ok(Token::ElementEnd { end, .. }) => match end {
+                ElementEnd::Open => {}
+                ElementEnd::Empty | ElementEnd::Close(_, _) => {
+                    current_element.clear();
+                }
+            },
+            Ok(_) => {}
+            Err(err) => {
+                return Err(SamlError::XmlParsing(format!(
+                    "Failed to parse SignatureValue: {}",
+                    err
+                )));
+            }
+        }
+    }
+
+    if signature_value_count != 1 {
+        return Err(SamlError::XmlParsing(
+            "Signature contains duplicate or missing SignatureValue".to_string(),
+        ));
+    }
+
+    if signature_value.is_empty() {
+        return Err(SamlError::XmlParsing(
+            "SignatureValue not found".to_string(),
+        ));
+    }
+    Ok(signature_value)
+}
+
+fn verify_assertion_signature_and_references_impl(
+    assertion_xml: &str,
+    mut verify_signedinfo: impl FnMut(
+        crate::sign::SigningAlgorithm,
+        &[u8],
+        &[u8],
+    ) -> Result<bool, SamlError>,
+) -> Result<bool, SamlError> {
+    if let Err(error) = crate::security::inspect_xml_payload(
+        assertion_xml,
+        crate::security::SecurityPolicy::default()
+            .effective()
+            .xml_limits,
+    ) {
+        return Err(SamlError::Security(error));
+    }
+
+    let (signature_start, signature_end) = match signature_block_bounds(assertion_xml) {
+        Some(bounds) => bounds,
+        None => return Ok(false),
+    };
+    if signature_element_count(assertion_xml)? != 1 {
+        return Ok(false);
+    }
+
+    let signature_xml = &assertion_xml[signature_start..signature_end];
+    let (signedinfo_start, signedinfo_end) = match first_tag_bounds(signature_xml, "ds:SignedInfo")
+    {
+        Some(bounds) => bounds,
+        None => return Ok(false),
+    };
+    let signedinfo_xml = &signature_xml[signedinfo_start..signedinfo_end];
+    let signedinfo = match parse_signedinfo(signedinfo_xml) {
+        Ok(value) => value,
+        Err(SamlError::XmlParsing(_)) => return Ok(false),
+        Err(error) => return Err(error),
+    };
+    let signature_value = match parse_signature_value(signature_xml) {
+        Ok(value) => value,
+        Err(SamlError::XmlParsing(_)) => return Ok(false),
+        Err(error) => return Err(error),
+    };
+
+    let assertion_id = parse_assertion_id(assertion_xml)?;
+    let expected_reference_uri = format!("#{}", assertion_id);
+    if signedinfo.reference_uri != expected_reference_uri {
+        return Ok(false);
+    }
+
+    let has_enveloped_transform = signedinfo
+        .transforms
+        .iter()
+        .any(|value| value == "http://www.w3.org/2000/09/xmldsig#enveloped-signature");
+    if !has_enveloped_transform {
+        return Ok(false);
+    }
+
+    let c14n_uri: String = signedinfo.canonicalization_method.into();
+    let has_c14n_transform = signedinfo.transforms.iter().any(|value| value == &c14n_uri);
+    if !has_c14n_transform {
+        return Ok(false);
+    }
+
+    if signedinfo.transforms.len() != 2 {
+        return Ok(false);
+    }
+    let transforms_are_allowed = signedinfo.transforms.iter().all(|value| {
+        value == "http://www.w3.org/2000/09/xmldsig#enveloped-signature" || value == &c14n_uri
+    });
+    if !transforms_are_allowed {
+        return Ok(false);
+    }
+
+    let mut unsigned_assertion = String::with_capacity(assertion_xml.len());
+    unsigned_assertion.push_str(&assertion_xml[..signature_start]);
+    unsigned_assertion.push_str(&assertion_xml[signature_end..]);
+
+    let canonical_assertion = signedinfo
+        .canonicalization_method
+        .canonicalize(&unsigned_assertion)?;
+    let digest_bytes = signedinfo
+        .digest_algorithm
+        .hash(canonical_assertion.as_bytes())?;
+    let recomputed_digest = BASE64_STANDARD.encode(digest_bytes);
+    if recomputed_digest != signedinfo.digest_value {
+        return Ok(false);
+    }
+
+    let canonical_signedinfo = signedinfo
+        .canonicalization_method
+        .canonicalize(signedinfo_xml)?;
+    let signature_bytes = BASE64_STANDARD.decode(signature_value)?;
+
+    let canonical_verified = verify_signedinfo(
+        signedinfo.signing_algorithm,
+        canonical_signedinfo.as_bytes(),
+        &signature_bytes,
+    )?;
+    if canonical_verified {
+        return Ok(true);
+    }
+
+    verify_signedinfo(
+        signedinfo.signing_algorithm,
+        signedinfo_xml.as_bytes(),
+        &signature_bytes,
+    )
+}
+
+/// Verifies assertion-level XML signature and SignedInfo reference integrity using an X509 certificate.
+pub fn verify_assertion_signature_and_references(
+    assertion_xml: &str,
+    verification_cert: &Certificate,
+) -> Result<bool, SamlError> {
+    verify_assertion_signature_and_references_impl(assertion_xml, |algorithm, bytes, signature| {
+        crate::sign::verify_data_with_cert(algorithm, verification_cert, bytes, signature)
+    })
+}
+
+/// Verifies assertion-level XML signature and SignedInfo reference integrity using a key.
+pub fn verify_assertion_signature_and_references_with_key(
+    assertion_xml: &str,
+    verification_key: &Arc<SigningKey>,
+) -> Result<bool, SamlError> {
+    verify_assertion_signature_and_references_impl(assertion_xml, |algorithm, bytes, signature| {
+        crate::sign::verify_data(algorithm, verification_key, bytes, signature)
+    })
+}
+
+/// Verifies assertion-level signature and references using a [`crate::key_provider::KeyProvider`].
+pub fn verify_assertion_signature_and_references_with_key_provider(
+    assertion_xml: &str,
+    key_provider: &impl crate::key_provider::KeyProvider,
+    key_id: Option<&str>,
+) -> Result<bool, SamlError> {
+    let signing_key = key_provider.get_signing_key(key_id)?.clone();
+    let signing_key = Arc::new(signing_key);
+    verify_assertion_signature_and_references_with_key(assertion_xml, &signing_key)
 }

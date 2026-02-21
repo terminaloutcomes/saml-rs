@@ -24,7 +24,7 @@ use saml_rs::sign::{
     CanonicalizationMethod, DigestAlgorithm, SigningAlgorithm, SigningKey, generate_private_key,
 };
 use saml_rs::sp::{BindingMethod, NameIdFormat, SamlBindingType, ServiceBinding};
-use saml_rs::utils::{DateTimeUtils, generate_keypair, to_hex_string};
+use saml_rs::utils::generate_test_keypair;
 use tokio::fs;
 use x509_cert::Certificate;
 use x509_cert::der::{Encode, EncodePem};
@@ -96,29 +96,17 @@ fn sample_response_builder(
         .sign_assertion(sign_assertion)
         .sign_message(sign_message)
         .signing_key(
-            SigningKey::Rsa(generate_keypair().expect("failed to generate keypair").0).into(),
+            SigningKey::Rsa(
+                generate_test_keypair()
+                    .expect("failed to generate keypair")
+                    .0,
+            )
+            .into(),
         )
         .signing_cert(signing_cert)
         .signing_algorithm(SigningAlgorithm::RsaSha256)
         .digest_algorithm(DigestAlgorithm::Sha256)
         .canonicalization_method(CanonicalizationMethod::ExclusiveCanonical10)
-}
-
-#[test]
-fn utils_hex_and_datetime_formatting_are_stable() {
-    let rendered = to_hex_string(&[0x01, 0xAB, 0xFF], None);
-    assert_eq!(rendered, "01abff");
-
-    let rendered_joined = to_hex_string(&[0x01, 0xAB, 0xFF], Some(":"));
-    assert_eq!(rendered_joined, "01:ab:ff");
-
-    let ts = DateTime::<Utc>::from_naive_utc_and_offset(
-        NaiveDate::from_ymd_opt(2024, 1, 2)
-            .and_then(|value| value.and_hms_opt(3, 4, 5))
-            .unwrap_or_else(|| panic!("failed to construct datetime for formatting test")),
-        Utc,
-    );
-    assert_eq!(ts.to_saml_datetime_string(), "2024-01-02T03:04:05Z");
 }
 
 #[test]

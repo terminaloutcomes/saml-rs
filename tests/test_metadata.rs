@@ -164,35 +164,32 @@ fn test_validate_metadata_samltool() {
         ("act_validate_xml", "Validate+XML+with+the+XSD+schema"),
         ("xml", &metadata),
     ];
+
+    eprintln!("metadata XML:\n{}", metadata);
+
     let client = reqwest::blocking::Client::new();
-    let res = client
+    let value = client
         .post("https://www.samltool.com/validate_xml.php")
         .form(&params)
-        .send();
+        .send().expect("failed to send POST request to SAML XML validation endpoint in test_validate_metadata_samltool");
 
-    match res {
-        Ok(value) => {
-            eprintln!("success doing post: {:?}", value);
-            // debug!("{:?}", value.bytes());
+    eprintln!("success doing post: {:?}", value);
+    // debug!("{:?}", value.bytes());
 
-            let content = value.text().expect("Failed to read response text from SAML XML validation request in test_validate_metadata_samltool");
-            /* looking for this
+    let content = value.text().expect("Failed to read response text from SAML XML validation request in test_validate_metadata_samltool");
+    /* looking for this
 
-                        <div class="validatexml-area3"><br>
+                <div class="validatexml-area3"><br>
 
-                            <div class="alert alert-success">
-                                <h3>The XML is valid.</h3>
-                            </div>
-                        </div>
-            */
-            assert!(content.contains("The XML is valid."));
-            if !content.contains("The XML is valid.") {
-                eprintln!("Dumping HTML result: {:?}", content);
-            }
-        }
-        Err(error) => {
-            eprintln!("error POSTing data to the SAML checker: {:?}", error);
-            assert_eq!(1, 2);
-        }
-    }
+                    <div class="alert alert-success">
+                        <h3>The XML is valid.</h3>
+                    </div>
+                </div>
+    */
+
+    assert!(
+        content.contains("The XML is valid."),
+        "failed to find \"The XML is valid.\" in response content from SAML XML validation request in test_validate_metadata_samltool {}",
+        content
+    );
 }

@@ -2,6 +2,7 @@
 
 use crate::{error::SamlError, xml::write_event};
 use log::error;
+use serde::Serialize;
 use std::io::Write;
 use std::str::from_utf8;
 use x509_cert::Certificate;
@@ -87,15 +88,35 @@ impl SamlMetadata {
     }
 }
 
+#[derive(Copy, Clone, Debug, Serialize)]
+#[serde(rename_all = "lowercase")]
+/// Used to indicate whether a certificate is for signing or encryption in the generated metadata XML
+pub enum KeyUse {
+    /// The key is used for signing messages
+    Signing,
+    #[allow(dead_code)] // TODO use this when encryption is supported, maybe?
+    /// The key is used for encryption
+    Encryption,
+}
+
+impl AsRef<str> for KeyUse {
+    fn as_ref(&self) -> &str {
+        match self {
+            Self::Signing => "signing",
+            Self::Encryption => "encryption",
+        }
+    }
+}
+
 /// Write a signing key to an XMLEventWriter
 pub fn xml_add_certificate<W: Write>(
-    key_use: &str,
+    key_use: KeyUse,
     base64_encoded_certificate: &str,
     writer: &mut EventWriter<W>,
 ) {
     write_event(
         XmlEvent::start_element(("md", "KeyDescriptor"))
-            .attr("use", key_use)
+            .attr("use", key_use.as_ref())
             .into(),
         writer,
     );
@@ -106,6 +127,7 @@ pub fn xml_add_certificate<W: Write>(
         writer,
     );
     write_event(XmlEvent::start_element(("ds", "X509Data")).into(), writer);
+    // start the certificate
     write_event(
         XmlEvent::start_element(("ds", "X509Certificate")).into(),
         writer,
@@ -132,7 +154,9 @@ pub fn generate_metadata_xml(metadata: &SamlMetadata) -> Result<String, SamlErro
     let mut buffer = Vec::new();
     let mut writer = EmitterConfig::new()
         .perform_indent(true)
+        .keep_element_names_stack(true)
         .write_document_declaration(false)
+        .autopad_comments(false)
         .create_writer(&mut buffer);
 
     write_event(
@@ -158,13 +182,12 @@ pub fn generate_metadata_xml(metadata: &SamlMetadata) -> Result<String, SamlErro
         let base64_encoded_certificate = value
             .to_pem(rsa::pkcs8::LineEnding::CRLF)
             .inspect_err(|e| error!("Failed to encode certificate to PEM: {}", e))?;
-        xml_add_certificate("signing", &base64_encoded_certificate, &mut writer);
-        // xml_add_certificate("encryption", &base64_encoded_certificate, &mut writer);
+        xml_add_certificate(KeyUse::Signing, &base64_encoded_certificate, &mut writer);
     };
 
     write_event(
         XmlEvent::start_element(("md", "SingleLogoutService"))
-            // TODO: make the binding configurable, when we support something else 🤔
+            // TODO make the binding configurable, when we support something else 🤔
             .attr(
                 "Binding",
                 "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
@@ -180,7 +203,7 @@ pub fn generate_metadata_xml(metadata: &SamlMetadata) -> Result<String, SamlErro
         &mut writer,
     );
     write_event(
-        // TODO: nameid-format should definitely be configurable
+        // TODO nameid-format should definitely be configurable
         XmlEvent::characters("urn:oasis:names:tc:SAML:2.0:nameid-format:transient"),
         &mut writer,
     );
@@ -188,7 +211,7 @@ pub fn generate_metadata_xml(metadata: &SamlMetadata) -> Result<String, SamlErro
 
     write_event(
         XmlEvent::start_element(("md", "SingleSignOnService"))
-            // TODO: make the binding configurable, when we support something else 🤔
+            // TODO make the binding configurable, when we support something else 🤔
             .attr(
                 "Binding",
                 "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
@@ -204,7 +227,7 @@ pub fn generate_metadata_xml(metadata: &SamlMetadata) -> Result<String, SamlErro
 
     write_event(
         XmlEvent::start_element(("md", "ContactPerson"))
-            // TODO: be able to enumerate technical contacts in IdP metadata
+            // TODO be able to enumerate technical contacts in IdP metadata
             .attr("contactType", "technical")
             .into(),
         &mut writer,
@@ -215,7 +238,7 @@ pub fn generate_metadata_xml(metadata: &SamlMetadata) -> Result<String, SamlErro
         &mut writer,
     );
     write_event(
-        // TODO: md:contactperson name should be configurable
+        // TODO md:contactperson name should be configurable
         XmlEvent::characters("Admin"),
         &mut writer,
     );
@@ -226,7 +249,7 @@ pub fn generate_metadata_xml(metadata: &SamlMetadata) -> Result<String, SamlErro
         &mut writer,
     );
     write_event(
-        // TODO: md:contactperson EmailAddress should be configurable
+        // TODO md:contactperson EmailAddress should be configurable
         XmlEvent::characters("mailto:admin@example.com"),
         &mut writer,
     );
@@ -238,6 +261,6 @@ pub fn generate_metadata_xml(metadata: &SamlMetadata) -> Result<String, SamlErro
     // end md:EntityDescriptor
     write_event(XmlEvent::end_element().into(), &mut writer);
 
-    // TODO: figure out if we really need that prepended silliness '<?xml version=\"1.0\"?>'
+    // TODO figure out if we really need that prepended silliness '<?xml version=\"1.0\"?>'
     from_utf8(&buffer).map(|f| Ok(format!("<?xml version=\"1.0\"?>\n{}", f)))?
 }

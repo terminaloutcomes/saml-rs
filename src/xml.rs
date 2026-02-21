@@ -67,7 +67,7 @@ pub fn generate_signedinfo<W: Write>(
     write_event(XmlEvent::end_element().into(), writer);
 
     /*
-    TODO: this needs to be a reference to the ID
+    TODO this needs to be a reference to the ID
     5.4.2 References
     Signatures MUST contain a single <ds:Reference> containing a same-document reference to the ID
     attribute value of the root element of the assertion or protocol message being signed. For example, if the
@@ -182,7 +182,7 @@ pub fn add_signature<W: Write>(
             return Err(SamlError::NoCertAvailable);
         }
     };
-    // TODO: is this terrible, or is this terrible? It's terrible, find a better way of cleaning this up.
+    // TODO is this terrible, or is this terrible? It's terrible, find a better way of cleaning this up.
     stripped_cert = stripped_cert
         .replace("\r\n", "")
         .replace("\n", "")

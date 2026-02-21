@@ -136,6 +136,7 @@ impl KeyEncryptionAlgorithm {
             Self::RSA_OAEP_512 => Some(Box::new(rsa::Oaep::new::<sha2::Sha512>())),
             Self::RSA_OAEP_384 => Some(Box::new(rsa::Oaep::new::<sha2::Sha384>())),
             Self::RSA_OAEP_256 => Some(Box::new(rsa::Oaep::new::<sha2::Sha256>())),
+            Self::RSA_OAEP => Some(Box::new(rsa::Oaep::new::<sha1::Sha1>())),
             _ => None, // For unsupported algorithms, return None
         }
     }
@@ -404,7 +405,14 @@ fn rsa_digest_for_signing(
 
 fn rsa_pkcs1v15_padding(signing_algorithm: SigningAlgorithm) -> Result<Pkcs1v15Sign, SamlError> {
     match signing_algorithm {
-        SigningAlgorithm::RsaSha1 => Ok(Pkcs1v15Sign::new_unprefixed()),
+        SigningAlgorithm::RsaSha1 => {
+            if !crate::security::weak_algorithms_allowed() {
+                return Err(SamlError::WeakAlgorithm(
+                    "SHA-1 signing is disabled by security policy".to_string(),
+                ));
+            }
+            Ok(Pkcs1v15Sign::new_unprefixed())
+        }
         SigningAlgorithm::RsaSha224 => Ok(Pkcs1v15Sign::new::<sha2::Sha224>()),
         SigningAlgorithm::RsaSha256 => Ok(Pkcs1v15Sign::new::<sha2::Sha256>()),
         SigningAlgorithm::RsaSha384 => Ok(Pkcs1v15Sign::new::<sha2::Sha384>()),
