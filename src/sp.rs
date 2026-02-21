@@ -4,10 +4,12 @@ use log::{debug, error, warn};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
+use x509_cert::Certificate;
 
-use openssl::x509::X509;
 use quick_xml::Reader;
 use quick_xml::events::{BytesStart, Event};
+
+use crate::error::SamlError;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 /// Different types of name-id formats from the spec.
@@ -15,7 +17,7 @@ use quick_xml::events::{BytesStart, Event};
 pub enum NameIdFormat {
     /// Email Address.
     EmailAddress,
-    /// TODO: entity?
+    /// TODO entity?
     Entity,
     /// Kerberos, the worst-eros.
     Kerberos,
@@ -87,7 +89,7 @@ impl FromStr for NameIdFormat {
     }
 }
 
-/// Allows one to build a definition with [SamlBindingType::AssertionConsumerService](s) and [SamlBindingType::SingleLogoutService](s).
+/// Allows one to build a definition with [SamlBindingType::AssertionConsumerService] and [SamlBindingType::SingleLogoutService].
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum SamlBindingType {
     /// AssertionConsumerService, where you send Authn Responses.
@@ -172,9 +174,9 @@ pub struct ServiceBinding {
 
 impl ServiceBinding {
     /// Sets the binding from a string value.
-    pub fn set_binding(self, binding: &str) -> Result<Self, String> {
+    pub fn set_binding(self, binding: &str) -> Result<Self, SamlError> {
         match BindingMethod::from_str(binding) {
-            Err(_) => Err("Failed to match binding name".to_string()),
+            Err(_) => Err(SamlError::Other("Failed to match binding name".to_string())),
             Ok(saml_binding) => Ok(ServiceBinding {
                 servicetype: self.servicetype,
                 binding: saml_binding,
@@ -207,7 +209,7 @@ pub struct ServiceProvider {
     /// Does this SP expect signed assertions?
     pub want_assertions_signed: bool,
     /// The signing (public) certificate for the SP.
-    pub x509_certificate: Option<X509>,
+    pub x509_certificate: Option<Certificate>,
     /// SP services.
     pub services: Vec<ServiceBinding>,
     /// Protocol support enumeration.
@@ -220,17 +222,18 @@ fn decode_local_name(start: &BytesStart<'_>) -> String {
     String::from_utf8_lossy(start.local_name().as_ref()).to_string()
 }
 
-fn decode_attributes(start: &BytesStart<'_>) -> Result<Vec<(String, String)>, String> {
+fn decode_attributes(start: &BytesStart<'_>) -> Result<Vec<(String, String)>, SamlError> {
     let mut result = Vec::new();
     let mut attributes = start.attributes();
     attributes.with_checks(true);
 
     for attribute in attributes {
-        let attribute = attribute.map_err(|error| format!("Invalid attribute: {:?}", error))?;
+        let attribute = attribute
+            .map_err(|error| SamlError::Other(format!("Invalid attribute: {:?}", error)))?;
         let key = String::from_utf8_lossy(attribute.key.local_name().as_ref()).to_string();
         let value = attribute
             .decode_and_unescape_value(start.decoder())
-            .map_err(|error| format!("Invalid attribute value: {:?}", error))?
+            .map_err(|error| SamlError::Other(format!("Invalid attribute value: {:?}", error)))?
             .to_string();
         result.push((key, value));
     }
@@ -243,21 +246,20 @@ fn is_safe_general_reference(reference: &str) -> bool {
 }
 
 impl FromStr for ServiceProvider {
-    // TODO: turn this into a proper error type instead of just a string, and add more context to the errors.
-    type Err = String;
+    type Err = SamlError;
 
     fn from_str(source_xml: &str) -> Result<Self, Self::Err> {
         let limits = crate::security::SecurityPolicy::default()
             .effective()
             .xml_limits;
         crate::security::inspect_xml_payload(source_xml, limits)
-            .map_err(|error| format!("SP metadata XML preflight check failed: {}", error))?;
+            .inspect_err(|error| error!("SP metadata XML preflight check failed: {}", error))?;
 
         let mut reader = Reader::from_str(source_xml);
         reader.config_mut().trim_text(true);
 
         let mut tag_stack: Vec<String> = Vec::new();
-        let mut certificate_data = None::<X509>;
+        let mut certificate_data = None::<Certificate>;
         let mut meta = ServiceProvider {
             entity_id: "".to_string(),
             authn_requests_signed: false,
@@ -284,19 +286,26 @@ impl FromStr for ServiceProvider {
                 Ok(Event::End(end)) => {
                     let end_name = String::from_utf8_lossy(end.local_name().as_ref()).to_string();
                     let Some(open_name) = tag_stack.pop() else {
-                        return Err("Malformed SP metadata XML: unexpected closing tag".to_string());
+                        return Err(SamlError::XmlParsing(
+                            "Malformed SP metadata XML: unexpected closing tag".to_string(),
+                        ));
                     };
                     if open_name != end_name {
-                        return Err(format!(
+                        return Err(SamlError::XmlParsing(format!(
                             "Malformed SP metadata XML: mismatched closing tag {} for {}",
                             end_name, open_name
-                        ));
+                        )));
                     }
                 }
                 Ok(Event::Text(text)) => {
                     let content = text
                         .decode()
-                        .map_err(|error| format!("Failed to decode text node: {:?}", error))?
+                        .map_err(|error| {
+                            SamlError::XmlParsing(format!(
+                                "Failed to decode text node: {:?}",
+                                error
+                            ))
+                        })?
                         .trim()
                         .to_string();
                     if content.is_empty() {
@@ -305,61 +314,93 @@ impl FromStr for ServiceProvider {
                     match tag_stack.last().map(String::as_str) {
                         Some("NameIDFormat") => match NameIdFormat::from_str(&content) {
                             Err(error) => {
-                                error!("Failed to parse NameIDFormat: {} {:?}", content, error)
+                                error!("Failed to parse NameIDFormat: {} {:?}", content, error);
+                                return Err(SamlError::XmlParsing(format!(
+                                    "Failed to parse NameIDFormat: {} {:?}",
+                                    content, error
+                                )));
                             }
                             Ok(value) => meta.nameid_format = value,
                         },
                         Some("X509Certificate") => {
                             let certificate = crate::cert::init_cert_from_base64(&content)
-                                .map_err(|error| format!("{:?}", error))?;
+                                .map_err(|error| {
+                                    SamlError::XmlParsing(format!(
+                                        "Invalid Certificate {:?}",
+                                        error
+                                    ))
+                                })?;
                             certificate_data = Some(certificate);
                         }
                         _ => {}
                     }
                 }
+
                 Ok(Event::CData(text)) => {
                     let content = text
                         .decode()
-                        .map_err(|error| format!("Failed to decode CDATA node: {:?}", error))?
+                        .map_err(|error| {
+                            SamlError::XmlParsing(format!(
+                                "Failed to decode CDATA node: {:?}",
+                                error
+                            ))
+                        })?
                         .trim()
                         .to_string();
                     if !content.is_empty() {
-                        return Err(
+                        return Err(SamlError::XmlParsing(
                             "SP metadata contains unsupported CDATA content in strict mode"
                                 .to_string(),
-                        );
+                        ))?;
                     }
                 }
                 Ok(Event::DocType(_)) => {
-                    return Err(
-                        "SP metadata contains forbidden DOCTYPE/DTD declarations".to_string()
-                    );
+                    return Err(SamlError::XmlParsing(
+                        "SP metadata contains forbidden DOCTYPE/DTD declarations".to_string(),
+                    ));
                 }
                 Ok(Event::PI(_)) => {
-                    return Err(
-                        "SP metadata contains forbidden processing instructions".to_string()
-                    );
+                    return Err(SamlError::XmlParsing(
+                        "SP metadata contains forbidden processing instructions".to_string(),
+                    ));
                 }
                 Ok(Event::GeneralRef(reference)) => {
                     let name = reference
                         .decode()
-                        .map_err(|error| format!("Failed to decode entity reference: {:?}", error))?
+                        .map_err(|error| {
+                            SamlError::XmlParsing(format!(
+                                "Failed to decode entity reference: {:?}",
+                                error
+                            ))
+                        })?
                         .to_string();
                     if !is_safe_general_reference(name.as_str()) {
-                        return Err(format!(
+                        return Err(SamlError::XmlParsing(format!(
                             "SP metadata contains forbidden entity/reference: {}",
                             name
-                        ));
+                        )));
                     }
                 }
-                Ok(Event::Decl(_)) | Ok(Event::Comment(_)) => {}
+                Ok(Event::Decl(_)) => Err(SamlError::XmlParsing(
+                    "SP metadata contains forbidden XML declaration".to_string(),
+                ))?,
+                Ok(Event::Comment(_)) => Err(SamlError::XmlParsing(
+                    "SP metadata contains forbidden XML comments".to_string(),
+                ))?,
                 Ok(Event::Eof) => break,
-                Err(error) => return Err(format!("Failed to parse SP metadata XML: {:?}", error)),
+                Err(error) => {
+                    return Err(SamlError::XmlParsing(format!(
+                        "Failed to parse SP metadata XML: {:?}",
+                        error
+                    )));
+                }
             }
         }
 
         if !tag_stack.is_empty() {
-            return Err("Malformed SP metadata XML: unclosed XML elements".to_string());
+            return Err(SamlError::XmlParsing(
+                "Malformed SP metadata XML: unclosed XML elements".to_string(),
+            ));
         }
 
         meta.x509_certificate = certificate_data;
@@ -389,7 +430,7 @@ impl ServiceProvider {
         &mut self,
         servicetype: SamlBindingType,
         attributes: Vec<(String, String)>,
-    ) -> Result<ServiceBinding, String> {
+    ) -> Result<ServiceBinding, SamlError> {
         let mut binding = ServiceBinding {
             servicetype,
             binding: BindingMethod::HttpPost,
@@ -399,16 +440,17 @@ impl ServiceProvider {
         for (key, value) in attributes {
             match key.to_ascii_lowercase().as_str() {
                 "binding" => {
-                    binding.binding = BindingMethod::from_str(&value)
-                        .map_err(|error| format!("UNMATCHED BINDING: {}: {}", value, error))?;
+                    binding.binding = BindingMethod::from_str(&value).map_err(|error| {
+                        SamlError::Other(format!("UNMATCHED BINDING: {}: {}", value, error))
+                    })?;
                 }
                 "location" => {
                     binding.location = value;
                 }
                 "index" => {
-                    binding.index = value
-                        .parse::<u8>()
-                        .map_err(|error| format!("UNMATCHED INDEX: {}: {:?}", value, error))?;
+                    binding.index = value.parse::<u8>().map_err(|error| {
+                        SamlError::Other(format!("UNMATCHED INDEX: {}: {:?}", value, error))
+                    })?;
                 }
                 _ => {
                     error!(
@@ -422,13 +464,15 @@ impl ServiceProvider {
     }
 
     /// Return the first AssertionConsumerService we find.
-    pub fn find_first_acs(&self) -> Result<ServiceBinding, &'static str> {
+    pub fn find_first_acs(&self) -> Result<ServiceBinding, SamlError> {
         for service in &self.services {
             if let SamlBindingType::AssertionConsumerService = service.servicetype {
                 return Ok(service.to_owned());
             }
         }
-        Err("Couldn't find ACS")
+        Err(SamlError::XmlParsing(
+            "Couldn't find ACS in SP metadata".to_string(),
+        ))
     }
 
     /// Parse service provider metadata attributes for a given tag.

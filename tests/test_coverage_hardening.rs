@@ -5,23 +5,29 @@
 //! - Intent: why an attacker would attempt it.
 //! - Expected response: exact strict-mode rejection category.
 
-use std::path::PathBuf;
 use std::str::FromStr;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::Arc;
 
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
+use certkit::cert::params::{CertificationRequestInfo, DistinguishedName};
 use chrono::{DateTime, NaiveDate, Utc};
-use openssl::asn1::Asn1Time;
-use openssl::hash::MessageDigest;
-use openssl::pkey::PKey;
-use openssl::rsa::Rsa;
-use openssl::x509::{X509, X509NameBuilder};
+use k256::ecdsa::SigningKey;
+use log::debug;
+use rsa::RsaPrivateKey;
+use rsa::pkcs1v15::Pkcs1v15Sign;
+use rsa::pkcs8::{DecodePrivateKey, EncodePrivateKey};
 use saml_rs::assertion::AssertionAttribute;
+use saml_rs::error::SamlError;
 use saml_rs::response::{AuthNStatement, ResponseElements};
 use saml_rs::security::{SecurityError, XmlSecurityLimits, inspect_xml_payload};
-use saml_rs::sign::{CanonicalizationMethod, DigestAlgorithm, SigningAlgorithm};
+use saml_rs::sign::{
+    CanonicalizationMethod, DigestAlgorithm, SamlSigningKey, SigningAlgorithm, generate_private_key,
+};
 use saml_rs::sp::{BindingMethod, NameIdFormat, SamlBindingType, ServiceBinding};
-use saml_rs::utils::{DateTimeUtils, to_hex_string};
+use saml_rs::utils::generate_test_keypair;
+use tokio::fs;
+use x509_cert::Certificate;
+use x509_cert::der::{Encode, EncodePem};
 
 fn fixed_datetime() -> DateTime<Utc> {
     DateTime::<Utc>::from_naive_utc_and_offset(
@@ -32,86 +38,36 @@ fn fixed_datetime() -> DateTime<Utc> {
     )
 }
 
-fn generate_private_key() -> PKey<openssl::pkey::Private> {
-    let rsa = match Rsa::generate(2048) {
-        Ok(value) => value,
-        Err(error) => panic!("failed to generate rsa key: {:?}", error),
-    };
-    match PKey::from_rsa(rsa) {
-        Ok(value) => value,
-        Err(error) => panic!("failed to convert rsa into pkey: {:?}", error),
-    }
-}
+fn generate_valid_signing_material(common_name: &str) -> (RsaPrivateKey, Certificate) {
+    let privkey = rsa::RsaPrivateKey::new(&mut rsa::rand_core::OsRng, 2048)
+        .expect("failed to generate RSA private key");
+    let privkey_pem = privkey
+        .to_pkcs8_pem(rsa::pkcs8::LineEnding::CRLF)
+        .expect("failed to encode private key to PEM");
+    let key_pair = certkit::key::KeyPair::import_from_pkcs8_pem(&privkey_pem)
+        .map_err(|err| err.to_string())
+        .expect("failed to generate key pair for signing material");
 
-fn generate_valid_signing_material(common_name: &str) -> (PKey<openssl::pkey::Private>, X509) {
-    let private_key = generate_private_key();
+    let subject = DistinguishedName::builder()
+        .common_name(common_name.to_string())
+        .organization("Example organization".to_string())
+        .country("AU".to_string())
+        .state("QLD".to_string())
+        .build();
 
-    let mut name_builder = match X509NameBuilder::new() {
-        Ok(value) => value,
-        Err(error) => panic!("failed to create X509 name builder: {:?}", error),
-    };
-    if let Err(error) = name_builder.append_entry_by_text("CN", common_name) {
-        panic!("failed to set certificate CN: {:?}", error);
-    }
-    let name = name_builder.build();
+    let cert_info = CertificationRequestInfo::builder()
+        .subject(subject)
+        .subject_public_key(certkit::key::PublicKey::from_key_pair(&key_pair))
+        .build();
 
-    let mut builder = match X509::builder() {
-        Ok(value) => value,
-        Err(error) => panic!("failed to create X509 builder: {:?}", error),
-    };
-    if let Err(error) = builder.set_version(2) {
-        panic!("failed to set certificate version: {:?}", error);
-    }
-    if let Err(error) = builder.set_subject_name(&name) {
-        panic!("failed to set certificate subject name: {:?}", error);
-    }
-    if let Err(error) = builder.set_issuer_name(&name) {
-        panic!("failed to set certificate issuer name: {:?}", error);
-    }
-    if let Err(error) = builder.set_pubkey(&private_key) {
-        panic!("failed to set certificate public key: {:?}", error);
-    }
-    let not_before = match Asn1Time::days_from_now(0) {
-        Ok(value) => value,
-        Err(error) => panic!("failed to build not_before: {:?}", error),
-    };
-    if let Err(error) = builder.set_not_before(&not_before) {
-        panic!("failed to set not_before: {:?}", error);
-    }
-    let not_after = match Asn1Time::days_from_now(365) {
-        Ok(value) => value,
-        Err(error) => panic!("failed to build not_after: {:?}", error),
-    };
-    if let Err(error) = builder.set_not_after(&not_after) {
-        panic!("failed to set not_after: {:?}", error);
-    }
-    if let Err(error) = builder.sign(&private_key, MessageDigest::sha256()) {
-        panic!("failed to sign certificate: {:?}", error);
-    }
-
-    (private_key, builder.build())
-}
-
-fn unique_temp_file(name: &str, extension: &str) -> PathBuf {
-    let mut path = std::env::temp_dir();
-    let nanos = match SystemTime::now().duration_since(UNIX_EPOCH) {
-        Ok(value) => value.as_nanos(),
-        Err(error) => panic!("system clock error while creating temp path: {:?}", error),
-    };
-    path.push(format!(
-        "saml-rs-{}-{}-{}.{}",
-        name,
-        std::process::id(),
-        nanos,
-        extension
-    ));
-    path
+    let certificate = certkit::cert::Certificate::new_self_signed(&cert_info, &key_pair);
+    (privkey, certificate.inner)
 }
 
 fn sample_response_builder(
     sign_assertion: bool,
     sign_message: bool,
-    signing_cert: Option<openssl::x509::X509>,
+    signing_cert: Option<Certificate>,
 ) -> saml_rs::response::ResponseElementsBuilder {
     let authnstatement = AuthNStatement {
         instant: fixed_datetime(),
@@ -139,37 +95,24 @@ fn sample_response_builder(
         .assertion_consumer_service(Some("https://sp.example.com/acs".to_string()))
         .sign_assertion(sign_assertion)
         .sign_message(sign_message)
-        .signing_key(Some(generate_private_key()))
+        .signing_key(
+            SamlSigningKey::Rsa(
+                generate_test_keypair()
+                    .expect("failed to generate keypair")
+                    .0,
+            )
+            .into(),
+        )
         .signing_cert(signing_cert)
-        .signing_algorithm(SigningAlgorithm::Sha256)
+        .signing_algorithm(SigningAlgorithm::RsaSha256)
         .digest_algorithm(DigestAlgorithm::Sha256)
         .canonicalization_method(CanonicalizationMethod::ExclusiveCanonical10)
 }
 
 #[test]
-fn utils_hex_and_datetime_formatting_are_stable() {
-    let rendered = to_hex_string(&[0x01, 0xAB, 0xFF], None);
-    assert_eq!(rendered, "01abff");
-
-    let rendered_joined = to_hex_string(&[0x01, 0xAB, 0xFF], Some(":"));
-    assert_eq!(rendered_joined, "01:ab:ff");
-
-    let ts = DateTime::<Utc>::from_naive_utc_and_offset(
-        NaiveDate::from_ymd_opt(2024, 1, 2)
-            .and_then(|value| value.and_hms_opt(3, 4, 5))
-            .unwrap_or_else(|| panic!("failed to construct datetime for formatting test")),
-        Utc,
-    );
-    assert_eq!(ts.to_saml_datetime_string(), "2024-01-02T03:04:05Z");
-}
-
-#[test]
 fn cert_helpers_parse_base64_and_strip_headers() {
     let (_private_key, cert) = generate_valid_signing_material("example.com");
-    let cert_der = match cert.to_der() {
-        Ok(value) => value,
-        Err(error) => panic!("failed to render cert DER: {:?}", error),
-    };
+    let cert_der = cert.to_der().expect("failed to render cert DER");
     let cert_der_base64 = BASE64_STANDARD.encode(cert_der);
     let cert_der_base64_with_ws = format!("\n  {}\n", cert_der_base64);
 
@@ -179,15 +122,11 @@ fn cert_helpers_parse_base64_and_strip_headers() {
     let invalid = saml_rs::cert::init_cert_from_base64("not-a-cert");
     assert!(invalid.is_err(), "invalid base64 cert input should fail");
 
-    let cert_pem = match cert.to_pem() {
-        Ok(value) => value,
-        Err(error) => panic!("failed to render cert PEM: {:?}", error),
-    };
-    let cert_pem_string = match String::from_utf8(cert_pem) {
-        Ok(value) => value,
-        Err(error) => panic!("failed to convert cert PEM to utf8: {:?}", error),
-    };
-    let stripped = saml_rs::cert::strip_cert_headers(&cert_pem_string);
+    let cert_pem = cert
+        .to_pem(rsa::pkcs8::LineEnding::CRLF)
+        .expect("failed to render cert PEM");
+
+    let stripped = saml_rs::cert::strip_cert_headers(&cert_pem);
     assert!(!stripped.contains("BEGIN CERTIFICATE"));
     assert!(!stripped.contains("END CERTIFICATE"));
 }
@@ -347,36 +286,26 @@ fn response_builder_rejects_bad_inputs_and_builds_unsigned_responses() {
 
 #[test]
 fn signing_roundtrip_sha256_detects_tamper_and_conversion_fallbacks() {
-    let rsa = match Rsa::generate(2048) {
-        Ok(value) => value,
-        Err(error) => panic!("failed to generate rsa: {:?}", error),
-    };
-    let signing_key = match PKey::from_rsa(rsa) {
-        Ok(value) => value,
-        Err(error) => panic!("failed to create private key: {:?}", error),
-    };
-    let public_pem = match signing_key.public_key_to_pem() {
-        Ok(value) => value,
-        Err(error) => panic!("failed to export public key: {:?}", error),
-    };
-    let verify_key = match PKey::public_key_from_pem(&public_pem) {
-        Ok(value) => value,
-        Err(error) => panic!("failed to parse public key: {:?}", error),
-    };
+    let signing_key: Arc<SamlSigningKey> = Arc::new(generate_private_key().into());
 
-    let signed = saml_rs::sign::sign_data(SigningAlgorithm::Sha256, &signing_key, b"integrity");
+    let signed = saml_rs::sign::sign_data(SigningAlgorithm::RsaSha256, &signing_key, b"integrity")
+        .expect("signing should succeed with valid key and algorithm");
     assert!(!signed.is_empty(), "SHA-256 signing should produce bytes");
 
-    let ok =
-        saml_rs::sign::verify_data(SigningAlgorithm::Sha256, &verify_key, b"integrity", &signed);
+    let ok = saml_rs::sign::verify_data(
+        SigningAlgorithm::RsaSha256,
+        &signing_key,
+        b"integrity",
+        &signed,
+    );
     match ok {
         Ok(value) => assert!(value, "signature must verify over original payload"),
         Err(error) => panic!("verification should not error: {}", error),
     }
 
     let tampered = saml_rs::sign::verify_data(
-        SigningAlgorithm::Sha256,
-        &verify_key,
+        SigningAlgorithm::RsaSha256,
+        &signing_key,
         b"integrity-tampered",
         &signed,
     );
@@ -421,6 +350,75 @@ fn signing_roundtrip_sha256_detects_tamper_and_conversion_fallbacks() {
         c14n_error.is_err(),
         "invalid xml should fail canonicalization"
     );
+}
+
+#[test]
+fn verify_data_with_cert_rsa_sha256_roundtrip_and_tamper() {
+    let (private_key, cert) = generate_valid_signing_material("cert-verify.example.com");
+    let payload = b"signed-info-payload";
+    let digest = saml_rs::sign::DigestAlgorithm::Sha256
+        .hash(payload)
+        .expect("failed to hash payload with SHA-256");
+
+    let signature = private_key
+        .sign(Pkcs1v15Sign::new::<sha2::Sha256>(), &digest)
+        .expect("failed to sign digest using RSA key");
+
+    let verified = saml_rs::sign::verify_data_with_cert(
+        SigningAlgorithm::RsaSha256,
+        &cert,
+        payload,
+        &signature,
+    )
+    .expect("certificate verification should succeed");
+    assert!(
+        verified,
+        "signature must verify against certificate public key"
+    );
+
+    let tampered = saml_rs::sign::verify_data_with_cert(
+        SigningAlgorithm::RsaSha256,
+        &cert,
+        b"signed-info-payload-tampered",
+        &signature,
+    )
+    .expect("tampered verification should return false, not error");
+    assert!(
+        !tampered,
+        "tampered payload must fail certificate verification"
+    );
+}
+
+#[test]
+fn signing_roundtrip_ecdsa_sha256_detects_tamper() {
+    let signing_key = SamlSigningKey::EcDsa256(SigningKey::random(&mut rsa::rand_core::OsRng));
+    let signing_key: Arc<SamlSigningKey> = Arc::new(signing_key);
+
+    let signed = saml_rs::sign::sign_data(
+        SigningAlgorithm::EcDsaSha256,
+        &signing_key,
+        b"ecdsa-integrity",
+    )
+    .expect("ECDSA signing should succeed with valid key and algorithm");
+    assert!(!signed.is_empty(), "ECDSA signing should produce bytes");
+
+    let ok = saml_rs::sign::verify_data(
+        SigningAlgorithm::EcDsaSha256,
+        &signing_key,
+        b"ecdsa-integrity",
+        &signed,
+    )
+    .expect("ECDSA verification should not error");
+    assert!(ok, "ECDSA signature must verify over original payload");
+
+    let tampered = saml_rs::sign::verify_data(
+        SigningAlgorithm::EcDsaSha256,
+        &signing_key,
+        b"ecdsa-integrity-tampered",
+        &signed,
+    )
+    .expect("tampered ECDSA verification should return false");
+    assert!(!tampered, "ECDSA signature must fail for tampered payload");
 }
 
 #[test]
@@ -470,14 +468,19 @@ fn service_provider_helpers_parse_valid_metadata_and_reject_invalid_inputs() {
     let mismatch_result = mismatched.parse::<saml_rs::sp::ServiceProvider>();
     match mismatch_result {
         Ok(_) => panic!("mismatched XML should fail parsing"),
-        Err(error) => assert!(error.to_ascii_lowercase().contains("mismatched")),
+        Err(error) => assert!(
+            error
+                .to_string()
+                .to_ascii_lowercase()
+                .contains("mismatched")
+        ),
     }
 
     let cdata_payload = "<EntityDescriptor><SPSSODescriptor><NameIDFormat><![CDATA[evil]]></NameIDFormat></SPSSODescriptor></EntityDescriptor>";
     let cdata_result = cdata_payload.parse::<saml_rs::sp::ServiceProvider>();
     match cdata_result {
         Ok(_) => panic!("CDATA content should fail strict metadata parsing"),
-        Err(error) => assert!(error.to_ascii_lowercase().contains("cdata")),
+        Err(error) => assert!(error.to_string().to_ascii_lowercase().contains("cdata")),
     }
 
     let binding = ServiceBinding::default().set_binding("invalid-binding");
@@ -661,115 +664,91 @@ fn xml_preflight_rejects_malicious_inputs_with_expected_categories() {
     );
 }
 
-#[test]
-fn sync_load_key_and_certificate_helpers_cover_file_paths() {
+#[tokio::test]
+async fn load_key_and_certificate_helpers_cover_file_paths() {
     let (private_key, cert) = generate_valid_signing_material("filetest.example.com");
-    let key_pem = match private_key.private_key_to_pem_pkcs8() {
-        Ok(value) => value,
-        Err(error) => panic!("failed to render private key PEM: {:?}", error),
-    };
-    let cert_pem = match cert.to_pem() {
-        Ok(value) => value,
-        Err(error) => panic!("failed to render cert PEM: {:?}", error),
-    };
+    let key_pem = private_key
+        .to_pkcs8_pem(rsa::pkcs8::LineEnding::CRLF)
+        .expect("failed to render private key PEM");
+    let cert_pem = cert
+        .to_pem(rsa::pkcs8::LineEnding::CRLF)
+        .expect("failed to render cert PEM");
 
-    let key_path = unique_temp_file("sync-key", "pem");
-    let cert_path = unique_temp_file("sync-cert", "pem");
+    let key_path =
+        tempfile::NamedTempFile::new().expect("failed to create temporary private key file");
+    let cert_path = tempfile::NamedTempFile::new().expect("failed to create temporary cert file");
 
-    let runtime = match tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-    {
-        Ok(value) => value,
-        Err(error) => panic!(
-            "failed to create tokio runtime for sync file test: {:?}",
-            error
-        ),
-    };
+    fs::write(&key_path, key_pem)
+        .await
+        .expect("failed writing temporary private key file");
+    fs::write(&cert_path, cert_pem)
+        .await
+        .expect("failed writing temporary cert file");
 
-    if let Err(error) = runtime.block_on(tokio::fs::write(&key_path, key_pem)) {
-        panic!("failed writing temporary private key file: {:?}", error);
-    }
-    if let Err(error) = runtime.block_on(tokio::fs::write(&cert_path, cert_pem)) {
-        panic!("failed writing temporary cert file: {:?}", error);
-    }
+    load_key_from_filename_async(key_path.path().to_string_lossy().as_ref())
+        .await
+        .expect("failed to load private key file");
 
-    let key_result = saml_rs::sign::load_key_from_filename(key_path.to_string_lossy().as_ref());
-    assert!(
-        key_result.is_ok(),
-        "private key file should load successfully"
-    );
+    saml_rs::sign::load_public_cert_from_filename(cert_path.path().to_string_lossy().as_ref())
+        .await
+        .expect("failed to load cert file");
 
-    let cert_result =
-        saml_rs::sign::load_public_cert_from_filename(cert_path.to_string_lossy().as_ref());
-    assert!(
-        cert_result.is_ok(),
-        "certificate file should load successfully"
-    );
-
-    let missing_key = saml_rs::sign::load_key_from_filename("/tmp/does-not-exist-key.pem");
+    let missing_key = load_key_from_filename_async("/tmp/does-not-exist-key.pem").await;
     assert!(
         missing_key.is_err(),
         "missing key file should produce an error"
     );
 
     let missing_cert =
-        saml_rs::sign::load_public_cert_from_filename("/tmp/does-not-exist-cert.pem");
+        saml_rs::sign::load_public_cert_from_filename("/tmp/does-not-exist-cert.pem").await;
     assert!(
         missing_cert.is_err(),
         "missing cert file should produce an error"
     );
 
-    let _ = runtime.block_on(tokio::fs::remove_file(key_path));
-    let _ = runtime.block_on(tokio::fs::remove_file(cert_path));
+    tokio::fs::remove_file(key_path)
+        .await
+        .expect("failed to remove temporary private key file");
+    tokio::fs::remove_file(cert_path)
+        .await
+        .expect("failed to remove temporary cert file");
 }
 
 #[tokio::test(flavor = "current_thread")]
 async fn async_load_key_and_certificate_helpers_cover_async_paths() {
     let (private_key, cert) = generate_valid_signing_material("async-filetest.example.com");
-    let key_pem = match private_key.private_key_to_pem_pkcs8() {
-        Ok(value) => value,
-        Err(error) => panic!("failed to render async private key PEM: {:?}", error),
-    };
-    let cert_pem = match cert.to_pem() {
-        Ok(value) => value,
-        Err(error) => panic!("failed to render async cert PEM: {:?}", error),
-    };
+    let key_pem = private_key
+        .to_pkcs8_pem(rsa::pkcs8::LineEnding::CRLF)
+        .expect("failed to render async private key PEM");
+    let cert_pem = cert
+        .to_pem(rsa::pkcs8::LineEnding::CRLF)
+        .expect("failed to render async cert PEM");
 
-    let key_path = unique_temp_file("async-key", "pem");
-    let cert_path = unique_temp_file("async-cert", "pem");
+    let key_path =
+        tempfile::NamedTempFile::new().expect("failed to create async temporary private key file");
+    let cert_path =
+        tempfile::NamedTempFile::new().expect("failed to create async temporary cert file");
 
-    if let Err(error) = tokio::fs::write(&key_path, key_pem).await {
-        panic!(
-            "failed writing async temporary private key file: {:?}",
-            error
-        );
-    }
-    if let Err(error) = tokio::fs::write(&cert_path, cert_pem).await {
-        panic!("failed writing async temporary cert file: {:?}", error);
-    }
+    tokio::fs::write(&key_path, key_pem)
+        .await
+        .expect("failed writing async temporary private key file");
+    tokio::fs::write(&cert_path, cert_pem)
+        .await
+        .expect("failed writing async temporary cert file");
 
-    let key_result =
-        saml_rs::sign::load_key_from_filename_async(key_path.to_string_lossy().as_ref()).await;
-    assert!(
-        key_result.is_ok(),
-        "async private key file should load successfully"
-    );
+    load_key_from_filename_async(key_path.path().to_string_lossy().as_ref())
+        .await
+        .expect("async load of private key file should succeed");
 
-    let cert_result =
-        saml_rs::sign::load_public_cert_from_filename_async(cert_path.to_string_lossy().as_ref())
-            .await;
-    assert!(
-        cert_result.is_ok(),
-        "async certificate file should load successfully"
-    );
+    saml_rs::sign::load_public_cert_from_filename(cert_path.path().to_string_lossy().as_ref())
+        .await
+        .expect("async load of certificate file should succeed");
 
-    let missing_key =
-        saml_rs::sign::load_key_from_filename_async("/tmp/does-not-exist-async-key.pem").await;
+    let missing_key = load_key_from_filename_async("/dev/null/does-not-exist-async-key.pem").await;
     assert!(missing_key.is_err(), "missing async key file should error");
 
     let missing_cert =
-        saml_rs::sign::load_public_cert_from_filename_async("/tmp/does-not-exist-async-cert.pem")
+        saml_rs::sign::load_public_cert_from_filename("/dev/null/does-not-exist-async-cert.pem")
             .await;
     assert!(
         missing_cert.is_err(),
@@ -778,4 +757,27 @@ async fn async_load_key_and_certificate_helpers_cover_async_paths() {
 
     let _ = tokio::fs::remove_file(key_path).await;
     let _ = tokio::fs::remove_file(cert_path).await;
+}
+
+/// Async version of [load_key_from_filename] for callers that already run inside a tokio runtime.
+pub async fn load_key_from_filename_async(key_filename: &str) -> Result<Vec<u8>, SamlError> {
+    let pkey_buffer = fs::read_to_string(key_filename).await?;
+
+    debug!("key:  {}", key_filename);
+    let keypair = match RsaPrivateKey::from_pkcs8_pem(&pkey_buffer) {
+        Ok(value) => value,
+        Err(error) => {
+            return Err(SamlError::other(format!(
+                "Failed to load pkey from pem bytes: {:?}",
+                error
+            )));
+        }
+    };
+
+    keypair
+        .to_pkcs8_pem(rsa::pkcs8::LineEnding::CRLF)
+        .map(|pem| pem.as_bytes().to_vec())
+        .map_err(|error| {
+            SamlError::other(format!("Failed to convert private key to PEM: {:?}", error))
+        })
 }

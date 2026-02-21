@@ -6,11 +6,10 @@
 
 #[cfg(feature = "danger_i_want_to_risk_it_all")]
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
-use openssl::pkey::PKey;
-use openssl::rsa::Rsa;
-use saml_rs::sign::{DigestAlgorithm, SigningAlgorithm};
+use saml_rs::sign::{DigestAlgorithm, SigningAlgorithm, SamlSigningKey};
 #[cfg(feature = "danger_i_want_to_risk_it_all")]
 use saml_rs::utils::to_hex_string;
+use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug)]
 struct LegacyDigestCase {
@@ -43,33 +42,10 @@ fn legacy_digest_cases() -> Vec<LegacyDigestCase> {
     ]
 }
 
-fn generate_keypair() -> (PKey<openssl::pkey::Private>, PKey<openssl::pkey::Public>) {
-    let rsa = match Rsa::generate(2048) {
-        Ok(value) => value,
-        Err(error) => panic!("failed to generate rsa keypair: {:?}", error),
-    };
-    let signing_key = match PKey::from_rsa(rsa) {
-        Ok(value) => value,
-        Err(error) => panic!("failed to create private key from rsa: {:?}", error),
-    };
-    let public_pem = match signing_key.public_key_to_pem() {
-        Ok(value) => value,
-        Err(error) => panic!("failed to encode public key pem: {:?}", error),
-    };
-    let verify_key = match PKey::public_key_from_pem(&public_pem) {
-        Ok(value) => value,
-        Err(error) => panic!("failed to parse public key pem: {:?}", error),
-    };
-    (signing_key, verify_key)
-}
-
 #[cfg(not(feature = "danger_i_want_to_risk_it_all"))]
 #[test]
 fn strict_mode_rejects_legacy_sha1_vectors_and_sha1_signatures() {
     for case in legacy_digest_cases() {
-        // Attack: legacy SHA-1 digest value smuggled into a modern SAML profile.
-        // Intent: downgrade cryptographic policy to weak digest primitives.
-        // Expected strict response: digest operation is rejected with SHA-1 disabled.
         let digest_result = DigestAlgorithm::Sha1.hash(case.payload.as_bytes());
         assert!(
             digest_result.is_err(),
@@ -82,26 +58,22 @@ fn strict_mode_rejects_legacy_sha1_vectors_and_sha1_signatures() {
         assert!(!case.expected_sha1_base64.is_empty());
     }
 
-    let (signing_key, verify_key) = generate_keypair();
+    let signing_key: Arc<SamlSigningKey> = Arc::new(saml_rs::sign::generate_private_key().into());
 
-    // Attack: signature downgrade to RSA-SHA1.
-    // Intent: force acceptance of a weak signature algorithm.
-    // Expected strict response: signature generation and verification are blocked.
-    let signed = saml_rs::sign::sign_data(SigningAlgorithm::Sha1, &signing_key, b"sha1-blocked");
     assert!(
-        signed.is_empty(),
-        "strict mode should block SHA-1 signature generation"
+        saml_rs::sign::sign_data(SigningAlgorithm::RsaSha1, &signing_key, b"sha1-blocked").is_err(),
+        "strict mode should block SHA-1 signing API"
     );
 
-    let verified = saml_rs::sign::verify_data(
-        SigningAlgorithm::Sha1,
-        &verify_key,
-        b"sha1-blocked",
-        b"bogus",
-    );
     assert!(
-        verified.is_err(),
-        "strict mode should block SHA-1 verification"
+        saml_rs::sign::verify_data(
+            SigningAlgorithm::RsaSha1,
+            &signing_key,
+            b"sha1-blocked",
+            b"bogus",
+        )
+        .is_err(),
+        "strict mode should block SHA-1 verification API"
     );
 }
 
@@ -109,9 +81,6 @@ fn strict_mode_rejects_legacy_sha1_vectors_and_sha1_signatures() {
 #[test]
 fn danger_mode_allows_legacy_sha1_only_after_explicit_unlock() {
     for case in legacy_digest_cases() {
-        // Attack: try SHA-1 processing before explicit runtime opt-in.
-        // Intent: verify feature-compile alone does not weaken defaults.
-        // Expected response: still rejected before explicit unlock.
         let pre_unlock = DigestAlgorithm::Sha1.hash(case.payload.as_bytes());
         assert!(
             pre_unlock.is_err(),
@@ -124,9 +93,6 @@ fn danger_mode_allows_legacy_sha1_only_after_explicit_unlock() {
     saml_rs::security::danger::enable_weak_algorithms(&token);
 
     for case in legacy_digest_cases() {
-        // Attack: explicit compatibility path for SHA-1 interop.
-        // Intent: allow controlled interop with legacy SAML peers only when explicitly approved.
-        // Expected response: digest output must match known historical vectors exactly.
         let digest = match DigestAlgorithm::Sha1.hash(case.payload.as_bytes()) {
             Ok(value) => value,
             Err(error) => panic!(
@@ -149,24 +115,21 @@ fn danger_mode_allows_legacy_sha1_only_after_explicit_unlock() {
         );
     }
 
-    let (signing_key, verify_key) = generate_keypair();
-
-    // Attack: runtime downgrade to SHA-1 signatures.
-    // Intent: verify downgrade is only possible through explicit danger calls.
-    // Expected response in danger-unlocked mode: deterministic sign+verify works for compatibility testing.
+    let signing_key: Arc<SamlSigningKey> = Arc::new(saml_rs::sign::generate_private_key().into());
     let signed = saml_rs::sign::sign_data(
-        SigningAlgorithm::Sha1,
+        SigningAlgorithm::RsaSha1,
         &signing_key,
         b"legacy-interoperability",
-    );
+    )
+    .expect("danger-unlocked mode should allow SHA-1 signing API");
     assert!(
         !signed.is_empty(),
         "danger-unlocked mode should permit SHA-1 signing for compatibility testing"
     );
 
     let verified = match saml_rs::sign::verify_data(
-        SigningAlgorithm::Sha1,
-        &verify_key,
+        SigningAlgorithm::RsaSha1,
+        &signing_key,
         b"legacy-interoperability",
         &signed,
     ) {

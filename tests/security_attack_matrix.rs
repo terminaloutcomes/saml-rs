@@ -10,9 +10,12 @@
 //! Detailed prose for each case lives in `tests/fixtures/attacks/ATTACK_EXPECTATIONS.md`.
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
-use openssl::pkey::PKey;
-use openssl::rsa::Rsa;
+use saml_rs::{
+    error::SamlError,
+    sign::{SigningAlgorithm, SamlSigningKey},
+};
 
 #[derive(Clone, Copy, Debug)]
 enum AttackTarget {
@@ -273,16 +276,15 @@ fn attack_cases() -> Vec<AttackCase> {
     ]
 }
 
-async fn run_attack_case(case: AttackCase) -> Result<(), String> {
+async fn run_attack_case(case: AttackCase) -> Result<(), SamlError> {
     let payload = load_fixture(case.filename).await;
     match case.target {
         AttackTarget::AuthnRequest => saml_rs::parse_authn_request(&payload)
             .map(|_| ())
-            .map_err(|error| error.message),
-        AttackTarget::ServiceProviderMetadata => payload
-            .parse::<saml_rs::sp::ServiceProvider>()
-            .map(|_| ())
-            .map_err(|error| error.to_string()),
+            .map_err(|error| SamlError::XmlParsing(error.message)),
+        AttackTarget::ServiceProviderMetadata => {
+            payload.parse::<saml_rs::sp::ServiceProvider>().map(|_| ())
+        }
     }
 }
 
@@ -306,7 +308,7 @@ async fn assert_attack_is_rejected(case: AttackCase, mode_label: &str) {
 
     if let Some(hint) = case.expected_rejection_hint {
         let hint_lower = hint.to_ascii_lowercase();
-        let err_lower = err.to_ascii_lowercase();
+        let err_lower = err.to_string().to_ascii_lowercase();
         assert!(
             err_lower.contains(&hint_lower),
             "[{}:{} {}] rejection reason did not include expected hint.\nexpected_hint={}\nactual_error={}\nattack_intent={}\nattacker_goal={}\nsafe_expectation={}\ndanger_expectation={}",
@@ -334,26 +336,18 @@ async fn rejects_attack_matrix_in_safe_mode() {
     assert!(!saml_rs::security::unsigned_authn_requests_allowed());
     assert!(!saml_rs::security::unknown_service_providers_allowed());
 
-    let rsa = Rsa::generate(2048).expect("rsa generation should succeed");
-    let signing_key = PKey::from_rsa(rsa).expect("private key should be constructible");
-    let public_pem = signing_key
-        .public_key_to_pem()
-        .expect("public key pem should render");
-    let verify_key = PKey::public_key_from_pem(&public_pem).expect("public key should parse");
+    let signing_key: Arc<SamlSigningKey> = Arc::new(saml_rs::sign::generate_private_key().into());
 
-    let signed = saml_rs::sign::sign_data(
-        saml_rs::sign::SigningAlgorithm::Sha1,
-        &signing_key,
-        b"downgrade-check",
-    );
+    let signed =
+        saml_rs::sign::sign_data(SigningAlgorithm::RsaSha1, &signing_key, b"downgrade-check");
     assert!(
-        signed.is_empty(),
+        signed.is_err(),
         "SHA-1 signing should be blocked in safe mode"
     );
 
     let verify_result = saml_rs::sign::verify_data(
-        saml_rs::sign::SigningAlgorithm::Sha1,
-        &verify_key,
+        SigningAlgorithm::RsaSha1,
+        &signing_key,
         b"downgrade-check",
         b"bogus",
     );
@@ -363,7 +357,7 @@ async fn rejects_attack_matrix_in_safe_mode() {
     );
 }
 
-// #[cfg(feature = "danger_i_want_to_risk_it_all")]
+#[cfg(feature = "danger_i_want_to_risk_it_all")]
 #[tokio::test]
 async fn rejects_attack_matrix_before_runtime_danger_unlock() {
     for case in attack_cases() {
@@ -383,26 +377,19 @@ async fn danger_mode_requires_explicit_unlock_and_only_relaxes_selected_controls
     assert!(saml_rs::security::unsigned_authn_requests_allowed());
     assert!(saml_rs::security::unknown_service_providers_allowed());
 
-    let rsa = Rsa::generate(2048).expect("rsa generation should succeed");
-    let signing_key = PKey::from_rsa(rsa).expect("private key should be constructible");
-    let public_pem = signing_key
-        .public_key_to_pem()
-        .expect("public key pem should render");
-    let verify_key = PKey::public_key_from_pem(&public_pem).expect("public key should parse");
+    let signing_key: Arc<SamlSigningKey> = Arc::new(saml_rs::sign::generate_private_key().into());
 
-    let signed = saml_rs::sign::sign_data(
-        saml_rs::sign::SigningAlgorithm::Sha1,
-        &signing_key,
-        b"downgrade-check",
-    );
+    let signed =
+        saml_rs::sign::sign_data(SigningAlgorithm::RsaSha1, &signing_key, b"downgrade-check")
+            .expect("signing call should succeed after danger unlock");
     assert!(
         !signed.is_empty(),
         "SHA-1 signing should only be possible after explicit danger unlock"
     );
 
     let verified = saml_rs::sign::verify_data(
-        saml_rs::sign::SigningAlgorithm::Sha1,
-        &verify_key,
+        SigningAlgorithm::RsaSha1,
+        &signing_key,
         b"downgrade-check",
         &signed,
     )

@@ -45,6 +45,7 @@ impl Default for SecurityPolicy {
 }
 
 /// XML-specific hardening limits.
+// TODO make the fields private and have builder/accessor methods that enforce invariants
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct XmlSecurityLimits {
     /// Maximum number of bytes allowed for an XML payload.

@@ -1,49 +1,10 @@
 //! Internal utilities for doing things with XML
 
-use log::{debug, error};
 use std::io::Write;
-use std::str::from_utf8;
+use x509_cert::der::EncodePem;
 use xml::writer::{EventWriter, XmlEvent};
 
-/// Extensions for [openssl::x509::X509] for nicer functionality
-pub trait X509Utils {
-    /// return an X509 object as a string,
-    /// either including the ```--- BEGIN LOLS ---```  or not
-    fn get_as_pem_string(&self, includeheaders: bool) -> String;
-}
-
-impl X509Utils for openssl::x509::X509 {
-    /// return an X509 object as a string,
-    /// either including the ```--- BEGIN LOLS ---```  or not
-    fn get_as_pem_string(&self, includeheaders: bool) -> String {
-        let cert_pem_bytes = match self.to_pem() {
-            Ok(value) => value,
-            Err(error) => {
-                error!("Failed to convert cert to PEM: {:?}", error);
-                return String::new();
-            }
-        };
-        let cert_pem = match from_utf8(&cert_pem_bytes) {
-            Ok(value) => value.to_string(),
-            Err(error) => {
-                error!("Failed to decode PEM as utf8: {:?}", error);
-                return String::new();
-            }
-        };
-
-        let result = match includeheaders {
-            true => cert_pem,
-            false => crate::cert::strip_cert_headers(&cert_pem),
-        };
-        debug!(
-            "############### start get_as_pem_string includeheaders: {} ###############",
-            includeheaders
-        );
-        debug!("{}", result);
-        debug!("############### end get_as_pem_string ###############");
-        result
-    }
-}
+use crate::error::SamlError;
 
 /// Used by the XML Event writer to append events to the response
 pub fn write_event<W: Write>(event: XmlEvent, writer: &mut EventWriter<W>) -> String {
@@ -65,7 +26,7 @@ pub struct SignatureConfig {
     /// Canonicalization method URI.
     pub canonicalization_method: crate::sign::CanonicalizationMethod,
     /// Signing certificate to include in `ds:KeyInfo`.
-    pub signing_cert: Option<openssl::x509::X509>,
+    pub signing_cert: Option<x509_cert::Certificate>,
 }
 
 /// Add a `ds:SignedInfo` block.
@@ -106,7 +67,7 @@ pub fn generate_signedinfo<W: Write>(
     write_event(XmlEvent::end_element().into(), writer);
 
     /*
-    TODO: this needs to be a reference to the ID
+    TODO this needs to be a reference to the ID
     5.4.2 References
     Signatures MUST contain a single <ds:Reference> containing a same-document reference to the ID
     attribute value of the root element of the assertion or protocol message being signed. For example, if the
@@ -182,7 +143,7 @@ pub fn add_signature<W: Write>(
     digest: &str,
     base64_encoded_signature: &str,
     writer: &mut EventWriter<W>,
-) -> Result<(), String> {
+) -> Result<(), SamlError> {
     write_event(
         XmlEvent::start_element(("ds", "Signature"))
             .attr("xmlns:ds", "http://www.w3.org/2000/09/xmldsig#")
@@ -214,12 +175,14 @@ pub fn add_signature<W: Write>(
     );
 
     let mut stripped_cert = match config.signing_cert.as_ref() {
-        Some(cert) => cert.get_as_pem_string(false),
+        Some(cert) => cert.to_pem(rsa::pkcs8::LineEnding::CRLF).map_err(|err| {
+            SamlError::Encoding(format!("Failed to convert cert to PEM: {:?}", err))
+        })?,
         None => {
-            return Err("Missing signing certificate while generating signature".to_string());
+            return Err(SamlError::NoCertAvailable);
         }
     };
-    // TODO: is this terrible, or is this terrible? It's terrible, find a better way of cleaning this up.
+    // TODO is this terrible, or is this terrible? It's terrible, find a better way of cleaning this up.
     stripped_cert = stripped_cert
         .replace("\r\n", "")
         .replace("\n", "")
