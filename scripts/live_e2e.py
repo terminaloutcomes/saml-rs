@@ -21,6 +21,7 @@ import docker
 from docker.errors import DockerException, ImageNotFound, NotFound
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
+# TODO: make this a temporary file on invocation instead of a fixed path, to allow parallel runs and avoid leftover state on failure
 WORK_DIR = ROOT_DIR / ".tmp" / "live-e2e"
 CERT_PATH = WORK_DIR / "idp-signing-cert.pem"
 KEY_PATH = WORK_DIR / "idp-signing-key.pem"
@@ -160,7 +161,8 @@ def _default_output_mode() -> OutputMode:
     env_mode = os.getenv("LIVE_E2E_OUTPUT_MODE")
     if env_mode is not None:
         return _output_mode(env_mode)
-    if os.getenv("CI") == "1":
+    ci_value = os.getenv("CI", "").strip().lower()
+    if ci_value in {"1", "true", "yes", "on"}:
         return "github-actions"
     return "human"
 

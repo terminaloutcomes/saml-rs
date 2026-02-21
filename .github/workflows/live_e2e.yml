@@ -44,4 +44,5 @@ jobs:
             - name: Run live e2e matrix
               env:
                   CI: "1"
+                  LIVE_E2E_OUTPUT_MODE: "github-actions"
               run: uv run scripts/live_e2e.py run
