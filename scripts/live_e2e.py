@@ -788,7 +788,7 @@ def assert_danger_mode_state(case: LiveE2ECase) -> None:
 
 
 def expect_startup_failure(case: LiveE2ECase) -> None:
-    if not wait_for_saml_server_exit():
+    if not wait_for_saml_server_exit(timeout_seconds=SAML_SERVER_WAIT_TIMEOUT_SECONDS):
         raise HarnessError(
             f"Case {case.name}: expected startup failure but saml_test_server stayed running"
         )
