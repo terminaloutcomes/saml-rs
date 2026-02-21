@@ -213,6 +213,22 @@ def _write_gha_summary(results: list[CaseRunResult]) -> None:
         )
 
 
+def _emit_overall_result(output_mode: OutputMode, results: list[CaseRunResult]) -> None:
+    passed = sum(1 for result in results if result.status == "passed")
+    failed = len(results) - passed
+    summary_line = (
+        f"LIVE_E2E_RESULT: passed={passed} failed={failed} total={len(results)}"
+    )
+    print(summary_line)
+
+    if output_mode == "github-actions":
+        escaped_summary = _gha_escape(summary_line)
+        if failed == 0:
+            print(f"::notice title=live-e2e summary::{escaped_summary}")
+        else:
+            print(f"::error title=live-e2e summary::{escaped_summary}")
+
+
 def _validate_case(case: LiveE2ECase) -> None:
     if case.mode == "strict" and case.danger.unlock:
         raise ConfigError(f"Case {case.name}: strict mode cannot unlock danger mode")
@@ -1011,10 +1027,23 @@ def build_matrix() -> list[LiveE2ECase]:
     ]
 
 
-def run_matrix(output_mode: OutputMode) -> None:
+def select_cases(case_name: str | None) -> list[LiveE2ECase]:
+    cases = build_matrix()
+    if not case_name:
+        return cases
+
+    matched_cases = [case for case in cases if case.name == case_name]
+    if matched_cases:
+        return matched_cases
+
+    available = ", ".join(case.name for case in cases)
+    raise ConfigError(f"Unknown case name {case_name!r}. Available cases: {available}")
+
+
+def run_matrix(output_mode: OutputMode, cases: list[LiveE2ECase]) -> None:
     results: list[CaseRunResult] = []
     failures: list[tuple[str, str]] = []
-    for case in build_matrix():
+    for case in cases:
         try:
             run_case(case)
             result = CaseRunResult(case.name, "passed", "case completed as expected")
@@ -1053,6 +1082,8 @@ def run_matrix(output_mode: OutputMode) -> None:
                     file=sys.stderr,
                 )
 
+    _emit_overall_result(output_mode, results)
+
     if output_mode == "github-actions":
         _write_gha_summary(results)
 
@@ -1090,11 +1121,11 @@ def down() -> None:
     stop_keycloak()
 
 
-def run_all(output_mode: OutputMode) -> None:
+def run_all(output_mode: OutputMode, case_name: str | None = None) -> None:
     keep_up = os.getenv("KEEP_UP", "0") == "1"
     try:
         prepare_signing_material()
-        run_matrix(output_mode)
+        run_matrix(output_mode, select_cases(case_name))
     finally:
         if not keep_up:
             down()
@@ -1113,11 +1144,16 @@ def main() -> int:
         choices=["human", "github-actions"],
         help="Control result output formatting; use 'github-actions' for CI annotations and step summary.",
     )
+    parser.add_argument(
+        "--case",
+        default=os.getenv("LIVE_E2E_CASE"),
+        help="Run only a single case by name (defaults to all cases).",
+    )
     args = parser.parse_args()
     output_mode = _output_mode(args.output_mode)
 
     if args.command == "run":
-        run_all(output_mode)
+        run_all(output_mode, args.case)
     elif args.command == "up":
         up()
     elif args.command == "down":
