@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 use saml_rs::{
     error::SamlError,
-    sign::{SigningAlgorithm, SigningKey},
+    sign::{SigningAlgorithm, SamlSigningKey},
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -336,7 +336,7 @@ async fn rejects_attack_matrix_in_safe_mode() {
     assert!(!saml_rs::security::unsigned_authn_requests_allowed());
     assert!(!saml_rs::security::unknown_service_providers_allowed());
 
-    let signing_key: Arc<SigningKey> = Arc::new(saml_rs::sign::generate_private_key().into());
+    let signing_key: Arc<SamlSigningKey> = Arc::new(saml_rs::sign::generate_private_key().into());
 
     let signed =
         saml_rs::sign::sign_data(SigningAlgorithm::RsaSha1, &signing_key, b"downgrade-check");
@@ -377,7 +377,7 @@ async fn danger_mode_requires_explicit_unlock_and_only_relaxes_selected_controls
     assert!(saml_rs::security::unsigned_authn_requests_allowed());
     assert!(saml_rs::security::unknown_service_providers_allowed());
 
-    let signing_key: Arc<SigningKey> = Arc::new(saml_rs::sign::generate_private_key().into());
+    let signing_key: Arc<SamlSigningKey> = Arc::new(saml_rs::sign::generate_private_key().into());
 
     let signed =
         saml_rs::sign::sign_data(SigningAlgorithm::RsaSha1, &signing_key, b"downgrade-check")

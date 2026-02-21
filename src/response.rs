@@ -4,7 +4,7 @@
 
 use crate::assertion::{Assertion, AssertionAttribute, BaseIDAbstractType, SubjectData};
 use crate::error::SamlError;
-use crate::sign::{CanonicalizationMethod, DigestAlgorithm, SigningAlgorithm, SigningKey};
+use crate::sign::{CanonicalizationMethod, DigestAlgorithm, SamlSigningKey, SigningAlgorithm};
 use crate::sp::*;
 use crate::xml::write_event;
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
@@ -74,7 +74,7 @@ pub struct ResponseElements {
     /// Should we sign the message?
     pub sign_message: bool,
     /// a private key for signing
-    signing_key: Arc<SigningKey>,
+    signing_key: Arc<SamlSigningKey>,
     /// The signing certificate
     signing_cert: Option<Certificate>,
     /// Signature algorithm for assertion/message signing.
@@ -275,7 +275,7 @@ pub struct ResponseElementsBuilder {
     status: crate::constants::StatusCode,
     sign_assertion: bool,
     sign_message: bool,
-    signing_key: Arc<SigningKey>,
+    signing_key: Arc<SamlSigningKey>,
     signing_cert: Option<x509_cert::Certificate>,
     signing_algorithm: SigningAlgorithm,
     digest_algorithm: DigestAlgorithm,
@@ -327,7 +327,7 @@ impl ResponseElementsBuilder {
             status: crate::constants::StatusCode::AuthnFailed,
             sign_assertion: true,
             sign_message: true,
-            signing_key: SigningKey::None.into(),
+            signing_key: SamlSigningKey::None.into(),
             signing_cert: None,
             signing_algorithm: SigningAlgorithm::RsaSha256,
             digest_algorithm: DigestAlgorithm::Sha256,
@@ -441,7 +441,7 @@ impl ResponseElementsBuilder {
     }
 
     /// Sets the private key used for signing.
-    pub fn signing_key(self, signing_key: Arc<SigningKey>) -> Self {
+    pub fn signing_key(self, signing_key: Arc<SamlSigningKey>) -> Self {
         Self {
             signing_key,
             ..self
@@ -1150,9 +1150,33 @@ fn parse_signature_value(signature_xml: &str) -> Result<String, SamlError> {
     Ok(signature_value)
 }
 
+fn verify_signedinfo_with_options(
+    signing_algorithm: SigningAlgorithm,
+    bytes: &[u8],
+    signature: &[u8],
+    key_service: Option<&crate::key_provider::KeyService>,
+    verification_cert: Option<&Certificate>,
+    verification_key: Option<&Arc<SamlSigningKey>>,
+    key_id: Option<&str>,
+) -> Result<bool, SamlError> {
+    if let Some(service) = key_service {
+        return service.verify(key_id, signing_algorithm, bytes, signature);
+    }
+    if let Some(cert) = verification_cert {
+        return crate::sign::verify_data_with_cert(signing_algorithm, cert, bytes, signature);
+    }
+    if let Some(key) = verification_key {
+        return crate::sign::verify_data(signing_algorithm, key, bytes, signature);
+    }
+    Err(SamlError::NoKeyAvailable)
+}
+
 fn verify_response_signature_and_references_impl(
     response_xml: &str,
-    mut verify_signedinfo: impl FnMut(SigningAlgorithm, &[u8], &[u8]) -> Result<bool, SamlError>,
+    key_service: Option<&crate::key_provider::KeyService>,
+    verification_cert: Option<&Certificate>,
+    verification_key: Option<&Arc<SamlSigningKey>>,
+    key_id: Option<&str>,
 ) -> Result<bool, SamlError> {
     if let Err(error) = crate::security::inspect_xml_payload(
         response_xml,
@@ -1238,60 +1262,62 @@ fn verify_response_signature_and_references_impl(
         .canonicalization_method
         .canonicalize(signedinfo_xml)?;
     let signature_bytes = BASE64_STANDARD.decode(signature_value)?;
-    let canonical_verified = verify_signedinfo(
+    let canonical_verified = verify_signedinfo_with_options(
         signedinfo.signing_algorithm,
         canonical_signedinfo.as_bytes(),
         &signature_bytes,
+        key_service,
+        verification_cert,
+        verification_key,
+        key_id,
     )?;
     if canonical_verified {
         return Ok(true);
     }
-    let raw_verified = verify_signedinfo(
+    let raw_verified = verify_signedinfo_with_options(
         signedinfo.signing_algorithm,
         signedinfo_xml.as_bytes(),
         &signature_bytes,
+        key_service,
+        verification_cert,
+        verification_key,
+        key_id,
     )?;
     Ok(raw_verified)
 }
 
-/// Verifies response-level XML signature and SignedInfo reference integrity using an X509 certificate.
+/// Verifies response-level signature and references using one of:
+/// - `key_service` + optional `key_id`
+/// - `verification_cert`
+/// - `verification_key`
 pub fn verify_response_signature_and_references(
     response_xml: &str,
-    verification_cert: &Certificate,
-) -> Result<bool, SamlError> {
-    verify_response_signature_and_references_impl(response_xml, |algorithm, bytes, signature| {
-        crate::sign::verify_data_with_cert(algorithm, verification_cert, bytes, signature)
-    })
-}
-
-/// Verifies response-level XML signature and SignedInfo reference integrity using a key.
-pub fn verify_response_signature_and_references_with_key(
-    response_xml: &str,
-    verification_key: &Arc<SigningKey>,
-) -> Result<bool, SamlError> {
-    verify_response_signature_and_references_impl(response_xml, |algorithm, bytes, signature| {
-        crate::sign::verify_data(algorithm, verification_key, bytes, signature)
-    })
-}
-
-/// Verifies response-level signature and references using a [`crate::key_provider::KeyProvider`].
-pub fn verify_response_signature_and_references_with_key_provider(
-    response_xml: &str,
-    key_provider: &impl crate::key_provider::KeyProvider,
+    key_service: Option<&crate::key_provider::KeyService>,
+    verification_cert: Option<&Certificate>,
+    verification_key: Option<&Arc<SamlSigningKey>>,
     key_id: Option<&str>,
 ) -> Result<bool, SamlError> {
-    let signing_key = key_provider.get_signing_key(key_id)?.clone();
-    let signing_key = Arc::new(signing_key);
-    verify_response_signature_and_references_with_key(response_xml, &signing_key)
+    verify_response_signature_and_references_impl(
+        response_xml,
+        key_service,
+        verification_cert,
+        verification_key,
+        key_id,
+    )
 }
 
 /// Verifies a signed response XML payload and returns parsed core fields.
 pub fn parse_and_verify_response_xml_with_key(
     response_xml: &str,
-    verification_key: &Arc<SigningKey>,
+    verification_key: &Arc<SamlSigningKey>,
 ) -> Result<ParsedResponse, SamlError> {
-    let verified =
-        verify_response_signature_and_references_with_key(response_xml, verification_key)?;
+    let verified = verify_response_signature_and_references(
+        response_xml,
+        None,
+        None,
+        Some(verification_key),
+        None,
+    )?;
     if !verified {
         return Err(SamlError::XmlParsing(
             "Response signature verification failed".to_string(),
@@ -1303,10 +1329,20 @@ pub fn parse_and_verify_response_xml_with_key(
 /// Verifies a signed response XML payload with a key provider and returns parsed core fields.
 pub fn parse_and_verify_response_xml_with_key_provider(
     response_xml: &str,
-    key_provider: &impl crate::key_provider::KeyProvider,
+    key_provider: &crate::key_provider::KeyService,
     key_id: Option<&str>,
 ) -> Result<ParsedResponse, SamlError> {
-    let signing_key = key_provider.get_signing_key(key_id)?.clone();
-    let signing_key = Arc::new(signing_key);
-    parse_and_verify_response_xml_with_key(response_xml, &signing_key)
+    let verified = verify_response_signature_and_references(
+        response_xml,
+        Some(key_provider),
+        None,
+        None,
+        key_id,
+    )?;
+    if !verified {
+        return Err(SamlError::XmlParsing(
+            "Response signature verification failed".to_string(),
+        ));
+    }
+    parse_response_xml(response_xml)
 }

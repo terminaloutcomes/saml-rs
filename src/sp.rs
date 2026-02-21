@@ -89,7 +89,7 @@ impl FromStr for NameIdFormat {
     }
 }
 
-/// Allows one to build a definition with [SamlBindingType::AssertionConsumerService](s) and [SamlBindingType::SingleLogoutService](s).
+/// Allows one to build a definition with [SamlBindingType::AssertionConsumerService] and [SamlBindingType::SingleLogoutService].
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum SamlBindingType {
     /// AssertionConsumerService, where you send Authn Responses.

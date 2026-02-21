@@ -1,6 +1,6 @@
 use http_types::Mime;
 use log::{debug, error};
-use saml_rs::sign::{CanonicalizationMethod, SigningKey};
+use saml_rs::sign::{CanonicalizationMethod, SamlSigningKey};
 use saml_rs::sp::ServiceProvider;
 use std::collections::HashMap;
 use std::convert::From;
@@ -47,7 +47,7 @@ pub struct ServerConfig {
     pub require_signed_authn_requests: bool,
     pub canonicalization_method: CanonicalizationMethod,
 
-    pub saml_signing_key: Arc<SigningKey>,
+    pub saml_signing_key: Arc<SamlSigningKey>,
     pub saml_signing_cert: Option<x509_cert::Certificate>,
 }
 
@@ -174,8 +174,8 @@ impl ServerConfig {
                 std::process::exit(1);
             }
         };
-        let saml_signing_key = saml_rs::sign::SigningKey::rsa_from_pem(&saml_signing_key)
-            .unwrap_or_else(|error| {
+        let saml_signing_key =
+            SamlSigningKey::try_from(saml_signing_key.as_ref()).unwrap_or_else(|error| {
                 error!(
                     "Failed to parse SAML signing key as RSA private key from {}: {:?}",
                     &saml_key_path, error
@@ -278,7 +278,7 @@ impl Default for ServerConfig {
             require_signed_authn_requests: true,
             canonicalization_method: CanonicalizationMethod::ExclusiveCanonical10,
 
-            saml_signing_key: saml_rs::sign::SigningKey::None.into(),
+            saml_signing_key: saml_rs::sign::SamlSigningKey::None.into(),
             saml_signing_cert: None,
         }
     }
@@ -301,7 +301,7 @@ pub struct AppState {
     pub require_signed_authn_requests: bool,
     pub canonicalization_method: CanonicalizationMethod,
 
-    pub saml_signing_key: Arc<SigningKey>,
+    pub saml_signing_key: Arc<SamlSigningKey>,
     pub saml_signing_cert: Option<x509_cert::Certificate>,
 }
 

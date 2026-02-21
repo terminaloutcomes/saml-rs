@@ -20,14 +20,4 @@ impl Default for EncryptionConfig {
     }
 }
 
-/// Trait for providing keys for encryption and signing operations
-pub trait KeyProvider {
-    /// Get the signing key for the given key ID (if any)
-    fn get_signing_key(&self, key_id: Option<&str>) -> Option<Vec<u8>>;
-    /// Get the verification key for the given key ID (if any)
-    fn get_encryption_key(&self, key_id: Option<&str>) -> Option<Vec<u8>>;
-    /// Get the decryption key for the given key ID (if any)
-    fn get_verification_key(&self, key_id: Option<&str>) -> Option<Vec<u8>>;
-    /// Get the decryption key for the given key ID (if any)
-    fn get_decryption_key(&self, key_id: Option<&str>) -> Option<Vec<u8>>;
-}
+// Key management is provided centrally by `crate::key_provider::KeyService`.

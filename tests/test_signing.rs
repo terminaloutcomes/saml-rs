@@ -1,19 +1,24 @@
 use chrono::{DateTime, NaiveDate, Utc};
 use saml_rs::assertion::AssertionAttribute;
-use saml_rs::key_provider::InMemoryKeyProvider;
+use saml_rs::key_provider::KeyService;
 use saml_rs::response::{AuthNStatement, ResponseElementsBuilder};
 use saml_rs::sign::{
-    CanonicalizationMethod, DigestAlgorithm, SigningAlgorithm, SigningKey, generate_private_key,
+    CanonicalizationMethod, DigestAlgorithm, SamlSigningKey, SigningAlgorithm, generate_private_key,
 };
 
 fn build_response_with_cert(
     sign_assertion: bool,
     sign_message: bool,
     canonicalization_method: CanonicalizationMethod,
-) -> (String, std::sync::Arc<SigningKey>, x509_cert::Certificate) {
+) -> (
+    String,
+    std::sync::Arc<SamlSigningKey>,
+    x509_cert::Certificate,
+) {
     let signing_cert = saml_rs::cert::gen_self_signed_certificate("idp.example.com")
         .expect("failed to generate self-signed certificate for test response");
-    let signing_key: std::sync::Arc<SigningKey> = SigningKey::from(generate_private_key()).into();
+    let signing_key: std::sync::Arc<SamlSigningKey> =
+        SamlSigningKey::from(generate_private_key()).into();
 
     let authnstatement = AuthNStatement {
         instant: DateTime::<Utc>::from_naive_utc_and_offset(
@@ -126,9 +131,14 @@ fn inclusive_c14n_is_emitted_in_signedinfo() {
 fn response_signature_and_reference_verify_roundtrip() {
     let (xml, signing_key, _cert) =
         build_response_with_cert(false, true, CanonicalizationMethod::ExclusiveCanonical10);
-    let result =
-        saml_rs::response::verify_response_signature_and_references_with_key(&xml, &signing_key)
-            .expect("verification should complete without parser errors");
+    let result = saml_rs::response::verify_response_signature_and_references(
+        &xml,
+        None,
+        None,
+        Some(&signing_key),
+        None,
+    )
+    .expect("verification should complete without parser errors");
     assert!(result);
 }
 
@@ -137,9 +147,12 @@ fn response_signature_verification_rejects_tampered_payload() {
     let (xml, signing_key, _cert) =
         build_response_with_cert(false, true, CanonicalizationMethod::ExclusiveCanonical10);
     let tampered = xml.replacen("test-user", "evil-user", 1);
-    let result = saml_rs::response::verify_response_signature_and_references_with_key(
+    let result = saml_rs::response::verify_response_signature_and_references(
         &tampered,
-        &signing_key,
+        None,
+        None,
+        Some(&signing_key),
+        None,
     )
     .expect("verification should complete without parser errors");
     assert!(!result);
@@ -154,9 +167,12 @@ fn response_signature_verification_rejects_reference_uri_mismatch() {
         "URI=\"#_different\"",
         1,
     );
-    let result = saml_rs::response::verify_response_signature_and_references_with_key(
+    let result = saml_rs::response::verify_response_signature_and_references(
         &tampered,
-        &signing_key,
+        None,
+        None,
+        Some(&signing_key),
+        None,
     )
     .expect("verification should complete without parser errors");
     assert!(!result);
@@ -171,9 +187,12 @@ fn response_signature_verification_rejects_unexpected_transform() {
         "<ds:Transform Algorithm=\"http://example.invalid/transform\"/></ds:Transforms>",
         1,
     );
-    let result = saml_rs::response::verify_response_signature_and_references_with_key(
+    let result = saml_rs::response::verify_response_signature_and_references(
         &tampered,
-        &signing_key,
+        None,
+        None,
+        Some(&signing_key),
+        None,
     )
     .expect("verification should complete without parser errors");
     assert!(!result);
@@ -184,9 +203,12 @@ fn assertion_signature_and_reference_verify_roundtrip() {
     let (xml, signing_key, _cert) =
         build_response_with_cert(true, false, CanonicalizationMethod::ExclusiveCanonical10);
     let assertion_xml = extract_assertion_xml(&xml);
-    let result = saml_rs::assertion::verify_assertion_signature_and_references_with_key(
+    let result = saml_rs::assertion::verify_assertion_signature_and_references(
         &assertion_xml,
-        &signing_key,
+        None,
+        None,
+        Some(&signing_key),
+        None,
     )
     .expect("verification should complete without parser errors");
     assert!(result);
@@ -198,9 +220,12 @@ fn assertion_signature_verification_rejects_tampered_payload() {
         build_response_with_cert(true, false, CanonicalizationMethod::ExclusiveCanonical10);
     let assertion_xml = extract_assertion_xml(&xml);
     let tampered = assertion_xml.replacen("test-user", "evil-user", 1);
-    let result = saml_rs::assertion::verify_assertion_signature_and_references_with_key(
+    let result = saml_rs::assertion::verify_assertion_signature_and_references(
         &tampered,
-        &signing_key,
+        None,
+        None,
+        Some(&signing_key),
+        None,
     )
     .expect("verification should complete without parser errors");
     assert!(!result);
@@ -216,9 +241,12 @@ fn assertion_signature_verification_rejects_reference_uri_mismatch() {
         "URI=\"#_different\"",
         1,
     );
-    let result = saml_rs::assertion::verify_assertion_signature_and_references_with_key(
+    let result = saml_rs::assertion::verify_assertion_signature_and_references(
         &tampered,
-        &signing_key,
+        None,
+        None,
+        Some(&signing_key),
+        None,
     )
     .expect("verification should complete without parser errors");
     assert!(!result);
@@ -234,9 +262,12 @@ fn assertion_signature_verification_rejects_unexpected_transform() {
         "<ds:Transform Algorithm=\"http://example.invalid/transform\"/></ds:Transforms>",
         1,
     );
-    let result = saml_rs::assertion::verify_assertion_signature_and_references_with_key(
+    let result = saml_rs::assertion::verify_assertion_signature_and_references(
         &tampered,
-        &signing_key,
+        None,
+        None,
+        Some(&signing_key),
+        None,
     )
     .expect("verification should complete without parser errors");
     assert!(!result);
@@ -246,12 +277,18 @@ fn assertion_signature_verification_rejects_unexpected_transform() {
 fn response_signature_verifies_via_key_provider() {
     let (xml, signing_key, _cert) =
         build_response_with_cert(false, true, CanonicalizationMethod::ExclusiveCanonical10);
-    let mut provider = InMemoryKeyProvider::new();
-    provider.insert_signing_key("idp-signing", signing_key.as_ref().clone());
-    provider.set_default_signing_key_id("idp-signing");
+    let provider = KeyService::builder()
+        .with_signing_key(&"idp-signing", signing_key.as_ref().clone())
+        .default_signing_key_id(&"idp-signing")
+        .build()
+        .expect("key service should build");
 
-    let result = saml_rs::response::verify_response_signature_and_references_with_key_provider(
-        &xml, &provider, None,
+    let result = saml_rs::response::verify_response_signature_and_references(
+        &xml,
+        Some(&provider),
+        None,
+        None,
+        None,
     )
     .expect("key provider verification should complete without parser errors");
     assert!(result);
@@ -266,9 +303,12 @@ fn response_signature_verification_rejects_multiple_references() {
         "<ds:Reference URI=\"#_another\"><ds:Transforms><ds:Transform Algorithm=\"http://www.w3.org/2000/09/xmldsig#enveloped-signature\"/><ds:Transform Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/></ds:Transforms><ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/><ds:DigestValue>AAAA</ds:DigestValue></ds:Reference></ds:SignedInfo>",
         1,
     );
-    let result = saml_rs::response::verify_response_signature_and_references_with_key(
+    let result = saml_rs::response::verify_response_signature_and_references(
         &tampered,
-        &signing_key,
+        None,
+        None,
+        Some(&signing_key),
+        None,
     )
     .expect("verification should complete without parser errors");
     assert!(!result);
@@ -279,13 +319,17 @@ fn assertion_signature_verifies_via_key_provider() {
     let (xml, signing_key, _cert) =
         build_response_with_cert(true, false, CanonicalizationMethod::ExclusiveCanonical10);
     let assertion_xml = extract_assertion_xml(&xml);
-    let mut provider = InMemoryKeyProvider::new();
-    provider.insert_signing_key("idp-signing", signing_key.as_ref().clone());
-    provider.set_default_signing_key_id("idp-signing");
+    let provider = KeyService::builder()
+        .with_signing_key(&"idp-signing", signing_key.as_ref().clone())
+        .default_signing_key_id(&"idp-signing")
+        .build()
+        .expect("key service should build");
 
-    let result = saml_rs::assertion::verify_assertion_signature_and_references_with_key_provider(
+    let result = saml_rs::assertion::verify_assertion_signature_and_references(
         &assertion_xml,
-        &provider,
+        Some(&provider),
+        None,
+        None,
         None,
     )
     .expect("key provider verification should complete without parser errors");
@@ -302,9 +346,12 @@ fn assertion_signature_verification_rejects_multiple_references() {
         "<ds:Reference URI=\"#_another\"><ds:Transforms><ds:Transform Algorithm=\"http://www.w3.org/2000/09/xmldsig#enveloped-signature\"/><ds:Transform Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/></ds:Transforms><ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/><ds:DigestValue>AAAA</ds:DigestValue></ds:Reference></ds:SignedInfo>",
         1,
     );
-    let result = saml_rs::assertion::verify_assertion_signature_and_references_with_key(
+    let result = saml_rs::assertion::verify_assertion_signature_and_references(
         &tampered,
-        &signing_key,
+        None,
+        None,
+        Some(&signing_key),
+        None,
     )
     .expect("verification should complete without parser errors");
     assert!(!result);

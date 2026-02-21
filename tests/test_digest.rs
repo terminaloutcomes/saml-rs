@@ -6,7 +6,7 @@
 
 #[cfg(feature = "danger_i_want_to_risk_it_all")]
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
-use saml_rs::sign::{DigestAlgorithm, SigningAlgorithm, SigningKey};
+use saml_rs::sign::{DigestAlgorithm, SigningAlgorithm, SamlSigningKey};
 #[cfg(feature = "danger_i_want_to_risk_it_all")]
 use saml_rs::utils::to_hex_string;
 use std::sync::Arc;
@@ -58,7 +58,7 @@ fn strict_mode_rejects_legacy_sha1_vectors_and_sha1_signatures() {
         assert!(!case.expected_sha1_base64.is_empty());
     }
 
-    let signing_key: Arc<SigningKey> = Arc::new(saml_rs::sign::generate_private_key().into());
+    let signing_key: Arc<SamlSigningKey> = Arc::new(saml_rs::sign::generate_private_key().into());
 
     assert!(
         saml_rs::sign::sign_data(SigningAlgorithm::RsaSha1, &signing_key, b"sha1-blocked").is_err(),
@@ -115,7 +115,7 @@ fn danger_mode_allows_legacy_sha1_only_after_explicit_unlock() {
         );
     }
 
-    let signing_key: Arc<SigningKey> = Arc::new(saml_rs::sign::generate_private_key().into());
+    let signing_key: Arc<SamlSigningKey> = Arc::new(saml_rs::sign::generate_private_key().into());
     let signed = saml_rs::sign::sign_data(
         SigningAlgorithm::RsaSha1,
         &signing_key,

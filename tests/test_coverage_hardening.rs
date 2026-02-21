@@ -11,7 +11,7 @@ use std::sync::Arc;
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use certkit::cert::params::{CertificationRequestInfo, DistinguishedName};
 use chrono::{DateTime, NaiveDate, Utc};
-use k256::ecdsa::SigningKey as K256SigningKey;
+use k256::ecdsa::SigningKey;
 use log::debug;
 use rsa::RsaPrivateKey;
 use rsa::pkcs1v15::Pkcs1v15Sign;
@@ -21,7 +21,7 @@ use saml_rs::error::SamlError;
 use saml_rs::response::{AuthNStatement, ResponseElements};
 use saml_rs::security::{SecurityError, XmlSecurityLimits, inspect_xml_payload};
 use saml_rs::sign::{
-    CanonicalizationMethod, DigestAlgorithm, SigningAlgorithm, SigningKey, generate_private_key,
+    CanonicalizationMethod, DigestAlgorithm, SamlSigningKey, SigningAlgorithm, generate_private_key,
 };
 use saml_rs::sp::{BindingMethod, NameIdFormat, SamlBindingType, ServiceBinding};
 use saml_rs::utils::generate_test_keypair;
@@ -96,7 +96,7 @@ fn sample_response_builder(
         .sign_assertion(sign_assertion)
         .sign_message(sign_message)
         .signing_key(
-            SigningKey::Rsa(
+            SamlSigningKey::Rsa(
                 generate_test_keypair()
                     .expect("failed to generate keypair")
                     .0,
@@ -286,7 +286,7 @@ fn response_builder_rejects_bad_inputs_and_builds_unsigned_responses() {
 
 #[test]
 fn signing_roundtrip_sha256_detects_tamper_and_conversion_fallbacks() {
-    let signing_key: Arc<SigningKey> = Arc::new(generate_private_key().into());
+    let signing_key: Arc<SamlSigningKey> = Arc::new(generate_private_key().into());
 
     let signed = saml_rs::sign::sign_data(SigningAlgorithm::RsaSha256, &signing_key, b"integrity")
         .expect("signing should succeed with valid key and algorithm");
@@ -391,8 +391,8 @@ fn verify_data_with_cert_rsa_sha256_roundtrip_and_tamper() {
 
 #[test]
 fn signing_roundtrip_ecdsa_sha256_detects_tamper() {
-    let signing_key = SigningKey::EcDsa256(K256SigningKey::random(&mut rsa::rand_core::OsRng));
-    let signing_key: Arc<SigningKey> = Arc::new(signing_key);
+    let signing_key = SamlSigningKey::EcDsa256(SigningKey::random(&mut rsa::rand_core::OsRng));
+    let signing_key: Arc<SamlSigningKey> = Arc::new(signing_key);
 
     let signed = saml_rs::sign::sign_data(
         SigningAlgorithm::EcDsaSha256,

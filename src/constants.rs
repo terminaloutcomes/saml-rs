@@ -12,7 +12,7 @@ use std::fmt;
 pub enum StatusCode {
     //  The permissible top-level <StatusCode> values are as follows:
     /// urn:oasis:names:tc:SAML:2.0:status:Success
-    /// The request succeeded. Additional information MAY be returned in the <StatusMessage> and/or <StatusDetail> elements.
+    /// The request succeeded. Additional information MAY be returned in the `<StatusMessage>` and/or `<StatusDetail>` elements.
     Success,
     /// urn:oasis:names:tc:SAML:2.0:status:Requester
     /// The request could not be performed due to an error on the part of the requester.
@@ -40,13 +40,13 @@ pub enum StatusCode {
     /// The specified authentication context requirements cannot be met by the responder.
     NoAuthnContext,
     /// urn:oasis:names:tc:SAML:2.0:status:NoAvailableIDP
-    /// Used by an intermediary to indicate that none of the supported identity provider <Loc> elements in an \<IDPList\> can be resolved or that none of the supported identity providers are available.
+    /// Used by an intermediary to indicate that none of the supported identity provider `<Loc>` elements in an `<IDPList>` can be resolved or that none of the supported identity providers are available.
     NoAvailableIDP,
     /// urn:oasis:names:tc:SAML:2.0:status:NoPassive
     /// Indicates the responding provider cannot authenticate the principal passively, as has been requested.
     NoPassive,
     /// urn:oasis:names:tc:SAML:2.0:status:NoSupportedIDP
-    /// Used by an intermediary to indicate that none of the identity providers in an <IDPList> are supported by the intermediary.
+    /// Used by an intermediary to indicate that none of the identity providers in an `<IDPList>` are supported by the intermediary.
     NoSupportedIDP,
     /// urn:oasis:names:tc:SAML:2.0:status:PartialLogout
     /// Used by a session authority to indicate to a session participant that it was not able to propagate logout to all other session participants.

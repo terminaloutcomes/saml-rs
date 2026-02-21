@@ -1,7 +1,7 @@
 use chrono::{DateTime, Duration, NaiveDate, Utc};
 use saml_rs::assertion::AssertionAttribute;
 use saml_rs::response::{AuthNStatement, ResponseElementsBuilder};
-use saml_rs::sign::SigningKey;
+use saml_rs::sign::SamlSigningKey;
 use saml_rs::test_samples::TEST_SAML_UNSIGNED_RESPONSE_UNSIGNED_ASSERTION;
 use saml_rs::utils::generate_test_keypair;
 use std::str::from_utf8;
@@ -70,7 +70,7 @@ fn test_full_response_something_something() {
         .status(saml_rs::constants::StatusCode::AuthnFailed)
         .sign_assertion(false)
         .sign_message(false)
-        .signing_key(SigningKey::from(generate_test_keypair().expect("failed to generate keypair").0)
+        .signing_key(SamlSigningKey::from(generate_test_keypair().expect("failed to generate keypair").0)
             .into())
         .signing_cert(None)
         .signing_algorithm(saml_rs::sign::SigningAlgorithm::RsaSha256)

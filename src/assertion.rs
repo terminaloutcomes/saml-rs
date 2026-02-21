@@ -27,7 +27,7 @@ use log::{debug, error};
 use serde::Serialize;
 
 use crate::error::SamlError;
-use crate::sign::SigningKey;
+use crate::sign::SamlSigningKey;
 use crate::utils::*;
 use crate::xml::write_event;
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
@@ -85,7 +85,7 @@ pub struct Assertion {
     pub sign_assertion: bool,
 
     /// a private key for signing
-    pub signing_key: Arc<SigningKey>, // TODO find a better way to do this, maybe with a dyn trait
+    pub signing_key: Arc<SamlSigningKey>, // TODO find a better way to do this, maybe with a dyn trait
     /// Certificate for signing/digest
     pub signing_cert: Option<x509_cert::Certificate>,
 }
@@ -117,7 +117,7 @@ impl Into<Vec<u8>> for Assertion {
 }
 
 impl Assertion {
-    /// This exists so we can return a copy of an [Assertion] without the signature flags so we can trigger [Assertion.Into<Vec<u8>>] for signing
+    /// This exists so we can return a copy of an [Assertion] without the signature flags so we can trigger `Assertion.Into<Vec<u8>>` for signing
     pub fn without_signature(&self) -> Self {
         Self {
             assertion_id: self.assertion_id.clone(),
@@ -790,13 +790,37 @@ fn parse_signature_value(signature_xml: &str) -> Result<String, SamlError> {
     Ok(signature_value)
 }
 
-fn verify_assertion_signature_and_references_impl(
+fn verify_signedinfo_with_options(
+    signing_algorithm: crate::sign::SigningAlgorithm,
+    bytes: &[u8],
+    signature: &[u8],
+    key_service: Option<&crate::key_provider::KeyService>,
+    verification_cert: Option<&Certificate>,
+    verification_key: Option<&Arc<SamlSigningKey>>,
+    key_id: Option<&str>,
+) -> Result<bool, SamlError> {
+    if let Some(service) = key_service {
+        return service.verify(key_id, signing_algorithm, bytes, signature);
+    }
+    if let Some(cert) = verification_cert {
+        return crate::sign::verify_data_with_cert(signing_algorithm, cert, bytes, signature);
+    }
+    if let Some(key) = verification_key {
+        return crate::sign::verify_data(signing_algorithm, key, bytes, signature);
+    }
+    Err(SamlError::NoKeyAvailable)
+}
+
+/// Verifies assertion-level signature and references using one of:
+/// - `key_service` + optional `key_id`
+/// - `verification_cert`
+/// - `verification_key`
+pub fn verify_assertion_signature_and_references(
     assertion_xml: &str,
-    mut verify_signedinfo: impl FnMut(
-        crate::sign::SigningAlgorithm,
-        &[u8],
-        &[u8],
-    ) -> Result<bool, SamlError>,
+    key_service: Option<&crate::key_provider::KeyService>,
+    verification_cert: Option<&Certificate>,
+    verification_key: Option<&Arc<SamlSigningKey>>,
+    key_id: Option<&str>,
 ) -> Result<bool, SamlError> {
     if let Err(error) = crate::security::inspect_xml_payload(
         assertion_xml,
@@ -883,49 +907,26 @@ fn verify_assertion_signature_and_references_impl(
         .canonicalize(signedinfo_xml)?;
     let signature_bytes = BASE64_STANDARD.decode(signature_value)?;
 
-    let canonical_verified = verify_signedinfo(
+    let canonical_verified = verify_signedinfo_with_options(
         signedinfo.signing_algorithm,
         canonical_signedinfo.as_bytes(),
         &signature_bytes,
+        key_service,
+        verification_cert,
+        verification_key,
+        key_id,
     )?;
     if canonical_verified {
         return Ok(true);
     }
 
-    verify_signedinfo(
+    verify_signedinfo_with_options(
         signedinfo.signing_algorithm,
         signedinfo_xml.as_bytes(),
         &signature_bytes,
+        key_service,
+        verification_cert,
+        verification_key,
+        key_id,
     )
-}
-
-/// Verifies assertion-level XML signature and SignedInfo reference integrity using an X509 certificate.
-pub fn verify_assertion_signature_and_references(
-    assertion_xml: &str,
-    verification_cert: &Certificate,
-) -> Result<bool, SamlError> {
-    verify_assertion_signature_and_references_impl(assertion_xml, |algorithm, bytes, signature| {
-        crate::sign::verify_data_with_cert(algorithm, verification_cert, bytes, signature)
-    })
-}
-
-/// Verifies assertion-level XML signature and SignedInfo reference integrity using a key.
-pub fn verify_assertion_signature_and_references_with_key(
-    assertion_xml: &str,
-    verification_key: &Arc<SigningKey>,
-) -> Result<bool, SamlError> {
-    verify_assertion_signature_and_references_impl(assertion_xml, |algorithm, bytes, signature| {
-        crate::sign::verify_data(algorithm, verification_key, bytes, signature)
-    })
-}
-
-/// Verifies assertion-level signature and references using a [`crate::key_provider::KeyProvider`].
-pub fn verify_assertion_signature_and_references_with_key_provider(
-    assertion_xml: &str,
-    key_provider: &impl crate::key_provider::KeyProvider,
-    key_id: Option<&str>,
-) -> Result<bool, SamlError> {
-    let signing_key = key_provider.get_signing_key(key_id)?.clone();
-    let signing_key = Arc::new(signing_key);
-    verify_assertion_signature_and_references_with_key(assertion_xml, &signing_key)
 }

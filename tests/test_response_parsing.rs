@@ -1,14 +1,18 @@
 use chrono::{DateTime, NaiveDate, Utc};
 use saml_rs::assertion::AssertionAttribute;
-use saml_rs::key_provider::InMemoryKeyProvider;
+use saml_rs::key_provider::KeyService;
 use saml_rs::response::{AuthNStatement, ResponseElementsBuilder};
 use saml_rs::sign::{
-    CanonicalizationMethod, DigestAlgorithm, SigningAlgorithm, SigningKey, generate_private_key,
+    CanonicalizationMethod, DigestAlgorithm, SamlSigningKey, SigningAlgorithm, generate_private_key,
 };
 
 fn build_response_xml(
     sign_message: bool,
-) -> (String, std::sync::Arc<SigningKey>, x509_cert::Certificate) {
+) -> (
+    String,
+    std::sync::Arc<SamlSigningKey>,
+    x509_cert::Certificate,
+) {
     let authnstatement = AuthNStatement {
         instant: DateTime::<Utc>::from_naive_utc_and_offset(
             NaiveDate::from_ymd_opt(2014, 7, 17)
@@ -28,7 +32,8 @@ fn build_response_xml(
     ]
     .to_vec();
 
-    let signing_key: std::sync::Arc<SigningKey> = SigningKey::from(generate_private_key()).into();
+    let signing_key: std::sync::Arc<SamlSigningKey> =
+        SamlSigningKey::from(generate_private_key()).into();
     let signing_cert = saml_rs::cert::gen_self_signed_certificate("idp.example.com")
         .expect("failed to generate self-signed certificate for test response parsing");
 
@@ -117,9 +122,11 @@ fn parse_response_xml_rejects_missing_required_field() {
 #[test]
 fn parse_and_verify_response_xml_with_key_provider_roundtrip() {
     let (xml, signing_key, _cert) = build_response_xml(true);
-    let mut provider = InMemoryKeyProvider::new();
-    provider.insert_signing_key("idp-signing", signing_key.as_ref().clone());
-    provider.set_default_signing_key_id("idp-signing");
+    let provider = KeyService::builder()
+        .with_signing_key(&"idp-signing", signing_key.as_ref().clone())
+        .default_signing_key_id(&"idp-signing")
+        .build()
+        .expect("key service should build");
 
     let parsed =
         saml_rs::response::parse_and_verify_response_xml_with_key_provider(&xml, &provider, None)
@@ -133,9 +140,11 @@ fn parse_and_verify_response_xml_with_key_provider_roundtrip() {
 #[test]
 fn parse_and_verify_response_xml_with_key_provider_rejects_tamper() {
     let (xml, signing_key, _cert) = build_response_xml(true);
-    let mut provider = InMemoryKeyProvider::new();
-    provider.insert_signing_key("idp-signing", signing_key.as_ref().clone());
-    provider.set_default_signing_key_id("idp-signing");
+    let provider = KeyService::builder()
+        .with_signing_key(&"idp-signing", signing_key.as_ref().clone())
+        .default_signing_key_id(&"idp-signing")
+        .build()
+        .expect("key service should build");
 
     let tampered = xml.replacen("test-user", "evil-user", 1);
     let error = saml_rs::response::parse_and_verify_response_xml_with_key_provider(
