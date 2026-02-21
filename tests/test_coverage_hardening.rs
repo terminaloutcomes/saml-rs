@@ -5,6 +5,7 @@
 //! - Intent: why an attacker would attempt it.
 //! - Expected response: exact strict-mode rejection category.
 
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -689,7 +690,7 @@ async fn load_key_and_certificate_helpers_cover_file_paths() {
         .await
         .expect("failed to load private key file");
 
-    saml_rs::sign::load_public_cert_from_filename(cert_path.path().to_string_lossy().as_ref())
+    saml_rs::sign::load_public_cert_from_filename(&cert_path)
         .await
         .expect("failed to load cert file");
 
@@ -699,8 +700,10 @@ async fn load_key_and_certificate_helpers_cover_file_paths() {
         "missing key file should produce an error"
     );
 
-    let missing_cert =
-        saml_rs::sign::load_public_cert_from_filename("/tmp/does-not-exist-cert.pem").await;
+    let missing_cert = saml_rs::sign::load_public_cert_from_filename(&PathBuf::from(
+        "/tmp/does-not-exist-cert.pem",
+    ))
+    .await;
     assert!(
         missing_cert.is_err(),
         "missing cert file should produce an error"
@@ -740,16 +743,17 @@ async fn async_load_key_and_certificate_helpers_cover_async_paths() {
         .await
         .expect("async load of private key file should succeed");
 
-    saml_rs::sign::load_public_cert_from_filename(cert_path.path().to_string_lossy().as_ref())
+    saml_rs::sign::load_public_cert_from_filename(&cert_path)
         .await
         .expect("async load of certificate file should succeed");
 
     let missing_key = load_key_from_filename_async("/dev/null/does-not-exist-async-key.pem").await;
     assert!(missing_key.is_err(), "missing async key file should error");
 
-    let missing_cert =
-        saml_rs::sign::load_public_cert_from_filename("/dev/null/does-not-exist-async-cert.pem")
-            .await;
+    let missing_cert = saml_rs::sign::load_public_cert_from_filename(&PathBuf::from(
+        "/dev/null/does-not-exist-async-cert.pem",
+    ))
+    .await;
     assert!(
         missing_cert.is_err(),
         "missing async cert file should error"

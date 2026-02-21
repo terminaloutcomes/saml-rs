@@ -20,3 +20,20 @@ run = '''
 cargo doc --no-deps --workspace
 cd docs && mdbook build
 '''
+
+
+[tasks.python-type]
+description = "Run type checks"
+run = "ty check scripts"
+
+[tasks.python-lint]
+description = "Run ruff linter over everything"
+run = "ruff check scripts"
+
+[tasks.python-check]
+description = "Run all python checks (type and lint)"
+depends = ["python-type", "python-lint"]
+
+[tools]
+ruff = "latest"
+ty = "latest"

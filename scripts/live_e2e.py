@@ -545,21 +545,15 @@ def start_saml_server(case: LiveE2ECase) -> None:
     env = os.environ.copy()
     env.update(
         {
-            "SAML_BIND_ADDRESS": "127.0.0.1",
-            "SAML_BIND_PORT": "18081",
-            "SAML_LISTEN_SCHEME": "http",
-            "SAML_PUBLIC_HOSTNAME": "localhost:18081",
-            "SAML_PUBLIC_BASE_URL": "http://localhost:18081/SAML",
-            "SAML_ENTITY_ID": "http://localhost:18081/SAML/Metadata",
-            "SAML_ALLOW_UNKNOWN_SP": _bool_string(case.idp.allow_unknown_sp),
-            "SAML_SAML_CERT_PATH": str(CERT_PATH),
-            "SAML_SAML_KEY_PATH": str(KEY_PATH),
-            "SAML_SIGN_ASSERTION": _bool_string(case.idp.sign_assertion),
-            "SAML_SIGN_MESSAGE": _bool_string(case.idp.sign_message),
-            "SAML_REQUIRE_SIGNED_AUTHN_REQUESTS": _bool_string(
-                case.idp.require_signed_authn_requests
-            ),
-            "SAML_C14N_METHOD": case.idp.c14n_method,
+            "SAML_TEST_SERVER_BIND_ADDRESS": "127.0.0.1",
+            "SAML_TEST_SERVER_BIND_PORT": "18081",
+            "SAML_TEST_SERVER_FRONTEND_HOSTNAME": "localhost",
+            "SAML_TEST_SERVER_FRONTEND_PORT": "18081",
+            "SAML_TEST_SERVER_PUBLIC_BASE_URL": "http://localhost:18081/SAML",
+            "SAML_TEST_SERVER_ENTITY_ID": "http://localhost:18081/SAML/Metadata",
+            "SAML_TEST_SERVER_SAML_CERT_PATH": str(CERT_PATH),
+            "SAML_TEST_SERVER_SAML_KEY_PATH": str(KEY_PATH),
+            "SAML_TEST_SERVER_CANONICALIZATION_METHOD": case.idp.c14n_method,
             "SAML_DANGER_UNLOCK": _bool_string(case.danger.unlock),
             "SAML_DANGER_ALLOW_UNSIGNED_AUTHN_REQUESTS": _bool_string(
                 case.danger.allow_unsigned_authn_requests
@@ -572,6 +566,18 @@ def start_saml_server(case: LiveE2ECase) -> None:
             ),
         }
     )
+
+    bool_flags = {
+        "SAML_TEST_SERVER_ALLOW_UNKNOWN_SP": case.idp.allow_unknown_sp,
+        "SAML_TEST_SERVER_DISABLE_ASSERTION_SIGNING": not case.idp.sign_assertion,
+        "SAML_TEST_SERVER_DISABLE_MESSAGE_SIGNING": not case.idp.sign_message,
+        "SAML_TEST_SERVER_DISABLE_REQUIRED_SIGNED_AUTHN_REQUESTS": not case.idp.require_signed_authn_requests,
+    }
+    for flag_name, enabled in bool_flags.items():
+        if enabled:
+            env[flag_name] = "true"
+        else:
+            env.pop(flag_name, None)
 
     try:
         SAML_SERVER_LOG.write_text("", encoding="utf-8")
