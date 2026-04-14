@@ -15,7 +15,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "mypy>=1.19.1",
-    "pytest>=9.0.2",
+    "pytest>=9.0.3",
     "lxml-stubs>=0.4.0,<1.0.0",
     "coverage>=7.13.4",
     "ty>=0.0.17",
