@@ -6,7 +6,7 @@
 
 #[cfg(feature = "danger_i_want_to_risk_it_all")]
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
-use saml_rs::sign::{DigestAlgorithm, SigningAlgorithm, SamlSigningKey};
+use saml_rs::sign::{DigestAlgorithm, SamlSigningKey, SigningAlgorithm};
 #[cfg(feature = "danger_i_want_to_risk_it_all")]
 use saml_rs::utils::to_hex_string;
 use std::sync::Arc;

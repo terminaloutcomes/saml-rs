@@ -71,16 +71,16 @@ pub fn parse_encrypted_assertion(xml_bytes: &[u8]) -> Result<EncryptedAssertion,
                 }
                 _ => {}
             },
-            XmlEvent::Characters(text) => {
-                if state.expecting_cipher_value && !text.trim().is_empty() {
-                    let value = text.trim().to_string();
-                    if state.in_encrypted_key {
-                        state.key_cipher_value = Some(value);
-                    } else if state.in_encrypted_data {
-                        state.data_cipher_value = Some(value);
-                    }
-                    state.expecting_cipher_value = false;
+            XmlEvent::Characters(text)
+                if state.expecting_cipher_value && !text.trim().is_empty() =>
+            {
+                let value = text.trim().to_string();
+                if state.in_encrypted_key {
+                    state.key_cipher_value = Some(value);
+                } else if state.in_encrypted_data {
+                    state.data_cipher_value = Some(value);
                 }
+                state.expecting_cipher_value = false;
             }
             _ => {}
         }

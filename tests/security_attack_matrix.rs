@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 use saml_rs::{
     error::SamlError,
-    sign::{SigningAlgorithm, SamlSigningKey},
+    sign::{SamlSigningKey, SigningAlgorithm},
 };
 
 #[derive(Clone, Copy, Debug)]
