@@ -78,7 +78,7 @@ xml-rs = { workspace = true }
 xmlparser = { workspace = true }
 
 [dev-dependencies]
-reqwest = { workspace = true, features = ["blocking", "native-tls"] }
+reqwest = { workspace = true, features = ["blocking", "form", "native-tls"] }
 regex = { workspace = true }
 hex = { workspace = true }
 tokio = { workspace = true, features = ["fs", "rt", "macros"] }

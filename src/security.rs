@@ -254,21 +254,17 @@ pub fn inspect_xml_payload(payload: &str, limits: XmlSecurityLimits) -> Result<(
                     depth -= 1;
                 }
             },
-            Token::Text { text } => {
-                if text.as_str().len() > limits.max_text_bytes {
-                    return Err(SecurityError::XmlTextTooLarge {
-                        limit: limits.max_text_bytes,
-                        actual: text.as_str().len(),
-                    });
-                }
+            Token::Text { text } if text.as_str().len() > limits.max_text_bytes => {
+                return Err(SecurityError::XmlTextTooLarge {
+                    limit: limits.max_text_bytes,
+                    actual: text.as_str().len(),
+                });
             }
-            Token::Cdata { text, .. } => {
-                if text.as_str().len() > limits.max_text_bytes {
-                    return Err(SecurityError::XmlTextTooLarge {
-                        limit: limits.max_text_bytes,
-                        actual: text.as_str().len(),
-                    });
-                }
+            Token::Cdata { text, .. } if text.as_str().len() > limits.max_text_bytes => {
+                return Err(SecurityError::XmlTextTooLarge {
+                    limit: limits.max_text_bytes,
+                    actual: text.as_str().len(),
+                });
             }
             _ => {}
         }
