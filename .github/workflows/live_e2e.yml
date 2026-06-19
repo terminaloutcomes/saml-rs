@@ -31,7 +31,7 @@ jobs:
           - danger-flow-response-signing-required-success
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Ensure Docker daemon is running
         run: |
