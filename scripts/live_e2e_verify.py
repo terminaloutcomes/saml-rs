@@ -10,17 +10,16 @@ import http.cookiejar
 import os
 import ssl
 import sys
-import zlib
 import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta, timezone
+import zlib
+from datetime import UTC, datetime, timedelta
 from html.parser import HTMLParser
-from typing import Dict, Optional, Tuple
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse, urlunparse
 from urllib.request import (
     HTTPCookieProcessor,
-    HTTPSHandler,
     HTTPRedirectHandler,
+    HTTPSHandler,
     Request,
     build_opener,
 )
@@ -79,9 +78,9 @@ class SamlFormParser(HTMLParser):
 
     def __init__(self) -> None:
         super().__init__()
-        self.form_action: Optional[str] = None
+        self.form_action: str | None = None
         self.in_target_form = False
-        self.inputs: Dict[str, str] = {}
+        self.inputs: dict[str, str] = {}
 
     def handle_starttag(self, tag: str, attrs) -> None:
         attrs_dict = dict(attrs)
@@ -121,7 +120,7 @@ def _parse_saml_datetime(value: str, label: str) -> datetime:
         raise FlowError(f"Invalid {label} datetime value {value!r}: {error}")
     if parsed.tzinfo is None:
         raise FlowError(f"Invalid {label} datetime value {value!r}: missing timezone")
-    return parsed.astimezone(timezone.utc)
+    return parsed.astimezone(UTC)
 
 
 def _is_saml_id(value: str | None) -> bool:
@@ -429,7 +428,7 @@ def inspect_saml_response(
             f"NotBefore={not_before.isoformat()}, NotOnOrAfter={not_on_or_after.isoformat()}"
         )
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     skew = timedelta(seconds=CLOCK_SKEW_SECONDS)
     if now + skew < not_before:
         raise FlowError(
@@ -490,9 +489,9 @@ def request_no_redirect(
     opener,
     url: str,
     method: str = "GET",
-    body: Optional[bytes] = None,
-    headers: Optional[Dict[str, str]] = None,
-) -> Tuple[int, Dict[str, str], bytes]:
+    body: bytes | None = None,
+    headers: dict[str, str] | None = None,
+) -> tuple[int, dict[str, str], bytes]:
     req = Request(url=url, data=body, method=method)
     for key, value in (headers or {}).items():
         req.add_header(key, value)
@@ -518,7 +517,7 @@ def request_no_redirect(
         )
 
 
-def first_location(current_url: str, status: int, headers: Dict[str, str]) -> str:
+def first_location(current_url: str, status: int, headers: dict[str, str]) -> str:
     if status not in REDIRECT_CODES:
         raise FlowError(
             f"Expected redirect from {current_url}, got status={status}",
@@ -574,7 +573,7 @@ def main() -> None:
 
     print(f"Starting OIDC auth flow at: {current_url}")
 
-    idp_url: Optional[str] = None
+    idp_url: str | None = None
     for _ in range(10):
         status, headers, _ = request_no_redirect(opener, current_url)
         next_url = first_location(current_url, status, headers)
