@@ -10,8 +10,7 @@ publish = false
 [workspace.dependencies]
 tokio = { version = "1.49.0", features = ["rt", "macros"] }
 base64 = "0.22.1"
-chrono = "0.4.43"
-config = "0.15.19"
+chrono = { version = "0.4.43", features = ["serde"] }
 driftwood = "0.0.7"
 hex = "0.4.3"
 http-types = "2.11.1"
@@ -19,8 +18,7 @@ inflate = "0.4.5"
 log = "0.4.29"
 regex = "1.12.3"
 reqwest = "0.13.2"
-serde = "1.0.228"
-serde-xml-rs = "0.8.2"
+serde = { version = "1.0.229", features = ["derive"] }
 serde_derive = "1.0"
 serde_json = "1.0"
 sha-1 = "0.10.0"
@@ -57,18 +55,15 @@ hmac = "0.12"
 inflate = { workspace = true }
 k256 = { version = "0.13.4", features = ["ecdh", "ecdsa", "pkcs8", "serde"] }
 log = { workspace = true }
-p192 = "0.13.0"
 quick-xml = "0.39.1"
 rand = "0.10"
 rsa = "0.9"
 serde = { workspace = true }
-serde_derive = { workspace = true }
 sha1 = { package = "sha-1", version = "0.10" }
 sha2 = "0.10"
 signature = { version = "2.2.0", features = ["digest"] }
 subtle = "2.6.1"
 thiserror = "2.0.18"
-tide = { workspace = true }
 tokio = { workspace = true, features = ["fs", "rt"] }
 typenum = "1.17"
 uuid = { workspace = true, features = ["serde", "v4"] }

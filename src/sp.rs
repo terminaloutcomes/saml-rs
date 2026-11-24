@@ -348,7 +348,7 @@ impl FromStr for ServiceProvider {
                         .trim()
                         .to_string();
                     if !content.is_empty() {
-                        return Err(SamlError::XmlParsing(
+                        Err(SamlError::XmlParsing(
                             "SP metadata contains unsupported CDATA content in strict mode"
                                 .to_string(),
                         ))?;

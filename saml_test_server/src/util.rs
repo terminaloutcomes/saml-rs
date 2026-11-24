@@ -76,7 +76,7 @@ impl ServerConfig {
 
         let entity_id = opts
             .entity_id
-            .unwrap_or(format!("{}/Metadata", &public_hostname));
+            .unwrap_or(format!("{}/Metadata", public_hostname));
 
         let canonicalization_method = opts.canonicalization_method.unwrap_or_default();
 
@@ -147,7 +147,7 @@ async fn load_sp_metadata(filenames: Vec<String>) -> HashMap<String, ServiceProv
                 Err(error) => {
                     error!(
                         "Couldn't load SP Metadata file {} for some reason: {:?}",
-                        &expanded_filename, error
+                        expanded_filename, error
                     );
                     continue;
                 }
