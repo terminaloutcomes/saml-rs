@@ -349,7 +349,7 @@ pub async fn saml_redirect_get(req: tide::Request<AppState>) -> tide::Result {
     let mut _form_target = String::new();
 
     response_body.push_str("<p style='color: darkgreen'>found SP in state!</p>");
-    response_body.push_str(&format!("<p>{:?}</p>", &service_provider));
+    response_body.push_str(&format!("<p>{:?}</p>", service_provider));
     // find the consumer
     for service in &service_provider.services {
         match service.servicetype {
@@ -561,10 +561,7 @@ async fn main() -> tide::Result<()> {
 
     saml_process.at("/Redirect").get(saml_redirect_get);
 
-    let bind_target = format!(
-        "{}:{}",
-        &server_config.bind_address, server_config.bind_port
-    );
+    let bind_target = format!("{}:{}", server_config.bind_address, server_config.bind_port);
 
     if let (Some(tls_cert), Some(tls_key)) =
         (&server_config.tls_cert_path, &server_config.tls_key_path)

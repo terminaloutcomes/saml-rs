@@ -97,7 +97,7 @@ fn write_assertion_tmpdir(buffer: &[u8]) {
     assertionpath.set_file_name(assertionfilename);
     debug!(
         "Assertion output path prepared ({:?}); skipping debug file write.",
-        &assertionpath
+        assertionpath
     );
     debug!("Assertion output length: {}", buffer.len());
 }
