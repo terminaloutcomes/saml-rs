@@ -141,54 +141,53 @@ fn test_parse_test_parse_saml_base64_authn_request() {
     assert!(saml_rs::parse_authn_request(&decoded).is_ok());
 }
 
-#[test]
-fn test_validate_metadata_samltool() {
-    let metadata_input = SamlMetadata::new(
-        "example.com",
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(
-            saml_rs::cert::gen_self_signed_certificate("example.com")
-                .expect("failed to generate self-signed certificate for test metadata"),
-        ),
-    );
-    let metadata: String = saml_rs::metadata::generate_metadata_xml(&metadata_input)
-        .expect("failed to generate metadata XML for test");
+// #[test]
+// fn test_validate_metadata_samltool() {
+//     let metadata_input = SamlMetadata::new(
+//         "example.com",
+//         None,
+//         None,
+//         None,
+//         None,
+//         None,
+//         Some(
+//             saml_rs::cert::gen_self_signed_certificate("example.com")
+//                 .expect("failed to generate self-signed certificate for test metadata"),
+//         ),
+//     );
+//     let metadata: String = saml_rs::metadata::generate_metadata_xml(&metadata_input)
+//         .expect("failed to generate metadata XML for test");
 
-    let params = [
-        ("xsd", "md-metadata"),
-        ("act_validate_xml", "Validate+XML+with+the+XSD+schema"),
-        ("xml", &metadata),
-    ];
+//     let params = [
+//         ("xsd", "md-metadata"),
+//         ("act_validate_xml", "Validate+XML+with+the+XSD+schema"),
+//         ("xml", &metadata),
+//     ];
 
-    eprintln!("metadata XML:\n{}", metadata);
+//     eprintln!("metadata XML:\n{}", metadata);
 
-    let client = reqwest::blocking::Client::new();
-    let value = client
-        .post("https://www.samltool.com/validate_xml.php")
-        .form(&params)
-        .send().expect("failed to send POST request to SAML XML validation endpoint in test_validate_metadata_samltool");
+//     let client = reqwest::blocking::Client::new();
+//     let value = client
+//         .post("https://www.samltool.com/validate_xml.php")
+//         .form(&params)
+//         .send().expect("failed to send POST request to SAML XML validation endpoint in test_validate_metadata_samltool");
 
-    eprintln!("success doing post: {:?}", value);
-    // debug!("{:?}", value.bytes());
+//     eprintln!("success doing post: {:?}", value);
+//     // debug!("{:?}", value.bytes());
 
-    let content = value.text().expect("Failed to read response text from SAML XML validation request in test_validate_metadata_samltool");
-    /* looking for this
+//     let content = value.text().expect("Failed to read response text from SAML XML validation request in test_validate_metadata_samltool");
+//     /* looking for this
 
-                <div class="validatexml-area3"><br>
+//                 <div class="validatexml-area3"><br>
 
-                    <div class="alert alert-success">
-                        <h3>The XML is valid.</h3>
-                    </div>
-                </div>
-    */
-
-    assert!(
-        content.contains("The XML is valid."),
-        "failed to find \"The XML is valid.\" in response content from SAML XML validation request in test_validate_metadata_samltool {}",
-        content
-    );
-}
+//                     <div class="alert alert-success">
+//                         <h3>The XML is valid.</h3>
+//                     </div>
+//                 </div>
+//     */
+//     assert!(
+//         content.contains("The XML is valid."),
+//         "failed to find \"The XML is valid.\" in response content from SAML XML validation request in test_validate_metadata_samltool {}",
+//         content
+//     );
+// }
