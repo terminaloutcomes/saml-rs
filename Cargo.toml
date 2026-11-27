@@ -9,7 +9,7 @@ publish = false
 
 [workspace.dependencies]
 tokio = { version = "1.49.0", features = ["rt", "macros"] }
-base64 = "0.22.1"
+base64 = "0.23.1"
 chrono = { version = "0.4.43", features = ["serde"] }
 driftwood = "0.0.7"
 hex = "0.4.3"
